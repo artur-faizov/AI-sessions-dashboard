@@ -80,7 +80,7 @@ const sess = (o = {}) => ({
     id: 's1', parent: null, title: 'fix session', agent: 'build', model: null, dir: '/p',
     maxctx: 900, in: 10, out: 20, reason: 5, cr: 7, cw: 8,
     created: 1700000000000, updated: 1700000100000, dur: 100000,
-    children: [], subtree: {in: 10, out: 20, reason: 5, cr: 7, cw: 8}, ...o,
+    active: false, beats: [], children: [], subtree: {in: 10, out: 20, reason: 5, cr: 7, cw: 8}, ...o,
 });
 const call = (o = {}) => ({mid: 'm', time: 1700000000000, in: 1, cr: 0, cw: 0, out: 0, reason: 0, ctx: 111, ...o});
 
@@ -176,6 +176,50 @@ test('refresh does not fetch calls or prompt when no session is selected', async
     await settle();
     assert.ok(!ctx.fetchLog.some(u => u.startsWith('/api/calls')));
     assert.ok(!ctx.fetchLog.some(u => u.startsWith('/api/prompt')));
+});
+
+test('tree hearts: most recent active is xl, second lg, other active regular, inactive empty', async () => {
+    const ctx = boot({
+        '/api/tree': [
+            sess({id: 'top', active: true, updated: 9000000}),
+            sess({id: 'second', active: true, updated: 8000000}),
+            sess({id: 'third', active: true, updated: 7000000}),
+            sess({id: 'idle'}),
+        ],
+    });
+    await settle();
+    const tree = ctx.els.get('#tree').innerHTML;
+    assert.ok(/class="ecg xl"/.test(tree), 'most recently updated active session gets the xl ecg');
+    assert.ok(/class="ecg lg"/.test(tree), 'second most recently updated active session gets the lg ecg');
+    assert.ok(/class="ecg"/.test(tree), 'remaining active sessions get a regular ecg');
+    assert.equal((tree.match(/<span class="hcol"><\/span>/g) || []).length, 1,
+        'inactive sessions get an empty column');
+});
+
+test('recent-only filter keeps active sessions and their parent chain', async () => {
+    const ctx = boot({
+        '/api/tree': [
+            sess({id: 'p', children: [sess({id: 'k', active: true, updated: 9000000})]}),
+            sess({id: 'alone'}),
+        ],
+    });
+    await settle();
+    vm.runInNewContext('REC.only = true; render();', ctx);
+    const tree = ctx.els.get('#tree').innerHTML;
+    assert.ok(tree.includes('data-id="k"'), 'active child stays visible');
+    assert.ok(tree.includes('data-id="p"'), 'parent of an active child stays visible');
+    assert.ok(!tree.includes('data-id="alone"'), 'inactive standalone session is dropped');
+});
+
+test('active sessions render an ECG sparkline across the heart', async () => {
+    const now = Date.now();
+    const ctx = boot({
+        '/api/tree': [sess({id: 'beat', active: true, updated: now, beats: [now - 600000, now - 120000]})],
+    });
+    await settle();
+    const tree = ctx.els.get('#tree').innerHTML;
+    assert.ok(/<svg class="ecg[ "]/.test(tree), 'active session renders a standalone ECG svg');
+    assert.ok(/<polyline points="[^"]+"/.test(tree), 'sparkline polyline with points rendered');
 });
 
 test('refresh tolerates the selected session vanishing from the tree', async () => {

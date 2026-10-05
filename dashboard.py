@@ -17,6 +17,8 @@ VERSION = "2.0.0"
 DB_PATH = os.path.expanduser("~/.local/share/opencode/opencode.db")
 PORT = int(os.environ.get("PORT", "8787"))
 
+ACTIVE_WINDOW_MS = 15 * 60 * 1000  # a session updated within this window is "active"
+
 db_local = threading.local()
 
 
@@ -68,6 +70,7 @@ def session_max_contexts():
 
 def build_tree():
     maxctx = session_max_contexts()
+    now_ms = int(time.time() * 1000)
     rows = db().execute(
         """SELECT id, parent_id, title, agent, model, directory,
                   tokens_input, tokens_output, tokens_reasoning,
@@ -84,6 +87,7 @@ def build_tree():
                 model = json.loads(model)
             except (json.JSONDecodeError, TypeError):
                 pass
+        updated = r["time_updated"] or 0
         nodes[r["id"]] = {
             "id": r["id"],
             "parent": r["parent_id"],
@@ -98,7 +102,8 @@ def build_tree():
             "cr": r["tokens_cache_read"],
             "cw": r["tokens_cache_write"],
             "created": r["time_created"],
-            "updated": r["time_updated"],
+            "updated": updated,
+            "active": updated > 0 and now_ms - updated < ACTIVE_WINDOW_MS,
             "dur": max(0, (r["time_updated"] or 0) - (r["time_created"] or 0)),
             "children": [],
         }
@@ -110,6 +115,9 @@ def build_tree():
             nodes[p]["children"].append(n)
         else:
             roots.append(n)
+
+    for n in nodes.values():
+        n["beats"] = session_beats(n["id"], now_ms - ACTIVE_WINDOW_MS) if n["active"] else []
 
     def subtree(n):
         t = {
@@ -129,6 +137,29 @@ def build_tree():
     roots.sort(key=lambda r: r["created"] or 0, reverse=True)
 
     return roots
+
+
+def session_beats(session_id, since_ms):
+    """Timestamps (ms) of the session's own AI calls since since_ms — the "heartbeat" of the sparkline."""
+    rows = db().execute(
+        """SELECT time_created, data FROM message
+           WHERE session_id = ? AND time_created >= ? AND data LIKE '%"role":"assistant"%'""",
+        (session_id, since_ms),
+    ).fetchall()
+    beats = []
+    for r in rows:
+        try:
+            d = json.loads(r["data"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if d.get("role") != "assistant":
+            continue
+        t = d.get("tokens") or {}
+        cache = t.get("cache") or {}
+        if (t.get("input") or 0) or (t.get("output") or 0) or (t.get("reasoning") or 0) \
+                or (cache.get("read") or 0) or (cache.get("write") or 0):
+            beats.append(r["time_created"])
+    return sorted(beats)
 
 
 def session_prompt(session_id):

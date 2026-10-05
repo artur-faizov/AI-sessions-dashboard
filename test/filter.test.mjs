@@ -16,7 +16,7 @@ const L = mod.exports;
 const node = (o = {}) => ({
     id: 'n', parent: null, title: '(untitled)', agent: '', model: null, dir: '',
     maxctx: 0, in: 0, out: 0, reason: 0, cr: 0, cw: 0, created: 0, updated: 0, dur: 0,
-    children: [], subtree: { in: 0, out: 0, reason: 0, cr: 0, cw: 0 }, ...o,
+    active: false, children: [], subtree: { in: 0, out: 0, reason: 0, cr: 0, cw: 0 }, ...o,
 });
 const tf = (o = {}) => ({
     text: '', models: new Set(), providers: new Set(),
@@ -239,6 +239,94 @@ test('treeHotVisible: node or any descendant above warn or crit', () => {
     assert.equal(L.treeHotVisible(node({ maxctx: 110000 }), 100, 120), true);
     assert.equal(L.treeHotVisible(node({ maxctx: 150000 }), 100, 120), true);
     assert.equal(L.treeHotVisible(node({ maxctx: 999999 }), null, null), false);
+});
+
+test('treeActiveVisible: node or any descendant active', () => {
+    const root = node({ children: [node({ active: true })] });
+    assert.equal(L.treeActiveVisible(root), true);
+    assert.equal(L.treeActiveVisible(node({})), false);
+    assert.equal(L.treeActiveVisible(node({ active: true })), true);
+    assert.equal(L.treeActiveVisible(node({ children: [node({})] })), false);
+});
+
+test('heartSizes: ranks active sessions by updated desc — top xl, second lg, rest regular', () => {
+    const roots = [
+        node({ id: 'a', active: true, updated: 3000 }),
+        node({ id: 'b', active: true, updated: 2000 }),
+        node({ id: 'c', active: true, updated: 1000 }),
+        node({ id: 'd', updated: 9000 }),
+    ];
+    const m = L.heartSizes(roots);
+    assert.equal(m.get('a'), 'xl');
+    assert.equal(m.get('b'), 'lg');
+    assert.equal(m.get('c'), '');
+    assert.equal(m.has('d'), false);
+});
+
+test('heartSizes: ranks across nested children, not per-branch', () => {
+    const roots = [
+        node({ id: 'p', updated: 100, children: [node({ id: 'k', active: true, updated: 5000 })] }),
+        node({ id: 'q', active: true, updated: 4000 }),
+    ];
+    const m = L.heartSizes(roots);
+    assert.equal(m.get('k'), 'xl');
+    assert.equal(m.get('q'), 'lg');
+    assert.equal(m.has('p'), false);
+});
+
+test('heartSizes: single active session gets xl and nothing gets lg; none active = empty map', () => {
+    const m = L.heartSizes([node({ id: 'x', active: true, updated: 900 })]);
+    assert.equal(m.get('x'), 'xl');
+    const m2 = L.heartSizes([node({ id: 'y', updated: 900 })]);
+    assert.equal(m2.size, 0);
+});
+
+test('heartSizes: tie on updated keeps insertion order for the top ranks', () => {
+    const roots = [
+        node({ id: 'f', active: true, updated: 700 }),
+        node({ id: 's', active: true, updated: 700 }),
+    ];
+    const m = L.heartSizes(roots);
+    assert.equal(m.get('f'), 'xl');
+    assert.equal(m.get('s'), 'lg');
+});
+
+test('ecgPoints: no beats = flat baseline from left to right edge', () => {
+    const p = L.ecgPoints([], 1000000, { win: 1000, w: 40, h: 20 });
+    assert.equal(p, '0.0,10.0 40.0,10.0');
+});
+
+test('ecgPoints: beat maps to an ECG spike — R peak above baseline at its position', () => {
+    const now = 1000000;
+    const p = L.ecgPoints([now - 500], now, { win: 1000, w: 40, h: 20 });
+    const pts = p.split(' ').map(s => s.split(',').map(Number));
+    assert.ok(pts.length > 2, 'spike has intermediate points');
+    // R peak: x at beat position (half window = 20), y = mid - amp = 10 - 9 = 1
+    assert.ok(pts.some(([x, y]) => Math.abs(x - 20) < 1 && y === 1), 'R peak at beat position above baseline');
+    // dips below baseline exist (Q/S)
+    assert.ok(pts.some(([x, y]) => y > 10), 'dip below baseline');
+    assert.ok(pts.every(([x, y]) => x >= 0 && x <= 40 && y >= 0 && y <= 20), 'all points in bounds');
+});
+
+test('ecgPoints: beats outside the window are ignored', () => {
+    const now = 1000000;
+    const p = L.ecgPoints([now - 5000, now + 500], now, { win: 1000, w: 40, h: 20 });
+    assert.equal(p, '0.0,10.0 40.0,10.0');
+});
+
+test('ecgPoints: unsorted beats still produce monotonically increasing x', () => {
+    const now = 1000000;
+    const p = L.ecgPoints([now - 200, now - 800], now, { win: 1000, w: 40, h: 20 });
+    const xs = p.split(' ').map(s => Number(s.split(',')[0]));
+    assert.deepEqual([...xs].sort((a, b) => a - b).map(Number), xs);
+});
+
+test('ecgPoints: beat at the right edge stays clamped inside the box', () => {
+    const now = 1000000;
+    const p = L.ecgPoints([now], now, { win: 1000, w: 40, h: 20 });
+    const pts = p.split(' ').map(s => s.split(',').map(Number));
+    assert.ok(pts.every(([x]) => x <= 40), 'no x beyond width');
+    assert.ok(pts.some(([, y]) => y === 1), 'peak still drawn');
 });
 
 test('callDeltaAt: first call delta = its ctx, later = growth vs previous', () => {

@@ -8,6 +8,7 @@ import sqlite3
 import sys
 import tempfile
 import threading
+import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -28,6 +29,22 @@ CREATE TABLE part (
   time_created integer NOT NULL,
   time_updated integer NOT NULL,
   data text NOT NULL
+);
+CREATE TABLE session (
+  id text PRIMARY KEY,
+  parent_id text,
+  title text,
+  agent text,
+  model text,
+  directory text NOT NULL,
+  tokens_input integer DEFAULT 0 NOT NULL,
+  tokens_output integer DEFAULT 0 NOT NULL,
+  tokens_reasoning integer DEFAULT 0 NOT NULL,
+  tokens_cache_read integer DEFAULT 0 NOT NULL,
+  tokens_cache_write integer DEFAULT 0 NOT NULL,
+  time_created integer NOT NULL,
+  time_updated integer NOT NULL,
+  time_archived integer
 );
 """
 
@@ -50,6 +67,102 @@ def assistant(mid, t, inp=10, out=5):
 
 def part(pid, mid, t, data):
     return (pid, mid, "s1", t, t, jdump(data))
+
+
+class BuildTreeActiveTest(unittest.TestCase):
+    def setUp(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        os.unlink(path)
+        self.db_path = path
+        conn = sqlite3.connect(path)
+        conn.executescript(SCHEMA)
+        self._old_path = dashboard.DB_PATH
+        self._old_local = dashboard.db_local
+        dashboard.DB_PATH = path
+        dashboard.db_local = threading.local()
+        self.conn = conn
+
+    def tearDown(self):
+        self.conn.close()
+        dashboard.DB_PATH = self._old_path
+        dashboard.db_local = self._old_local
+        os.unlink(self.db_path)
+
+    def seed(self, sid, updated, parent_id=None, directory="/d", archived=None, created_shift_h=1):
+        now = int(time.time() * 1000)
+        self.conn.execute(
+            "INSERT INTO session VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (sid, parent_id, "t-" + sid, "agent", None, directory,
+             0, 0, 0, 0, 0,
+             now - created_shift_h * 3600 * 1000, updated, archived),
+        )
+        self.conn.commit()
+
+    def flat(self, roots):
+        out = {}
+        def walk(ns):
+            for n in ns:
+                out[n["id"]] = n
+                walk(n["children"])
+        walk(roots)
+        return out
+
+    def test_active_marks_sessions_updated_within_15_min(self):
+        now = int(time.time() * 1000)
+        self.seed("fresh", now - 5 * 60 * 1000)
+        self.seed("stale", now - 20 * 60 * 1000)
+        nodes = self.flat(dashboard.build_tree())
+        self.assertEqual(set(nodes), {"fresh", "stale"})
+        self.assertIs(nodes["fresh"]["active"], True)
+        self.assertIs(nodes["stale"]["active"], False)
+
+    def test_active_boundary_is_strictly_inside_15_min(self):
+        now = int(time.time() * 1000)
+        self.seed("edge", now - 15 * 60 * 1000)  # exactly on the window edge: inactive
+        self.seed("inside", now - 14 * 60 * 1000)  # just inside the window: active
+        nodes = self.flat(dashboard.build_tree())
+        self.assertIs(nodes["edge"]["active"], False)
+        self.assertIs(nodes["inside"]["active"], True)
+
+    def test_archived_and_dirless_sessions_stay_out_of_the_tree(self):
+        now = int(time.time() * 1000)
+        self.seed("kept", now)
+        self.seed("archived", now, archived=now)
+        self.seed("nodir", now, directory="")
+        nodes = self.flat(dashboard.build_tree())
+        self.assertEqual(set(nodes), {"kept"})
+
+    def msg(self, mid, sid, t, role="assistant", usage=True):
+        d = {"role": role}
+        if usage:
+            d["tokens"] = {"input": 10, "output": 5,
+                           "cache": {"read": 0, "write": 0}, "reasoning": 0}
+        self.conn.execute(
+            "INSERT INTO message VALUES (?,?,?,?,?)",
+            (mid, sid, t, t, jdump(d)),
+        )
+        self.conn.commit()
+
+    def test_beats_list_ai_call_times_inside_window_for_active_sessions(self):
+        now = int(time.time() * 1000)
+        self.seed("fresh", now - 5 * 60 * 1000)
+        self.msg("m1", "fresh", now - 2 * 60 * 1000)
+        self.msg("m2", "fresh", now - 10 * 60 * 1000)
+        self.msg("m3", "fresh", now - 30 * 60 * 1000)  # outside window
+        self.msg("m4", "fresh", now - 60 * 1000, role="user")
+        self.msg("m5", "fresh", now - 70 * 1000, usage=False)  # no token usage
+        nodes = self.flat(dashboard.build_tree())
+        self.assertEqual(nodes["fresh"]["beats"], [now - 10 * 60 * 1000, now - 2 * 60 * 1000])
+        self.assertTrue(nodes["fresh"]["active"])
+
+    def test_beats_empty_for_inactive_sessions_even_with_recent_calls(self):
+        now = int(time.time() * 1000)
+        self.seed("stale", now - 20 * 60 * 1000)
+        self.msg("m6", "stale", now - 3 * 60 * 1000)
+        nodes = self.flat(dashboard.build_tree())
+        self.assertEqual(nodes["stale"]["beats"], [])
+        self.assertFalse(nodes["stale"]["active"])
 
 
 class SessionCallsTest(unittest.TestCase):

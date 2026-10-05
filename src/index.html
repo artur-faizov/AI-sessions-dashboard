@@ -268,6 +268,41 @@
             background: #1d2026
         }
 
+        .hcol {
+            width: 1.7em;
+            text-align: center;
+            flex: none
+        }
+
+        .ecg {
+            width: 34px;
+            height: 20px;
+            flex: none;
+            overflow: visible
+        }
+
+        .ecg.lg {
+            width: 51px;
+            height: 30px
+        }
+
+        .ecg.xl {
+            width: 68px;
+            height: 40px
+        }
+
+        .ecg polyline {
+            fill: none;
+            stroke: #e5484d;
+            stroke-width: 1.3
+        }
+
+        .hlbox .ecg {
+            width: 22px;
+            height: 13px;
+            flex: none
+        }
+
         .node .ttl {
             flex: 1;
             min-width: 180px;
@@ -896,6 +931,7 @@
 <header><h1 id="apptitle">Token Tree</h1>
     <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
     <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="hlapplylabel" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
+    <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent sessions only</span></label>
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now">5</button>
     <span id="summary" class="num"></span>
     <span id="version" class="ver" title="dashboard version">v{{VERSION}}</span>
@@ -1028,6 +1064,43 @@
         return !!hotLevel(n.maxctx, warn, crit) || n.children.some(c => treeHotVisible(c, warn, crit));
     }
 
+    function treeActiveVisible(n) {
+        return !!n.active || n.children.some(c => treeActiveVisible(c));
+    }
+
+    function heartSizes(roots) {
+        const actives = [];
+        (function walk(ns) {
+            for (const n of ns) {
+                if (n.active) actives.push(n);
+                walk(n.children);
+            }
+        })(roots);
+        actives.sort((a, b) => b.updated - a.updated);
+        const m = new Map();
+        actives.forEach((n, i) => m.set(n.id, i === 0 ? 'xl' : i === 1 ? 'lg' : ''));
+        return m;
+    }
+
+    function ecgPoints(beats, now, o) {
+        o = o || {};
+        const w = o.w || 34, h = o.h || 20, win = o.win || 15 * 60 * 1000;
+        const mid = h / 2, amp = h * 0.45, lo = now - win;
+        const ts = (beats || []).filter(t => t >= lo && t <= now).sort((a, b) => a - b);
+        const x = t => Math.max(0, Math.min(w, (t - lo) / win * w));
+        const pts = [[0, mid]];
+        for (const t of ts) {
+            const cx = x(t);
+            pts.push([Math.max(0, cx - 4), mid]);        // baseline before spike
+            pts.push([Math.max(0, cx - 1.5), mid + h * 0.1]);  // Q dip
+            pts.push([Math.max(0, cx), mid - amp]);      // R peak
+            pts.push([Math.min(w, cx + 1.5), mid + h * 0.15]); // S dip
+            pts.push([Math.min(w, cx + 4), mid]);        // back to baseline
+        }
+        pts.push([w, mid]);
+        return pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    }
+
     function callDeltaAt(calls, i) {
         return i ? calls[i].ctx - calls[i - 1].ctx : calls[i].ctx;
     }
@@ -1053,7 +1126,8 @@
 
     if (typeof module !== 'undefined' && module.exports) module.exports = {
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
-        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, callDeltaAt, callRowMatches, visibleCallRows
+        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, heartSizes, ecgPoints,
+        callDeltaAt, callRowMatches, visibleCallRows
     };
     // FILTER-LOGIC-END
 
@@ -1069,6 +1143,7 @@
     });
     let treeFilter = newTreeFilter(), callFilter = newCallFilter();
     let HOT = { warn: 100, crit: 120, apply: false };
+    let REC = { only: false };
 
     function hotFilterActive() {
         return HOT.apply && (HOT.warn != null || HOT.crit != null);
@@ -1194,6 +1269,11 @@
         HOT.apply = e.target.checked;
         render();
         refreshCalls();
+    });
+
+    document.querySelector('#reconly').addEventListener('change', e => {
+        REC.only = e.target.checked;
+        render();
     });
 
     function openTreeFilter() {
@@ -1334,7 +1414,10 @@
 
     function render() {
         let h = '';
-        const roots = sorted(TREE.filter(s => matches(s) && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))));
+        const roots = sorted(TREE.filter(s => matches(s)
+            && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
+            && (!REC.only || treeActiveVisible(s))));
+        const HEARTS = heartSizes(roots);
         let mc = 0, mt = 0;
         (function scan(ns) {
             for (const x of ns) {
@@ -1357,7 +1440,7 @@
                 return {spent: a.spent + t.in + t.out + t.reason}
             }, {spent: 0});
             h += `<div class="project">${dirName} — ${tr('tree.sessions', {n: vis.length})} · ${tr('tree.project.spent', {spent: fmt(tot.spent)})}</div><ul>`;
-            for (const s of vis) h += node(s, 1);
+            for (const s of vis) h += node(s, 1, HEARTS);
             h += '</ul>';
         }
         if (!groups) h += `<div class="empty">${tr('tree.empty')}</div>`;
@@ -1366,9 +1449,10 @@
         document.querySelector('#summary').textContent = tr('summary', {n: TREE.length, spent: fmt(allSpent)});
     }
 
-    function node(s, depth) {
+    function node(s, depth, HEARTS) {
         const t = s.subtree;
-        const kids = hotFilterActive() ? sorted(s.children).filter(k => treeHotVisible(k, HOT.warn, HOT.crit)) : sorted(s.children);
+        const kids = sorted(s.children).filter(k =>
+            (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit)) && (!REC.only || treeActiveVisible(k)));
         const hasSub = kids.length > 0;
         const spent = t.in + t.out + t.reason;
         const ctxPct = VMAX.ctx && s.maxctx ? Math.max(2, s.maxctx / VMAX.ctx * 100) : 0;
@@ -1376,15 +1460,19 @@
         const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
+        const heart = s.active
+            ? `<svg class="ecg${HEARTS.get(s.id) ? ' ' + HEARTS.get(s.id) : ''}" viewBox="0 0 34 20" title="${esc(tr('node.active.tip'))} · ${esc(tr('node.active.updated', {ago: dur(Date.now() - s.updated)}))}"><polyline points="${ecgPoints(s.beats, Date.now())}"/></svg>`
+            : '<span class="hcol"></span>';
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}" data-id="${s.id}">
     ${caret}
+    ${heart}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
     <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
     <span class="badge agent">${esc(s.agent || '—')}</span>
     <span class="badge">${esc(modelName(s.model))}</span>${subBadges}
     <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="${tr('node.spent.tip')}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${tr('node.spent.tip')}"><b>${fmt(spent)}</b></span></span></div>`;
-        if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1)).join('')}</ul>`;
+        if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS)).join('')}</ul>`;
         return h + '</li>';
     }
 
@@ -1677,6 +1765,10 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#hlapply').title = tr('hl.apply.title');
         document.querySelector('#hlapplylabel').title = tr('hl.apply.title');
         document.querySelector('#hlapplylabel').textContent = tr('hl.apply.label');
+        document.querySelector('#recbox').title = tr('recent.only.title');
+        document.querySelector('#reconly').title = tr('recent.only.title');
+        document.querySelector('#reclabel').title = tr('recent.only.title');
+        document.querySelector('#reclabel').textContent = tr('recent.only.label');
         document.querySelector('#version').title = tr('version.title');
         document.querySelector('#splitter').title = tr('splitter.title');
         const de = document.querySelector('#detailempty');
