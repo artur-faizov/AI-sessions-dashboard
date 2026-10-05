@@ -52,27 +52,29 @@
         }
 
         .fbtn {
-            background: none;
+            background: var(--acc);
             border: 1px solid var(--acc);
-            color: var(--acc);
+            color: #1a1a1a;
             border-radius: 6px;
             padding: 4px 12px;
             cursor: pointer;
             font: inherit;
-            font-size: 13px
+            font-size: 13px;
+            font-weight: 600
         }
 
         .fbtn:hover {
-            background: rgba(122, 162, 247, .12)
+            background: #8db1ff
         }
 
         .fbtn.on {
+            background: #f7768e;
             border-color: #f7768e;
-            color: #f7768e
+            color: #1a1a1a
         }
 
         .fbtn.on:hover {
-            background: rgba(247, 118, 142, .12)
+            background: #ff93a7
         }
 
         .rbtn {
@@ -1145,6 +1147,36 @@
     let HOT = { warn: 100, crit: 120, apply: false };
     let REC = { only: false };
 
+    const SET_KEY = 'ttree-settings';
+
+    function saveSettings() {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            const tree = Object.assign({}, treeFilter, {
+                models: [...treeFilter.models], providers: [...treeFilter.providers]
+            });
+            localStorage.setItem(SET_KEY, JSON.stringify({v: 1, tree, call: callFilter, hot: HOT, rec: REC}));
+        } catch (e) { /* storage unavailable — ignore */ }
+    }
+
+    function loadSettings() {
+        if (typeof localStorage === 'undefined') return;
+        let s;
+        try { s = JSON.parse(localStorage.getItem(SET_KEY)); } catch (e) { return; }
+        if (!s || s.v !== 1) return;
+        try {
+            if (s.tree) treeFilter = Object.assign(newTreeFilter(), s.tree,
+                {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || [])});
+            if (s.call) callFilter = Object.assign(newCallFilter(), s.call);
+            if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
+            if (s.rec) REC = Object.assign({only: false}, s.rec);
+            document.querySelector('#hlwarn').value = HOT.warn ?? '';
+            document.querySelector('#hlcrit').value = HOT.crit ?? '';
+            document.querySelector('#hlapply').checked = !!HOT.apply;
+            document.querySelector('#reconly').checked = !!REC.only;
+        } catch (e) { /* corrupt — keep defaults */ }
+    }
+
     function hotFilterActive() {
         return HOT.apply && (HOT.warn != null || HOT.crit != null);
     }
@@ -1249,6 +1281,7 @@
     function applyTreeFilter() {
         render();
         updateFilterBtns();
+        saveSettings();
     }
 
     function refreshCalls() {
@@ -1261,6 +1294,7 @@
         HOT[key] = v != null && Number.isFinite(v) ? v : null;
         render();
         refreshCalls();
+        saveSettings();
     });
     bindHl('#hlwarn', 'warn');
     bindHl('#hlcrit', 'crit');
@@ -1269,11 +1303,13 @@
         HOT.apply = e.target.checked;
         render();
         refreshCalls();
+        saveSettings();
     });
 
     document.querySelector('#reconly').addEventListener('change', e => {
         REC.only = e.target.checked;
         render();
+        saveSettings();
     });
 
     function openTreeFilter() {
@@ -1349,6 +1385,7 @@
         const el = document.querySelector('#calls');
         if (el) el.innerHTML = callsTable(CALLS);
         updateFilterBtns();
+        saveSettings();
     }
 
     function openCallFilter() {
@@ -1808,6 +1845,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         }
     }
 
+    loadSettings();
     applyLangStatic();
     load();
     setInterval(refreshTick, 1000);
