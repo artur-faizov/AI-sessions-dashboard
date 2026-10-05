@@ -43,6 +43,24 @@
             font-weight: 600
         }
 
+        #provsel {
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            background: transparent;
+            color: inherit;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 1px 2px;
+            cursor: pointer
+        }
+
+        #provsel:hover,
+        #provsel:focus {
+            border-color: var(--line);
+            background: var(--bg)
+        }
+
         .ver {
             border-left: 1px solid var(--line);
             padding-left: 16px;
@@ -1001,7 +1019,7 @@
     </style>
 </head>
 <body>
-<header><h1 id="apptitle">Token Tree</h1>
+<header><h1 id="apptitle"><select id="provsel" title="data source"></select></h1>
     <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
     <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="hlapplylabel" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
     <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent sessions only</span></label>
@@ -1873,7 +1891,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
     function applyLangStatic() {
         document.documentElement.lang = I18N.curLang();
         document.title = tr('doc.title');
-        document.querySelector('#apptitle').textContent = tr('app.title');
+        const ps = document.querySelector('#provsel');
+        if (ps) ps.title = tr('prov.tip');
         const fb = document.querySelector('#tree-fbtn');
         fb.textContent = tr('filter.btn');
         fb.title = tr('filter.btn.title');
@@ -1967,6 +1986,86 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         } catch (e) { return null; }
     }
 
+    const PROV_STORE_KEY = 'provider.name';
+
+    function lsGetProv() {
+        if (typeof localStorage === 'undefined') return null;
+        try { return localStorage.getItem(PROV_STORE_KEY); } catch (e) { return null; }
+    }
+
+    function lsSetProv(v) {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            if (v === null) localStorage.removeItem(PROV_STORE_KEY);
+            else localStorage.setItem(PROV_STORE_KEY, v);
+        } catch (e) { }
+    }
+
+    async function fetchProvInfo() {
+        try {
+            const r = await fetch('/api/provider');
+            return r.ok ? await r.json() : null;
+        } catch (e) { return null; }
+    }
+
+    async function postProvider(name) {
+        try {
+            const r = await fetch('/api/provider', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            return await r.json();
+        } catch (e) { return { ok: false, error: String(e) }; }
+    }
+
+    const provLabel = n => n === 'claude' ? tr('prov.claude') : n;
+
+    function renderProvField(info) {
+        const sel = document.querySelector('#provsel');
+        if (!sel) return;
+        sel.innerHTML = (info.providers || []).map(p =>
+            `<option value="${esc(p)}"${p === info.provider ? ' selected' : ''}>${esc(provLabel(p))}</option>`).join('');
+        const dbwrap = document.querySelector('#dbwrap');
+        if (dbwrap) dbwrap.hidden = info.provider !== 'opencode';
+    }
+
+    async function applyProvider(name) {
+        const res = await postProvider(name);
+        if (res.ok) {
+            lsSetProv(name);
+            await refreshDbState();
+            load();
+        } else {
+            const sel = document.querySelector('#provsel');
+            if (sel) {
+                sel.title = res.error || tr('prov.tip');
+                const info = await fetchProvInfo();
+                if (info) renderProvField(info);
+            }
+        }
+    }
+
+    async function initProvField() {
+        const info = await fetchProvInfo();
+        if (info) renderProvField(info);
+        const sel = document.querySelector('#provsel');
+        if (sel) sel.addEventListener('change', () => applyProvider(sel.value));
+        // stored choice from a previous run: re-apply it; if the provider is
+        // no longer switchable (e.g. its data vanished) drop the stored value
+        const stored = lsGetProv();
+        if (info && stored && stored !== info.provider) {
+            const res = await postProvider(stored);
+            if (res.ok) {
+                const ni = await fetchProvInfo();
+                if (ni) renderProvField(ni);
+            } else {
+                lsSetProv(null);
+                sel.title = res.error || tr('prov.tip');
+            }
+        }
+    }
+
     async function postDbPath(path) {
         try {
             const r = await fetch('/api/db', {
@@ -2056,8 +2155,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
 
     loadSettings();
     applyLangStatic();
-    initDbField();
-    load();
+    initProvField().then(() => { initDbField(); load(); });
     setInterval(refreshTick, 1000);
 
     // draggable splitter between tree and details

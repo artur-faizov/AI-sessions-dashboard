@@ -43,6 +43,20 @@ func Run(args []string) int {
 	}
 	dev := sliceContains(args, "--dev") || sliceContains(args, "-dev") || sliceContains(args, "-dev=true") || sliceContains(args, "--dev=true")
 
+	provName := "opencode"
+	if v := os.Getenv("PROVIDER"); v != "" {
+		provName = v
+	}
+	if v, ok := parseProviderFlag(args); ok {
+		provName = v
+	}
+	p := selectProvider(provName)
+	if p == nil {
+		fmt.Fprintf(os.Stderr, "unknown provider %q (available: opencode, claude)\n", provName)
+		return 1
+	}
+	activeProvider = p
+
 	cliPath, _ := parseDBFlag(args)
 	cliDBFlag = cliPath
 	path, found := resolveDB(cliPath)
@@ -51,8 +65,12 @@ func Run(args []string) int {
 		valid = path
 	}
 	dbx.reset(path, valid)
-	if !found {
-		fmt.Printf("DB not found: %s — set the path in the page header\n", path)
+	if err := activeProvider.available(); err != nil {
+		if activeProvider.fatalWhenMissing() {
+			fmt.Fprintf(os.Stderr, "Claude data not found: %v\n", err)
+			return 1
+		}
+		fmt.Printf("DB not found: %s — set the path in the page header\n", dbx.path)
 	}
 
 	port := defaultPort
@@ -82,7 +100,11 @@ func Run(args []string) int {
 	port = ln.Addr().(*net.TCPAddr).Port
 
 	url := fmt.Sprintf("http://localhost:%d", port)
-	fmt.Printf("Token usage tree: %s  (DB: %s, read-only)\n", url, dbx.path)
+	if activeProvider.name() == "opencode" {
+		fmt.Printf("Token usage tree: %s  (DB: %s, read-only)\n", url, dbx.path)
+	} else {
+		fmt.Printf("Token usage tree: %s  (source: %s, read-only)\n", url, activeProvider.dataPath())
+	}
 
 	if os.Getenv("NO_BROWSER") == "" {
 		time.AfterFunc(500*time.Millisecond, func() { openBrowser(url) })

@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -37,7 +38,29 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
+	if path == "/api/provider" {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"provider":  currentProvider().name(),
+			"providers": providerNames(),
+		})
+		return
+	}
 	if path == "/api/db" {
+		if currentProvider().name() == "claude" {
+			found := true
+			var errV any
+			if err := currentProvider().available(); err != nil {
+				found = false
+				errV = err.Error()
+			}
+			writeJSON(w, http.StatusOK, map[string]any{
+				"path":       currentProvider().dataPath(),
+				"found":      found,
+				"error":      errV,
+				"candidates": []string{},
+			})
+			return
+		}
 		p, _, _ := dbx.current()
 		ok, errStr := validateDB(p)
 		var errV any
@@ -53,14 +76,13 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.HasPrefix(path, "/api/") {
-		if ok, _ := validateDB(dbx.path); !ok {
-			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "db_not_found", "path": dbx.path})
+		if err := currentProvider().available(); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "db_not_found", "path": currentProvider().dataPath()})
 			return
 		}
-		_, pool := poolFor()
 		switch {
 		case path == "/api/tree":
-			nodes, err := buildTree(time.Now().UnixMilli())
+			nodes, err := currentProvider().buildTree(time.Now().UnixMilli())
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 				return
@@ -68,7 +90,7 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, nodes)
 		case strings.HasPrefix(path, "/api/prompt/"):
 			sid := strings.TrimPrefix(path, "/api/prompt/")
-			texts, err := sessionPrompt(pool, sid)
+			texts, err := currentProvider().sessionPrompt(sid)
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 				return
@@ -76,7 +98,7 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, map[string]any{"texts": texts})
 		case strings.HasPrefix(path, "/api/calls/"):
 			sid := strings.TrimPrefix(path, "/api/calls/")
-			calls, err := sessionCalls(pool, sid)
+			calls, err := currentProvider().sessionCalls(sid)
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 				return
@@ -84,7 +106,7 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, map[string]any{"calls": calls})
 		case strings.HasPrefix(path, "/api/trigger/"):
 			mid := strings.TrimPrefix(path, "/api/trigger/")
-			res, err := callTrigger(pool, mid)
+			res, err := currentProvider().callTrigger(mid)
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 				return
@@ -116,8 +138,19 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) handlePost(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/api/provider" {
+		s.postProvider(w, r)
+		return
+	}
 	if r.URL.Path != "/api/db" {
 		http.Error(w, "404 Not Found", http.StatusNotFound)
+		return
+	}
+	if currentProvider().name() == "claude" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"ok":    false,
+			"error": "path switching is only supported for the opencode provider",
+		})
 		return
 	}
 	var body struct {
@@ -147,4 +180,37 @@ func statusOf(ok bool) int {
 		return http.StatusOK
 	}
 	return http.StatusBadRequest
+}
+
+// postProvider switches the active data source (opencode sqlite DB / claude
+// projects dir). Lenient providers (opencode) may switch even when their data
+// is missing; strict ones (claude) must be available first.
+func (s *server) postProvider(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid JSON body"})
+		return
+	}
+	if body.Name == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "missing provider name"})
+		return
+	}
+	p := selectProvider(body.Name)
+	if p == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"ok":    false,
+			"error": fmt.Sprintf("unknown provider %q (available: %s)", body.Name, strings.Join(providerNames(), ", ")),
+		})
+		return
+	}
+	if p.fatalWhenMissing() {
+		if err := p.available(); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+	}
+	setActiveProvider(p)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "provider": p.name()})
 }

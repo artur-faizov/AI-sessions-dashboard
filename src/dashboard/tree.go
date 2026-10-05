@@ -26,6 +26,7 @@ type sessionNode struct {
 	Beats    []int64        `json:"beats"`
 	Children []*sessionNode `json:"children"`
 	Subtree  *subtreeSums   `json:"subtree"`
+	Source   string         `json:"source"`
 }
 
 type subtreeSums struct {
@@ -206,6 +207,7 @@ func buildTree(nowMS int64) ([]*sessionNode, error) {
 			Dur:      upd - created,
 			Beats:    []int64{},
 			Children: []*sessionNode{},
+			Source:   "opencode",
 		}
 		if n := nodes[id]; n.Dur < 0 {
 			n.Dur = 0
