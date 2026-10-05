@@ -174,17 +174,73 @@ COPILOT_HOME=/path/to/.copilot ./dist/dashboard-lin-x64 --provider copilot
 - a session is active while an `inuse.*.lock` file exists and its last event is under
   10 minutes old
 
-Token coverage is limited by what Copilot CLI writes to disk. Each node takes its
+Token coverage is limited by what Copilot writes to disk. Each node takes its
 numbers from the first source available, and a field is never estimated or derived
-from another field. Fields with no source show 0:
+from another field (the one exception is export input, below). Fields with no source
+show 0:
 
-1. per-call rows in `session-store.db` (`assistant_usage_events`): all fields, plus
+1. the OpenTelemetry file export (see below), when a span matches the node.
+2. per-call rows in `session-store.db` (`assistant_usage_events`): all fields, plus
    context size. These are used when present (often empty in practice).
-2. root sessions only: `session.shutdown` model metrics (written on a clean exit).
+3. root sessions only: `session.shutdown` model metrics (written on a clean exit).
    These give input (fresh, cache excluded), output, cache read/write and reasoning,
    as session totals that already include subagent spend.
-3. otherwise **output tokens only** (per-message `outputTokens`); input, cache and
+4. otherwise **output tokens only** (per-message `outputTokens`); input, cache and
    reasoning stay 0. `subagent.completed.totalTokens` is never shown as a token field.
+
+#### Full token data via the OpenTelemetry file export
+
+Copilot (CLI and the IDE language server, verified with 1.0.63) writes exact per-call
+usage to a JSON-lines file when `COPILOT_OTEL_FILE_EXPORTER_PATH` is set in the
+environment of the Copilot process. There is no config-file switch for it, so the
+variable has to reach every place Copilot is started from. One command does that:
+
+```sh
+make copilot-otel-enable    # set COPILOT_OTEL_FILE_EXPORTER_PATH everywhere (idempotent)
+make copilot-otel-status    # show what is set and which running Copilot processes export
+make copilot-otel-disable   # undo the managed changes (export files are kept)
+# custom file (must be absolute; keep it in ~/.copilot/otel/ so the dashboard finds it):
+make copilot-otel-enable COPILOT_OTEL_PATH=$HOME/.copilot/otel/work.jsonl
+```
+
+`copilot-otel-enable` (`scripts/copilot-otel.sh`) points the export to
+`<COPILOT_HOME>/otel/copilot-otel.jsonl` and sets it for:
+
+- login shells (Copilot CLI): a marked block in `~/.profile`, plus `~/.bash_profile` if it
+  exists and `~/.zprofile` if your shell is zsh. A profile that already sets the variable
+  by hand is left alone.
+- the Linux desktop session: `~/.config/environment.d/60-copilot-otel.conf`, and the
+  running systemd/D-Bus user environment, so apps started from the menu get it.
+- JetBrains launchers (`jetbrains-*.desktop`, including Toolbox): `Exec=` lines are
+  prefixed with `env COPILOT_OTEL_FILE_EXPORTER_PATH=...`. System, snap, and flatpak
+  launchers are copied to `~/.local/share/applications/` first. Toolbox may regenerate
+  its launchers on IDE updates; re-run the command after an update.
+- macOS: `launchctl setenv` for apps started from the Dock (until logout); shells get it
+  from the profile.
+
+Then fully quit and restart the Copilot CLI and your IDEs. `copilot-otel-status` lists
+any running `copilot` / `copilot-language-server` process that still lacks the variable.
+Sessions recorded before the restart stay output-only. On Windows, set the variable
+yourself, e.g. `setx COPILOT_OTEL_FILE_EXPORTER_PATH %USERPROFILE%\.copilot\otel\copilot-otel.jsonl`.
+
+The dashboard reads the file named by `COPILOT_OTEL_FILE_EXPORTER_PATH` (as seen by the
+dashboard) plus every `<COPILOT_HOME>/otel/*.jsonl`, read-only and incrementally; a
+file reached both ways is read once and repeated spans count once. Spans are matched
+to messages by session id and `apiCallId`. With the export:
+
+- main-agent calls get input, cache read, cache write, output, reasoning, and context
+  size (`ctx`); the session node gets their sums and `maxctx` (largest `ctx`). A call
+  without a span keeps output only. Input is the new tokens only: the exported
+  `input_tokens` minus cache read minus cache write; `ctx` is `input_tokens` as reported.
+- subagent nodes get exact input, cache, output, and reasoning totals (Copilot exports
+  one span per subagent run, written when it finishes), but `maxctx` stays 0 and their
+  calls show output only — Copilot does not export per-call numbers for subagents.
+- shutdown metrics and `session-store.db` rows are ignored for a node that has spans.
+
+The file grows by roughly 8 KB per model call and is never rotated by Copilot. To
+rotate it, move it to another `*.jsonl` name inside `~/.copilot/otel/` (it keeps
+counting) or delete old files (their sessions fall back to the sources above).
+Invalid, partial, or metric lines are skipped.
 
 To add a provider:
 
@@ -222,7 +278,10 @@ To add a provider:
 - `src/provider/claude/` — Claude Code provider: parses `~/.claude/projects` JSONL
   transcripts (incl. subagents) into the same payloads
 - `src/provider/copilot/` — Copilot CLI provider: parses `~/.copilot/session-state`
-  event logs (incl. nested subagents) and `session-store.db` usage rows
+  event logs (incl. nested subagents), `session-store.db` usage rows, and the
+  OpenTelemetry file export (`otel.go`)
+- `scripts/copilot-otel.sh` — enables/checks/disables the Copilot OpenTelemetry export
+  (`make copilot-otel-enable|status|disable`)
 - `src/dashboard/assets.go` — serves the frontend: `{{VERSION}}` substitution
   and dev-mode disk reads for `src/index.html` / `src/i18n.js`
 - `src/dashboard/browser.go` — opens the dashboard in the default browser
@@ -235,4 +294,4 @@ To add a provider:
 - `test/*.test.mjs` — frontend tests;
   `make test` = `go test ./...` + `node --test` over them
 - `Makefile` — `make build` / `make build-all` (standalone binaries),
-  `make test`, `make dev`, `make clean`
+  `make test`, `make dev`, `make clean`, `make copilot-otel-enable|status|disable`

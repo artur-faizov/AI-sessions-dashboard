@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
 func TestTreeGolden(t *testing.T) {
@@ -71,5 +73,24 @@ func TestActiveNeedsLockAndRecentEvent(t *testing.T) {
 	roots, _ = p.BuildTree(now.Add(11 * time.Minute).UnixMilli())
 	if findNode(roots, "plain-0001").Active {
 		t.Fatal("stale lock must not mark active")
+	}
+}
+
+func TestTreeOTelWithShutdownAndSubagent(t *testing.T) {
+	p, _ := fixtureRoot(t)
+	roots, _ := p.BuildTree(fixtureNow)
+	root := findNode(roots, "otel-0006")
+	if len(root.Children) != 1 || root.Children[0].ID != "otel-0006/call-O" {
+		t.Fatalf("children = %+v", root.Children)
+	}
+	sub := root.Children[0]
+	if *sub.Subtree != (provider.SubtreeSums{In: 308, Out: 574, Cr: 40000, Cw: 15000}) {
+		t.Fatalf("sub subtree = %+v", *sub.Subtree)
+	}
+	// Own totals plus the child subtree; no shutdown metrics (9000 each), no
+	// subagent outputTokens (200+300), no unmatched or foreign spans.
+	want := provider.SubtreeSums{In: 23 + 308, Out: 236 + 574, Cr: 47545 + 40000, Cw: 1048 + 15000, Reason: 12}
+	if *root.Subtree != want {
+		t.Fatalf("subtree = %+v, want %+v", *root.Subtree, want)
 	}
 }

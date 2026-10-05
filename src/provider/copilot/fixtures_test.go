@@ -156,12 +156,15 @@ func assertGolden(t *testing.T, name string, v any) {
 }
 
 func TestFixturesExist(t *testing.T) {
-	for _, sid := range []string{"plain-0001", "sub-0002", "shutdown-0003", "garbled-0004", "rows-0005"} {
+	for _, sid := range []string{"plain-0001", "sub-0002", "shutdown-0003", "garbled-0004", "rows-0005", "otel-0006"} {
 		for _, f := range []string{"events.jsonl", "workspace.yaml"} {
 			if _, err := os.Stat(filepath.Join("testdata", "home", "session-state", sid, f)); err != nil {
 				t.Errorf("fixture missing: %v", err)
 			}
 		}
+	}
+	if _, err := os.Stat(filepath.Join("testdata", "home", "otel", "export.jsonl")); err != nil {
+		t.Errorf("fixture missing: %v", err)
 	}
 }
 

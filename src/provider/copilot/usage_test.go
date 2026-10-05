@@ -136,3 +136,64 @@ func TestTokensSubagentTotalNeverRelabelled(t *testing.T) {
 	}
 	walk(findNode(roots, "sub-0002"))
 }
+
+// --- export data precedence (otel-0006 + testdata/home/otel/export.jsonl) ---
+
+func TestTokensOTelSession(t *testing.T) {
+	p, _ := fixtureRoot(t)
+	roots, _ := p.BuildTree(fixtureNow)
+	root := findNode(roots, "otel-0006")
+	// api-o1 (duplicated span counted once) + api-o2 + output of unmatched api-o3.
+	if got := sums(root); got != [5]int64{7 + 16, 86 + 120 + 30, 23545 + 24000, 448 + 600, 12} {
+		t.Fatalf("root = %v", got)
+	}
+	if root.MaxCtx != 24616 {
+		t.Fatalf("maxctx = %d", root.MaxCtx)
+	}
+}
+
+func TestTokensOTelSubagent(t *testing.T) {
+	p, _ := fixtureRoot(t)
+	roots, _ := p.BuildTree(fixtureNow)
+	sub := findNode(roots, "otel-0006/call-O")
+	if got := sums(sub); got != [5]int64{308, 574, 40000, 15000, 0} || sub.MaxCtx != 0 {
+		t.Fatalf("sub = %v maxctx=%d", got, sub.MaxCtx)
+	}
+}
+
+func TestTokensOTelNotDoubleCountedWithShutdownOrRows(t *testing.T) {
+	p, root := fixtureRoot(t)
+	makeStoreDB(t, filepath.Join(root, "session-store.db"), true,
+		fixtureRow{session: "otel-0006", in: 5000, out: 5000, cr: 5000, cw: 5000, reason: 5000, createdAt: "2026-01-01 11:00:02"},
+		fixtureRow{session: "otel-0006", agent: "call-O", in: 6000, out: 6000, cr: 6000, cw: 6000, reason: 6000, createdAt: "2026-01-01 11:00:05"})
+	roots, _ := p.BuildTree(fixtureNow)
+	n := findNode(roots, "otel-0006")
+	want := provider.SubtreeSums{In: 23 + 308, Out: 236 + 574, Cr: 47545 + 40000, Cw: 1048 + 15000, Reason: 12}
+	if *n.Subtree != want {
+		t.Fatalf("subtree = %+v, want %+v", *n.Subtree, want)
+	}
+	if got := sums(n); got != [5]int64{23, 236, 47545, 1048, 12} {
+		t.Fatalf("root own = %v (shutdown subtraction must not apply)", got)
+	}
+}
+
+func TestTokensOTelMissingCacheAttributes(t *testing.T) {
+	s := parseFixture(t, "otel-0006")
+	td := tokenData{otel: otelIndex{{"otel-0006", "api-o1"}: {input: 23523}}}
+	got := s.nodeTokens("", td)
+	if got != (nodeTokens{in: 23523, out: 110 + 30, maxctx: 23523, source: srcOTel}) {
+		t.Fatalf("tokens = %+v", got)
+	}
+	if calls := s.calls("", td); calls[0].In != 23523 || calls[0].Cr != 0 || calls[0].Cw != 0 || calls[0].Ctx != 23523 {
+		t.Fatalf("call = %+v", calls[0])
+	}
+}
+
+func TestTokensOTelOnlyForOwningItem(t *testing.T) {
+	// A span for another session, or for a response id no item owns, changes nothing.
+	s := parseFixture(t, "sub-0002")
+	td := tokenData{otel: otelIndex{{"otel-0006", "api-s1"}: {input: 1, out: 1}, {"sub-0002", "api-zz"}: {input: 1}}}
+	if got := s.nodeTokens("", td); got.source != srcOutputOnly || got.out != 100 {
+		t.Fatalf("tokens = %+v", got)
+	}
+}

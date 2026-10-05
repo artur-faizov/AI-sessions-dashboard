@@ -71,6 +71,29 @@ func TestParseSubagentsAttributionAndNesting(t *testing.T) {
 	}
 }
 
+func TestParseIndexesAPICallIDs(t *testing.T) {
+	s := parseFixture(t, "sub-0002")
+	want := map[string]string{
+		"api-s1": "", "api-s2": "",
+		"api-a1": "call-A", "api-a2": "call-A",
+		"api-b1": "call-B", "api-b2": "call-B",
+		"api-c1": "call-C",
+	}
+	if len(s.apiIDs) != len(want) {
+		t.Fatalf("apiIDs = %v", s.apiIDs)
+	}
+	for api, agent := range want {
+		ref, ok := s.apiIDs[api]
+		if !ok || ref.agent != agent {
+			t.Fatalf("apiIDs[%s] = %+v, want agent %q", api, ref, agent)
+		}
+		it := s.streams[agent].items[ref.index]
+		if it.kind != kindAssistant || it.apiCallID != api || it.mid != "m-"+api[4:] {
+			t.Fatalf("apiIDs[%s] points at %+v", api, it)
+		}
+	}
+}
+
 func TestParseShutdownUsesFreshInput(t *testing.T) {
 	s := parseFixture(t, "shutdown-0003")
 	if len(s.shutdowns) != 1 {

@@ -33,6 +33,7 @@ type item struct {
 
 	// assistant
 	mid       string
+	apiCallID string
 	model     string
 	outTokens int64
 
@@ -105,6 +106,7 @@ type session struct {
 	shutdowns []shutdownUsage
 	tasks     map[string]*taskRequest // toolCallId -> requesting call info
 	mids      map[string]midRef
+	apiIDs    map[string]midRef // apiCallId -> first assistant item with it
 }
 
 type midRef struct {
@@ -120,6 +122,7 @@ func newSession(id, dir string) *session {
 		subagents: map[string]*subagent{},
 		tasks:     map[string]*taskRequest{},
 		mids:      map[string]midRef{},
+		apiIDs:    map[string]midRef{},
 	}
 }
 
@@ -164,6 +167,7 @@ type rawToolRequest struct {
 
 type rawAssistantMessage struct {
 	MessageID    string           `json:"messageId"`
+	APICallID    string           `json:"apiCallId"`
 	Model        string           `json:"model"`
 	OutputTokens int64            `json:"outputTokens"`
 	ToolRequests []rawToolRequest `json:"toolRequests"`
@@ -303,14 +307,20 @@ func (s *session) apply(line []byte, pending map[string]*rawToolStart) {
 			mid = ev.ID
 		}
 		st.items = append(st.items, &item{
-			kind: kindAssistant, timeMS: ts, mid: mid, model: d.Model, outTokens: d.OutputTokens,
+			kind: kindAssistant, timeMS: ts, mid: mid, apiCallID: d.APICallID, model: d.Model, outTokens: d.OutputTokens,
 		})
 		st.assistantCount++
 		if d.Model != "" {
 			st.lastModel = d.Model
 		}
+		ref := midRef{agent: ev.AgentID, index: len(st.items) - 1}
 		if mid != "" {
-			s.mids[mid] = midRef{agent: ev.AgentID, index: len(st.items) - 1}
+			s.mids[mid] = ref
+		}
+		if d.APICallID != "" {
+			if _, dup := s.apiIDs[d.APICallID]; !dup {
+				s.apiIDs[d.APICallID] = ref
+			}
 		}
 		for _, tr := range d.ToolRequests {
 			if tr.ToolCallID == "" {

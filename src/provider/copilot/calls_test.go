@@ -1,6 +1,7 @@
 package copilot
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -119,5 +120,58 @@ func TestTriggerStartAndUnknown(t *testing.T) {
 	}
 	if res, err := p.CallTrigger("no-such-mid"); res != nil || err != nil {
 		t.Fatalf("unknown mid = %+v, %v", res, err)
+	}
+}
+
+func TestCallsFromOTelSpans(t *testing.T) {
+	p, _ := fixtureRoot(t)
+	calls, err := p.SessionCalls("otel-0006")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []provider.CallRec{
+		{Mid: "m-o1", Time: parseMS("2026-01-01T11:00:02Z"), In: 7, Cr: 23545, Cw: 448, Out: 86, Ctx: 24000, Hu: true},
+		{Mid: "m-o2", Time: parseMS("2026-01-01T11:00:09Z"), In: 16, Cr: 24000, Cw: 600, Out: 120, Reason: 12, Ctx: 24616},
+		// No matched span: output from outputTokens only, ctx 0.
+		{Mid: "m-o3", Time: parseMS("2026-01-01T11:00:10Z"), Out: 30, Hu: true},
+	}
+	if len(calls) != len(want) {
+		t.Fatalf("calls = %+v", calls)
+	}
+	for i := range want {
+		if calls[i] != want[i] {
+			t.Errorf("call %d = %+v, want %+v", i, calls[i], want[i])
+		}
+	}
+}
+
+func TestCallsOTelSubagentOutputOnly(t *testing.T) {
+	p, _ := fixtureRoot(t)
+	calls, _ := p.SessionCalls("otel-0006/call-O")
+	want := []provider.CallRec{
+		{Mid: "m-oa1", Time: parseMS("2026-01-01T11:00:05Z"), Out: 200},
+		{Mid: "m-oa2", Time: parseMS("2026-01-01T11:00:06Z"), Out: 300},
+	}
+	if len(calls) != 2 || calls[0] != want[0] || calls[1] != want[1] {
+		t.Fatalf("calls = %+v", calls)
+	}
+}
+
+func TestCallsOTelGrowingExport(t *testing.T) {
+	p, root := fixtureRoot(t)
+	calls, _ := p.SessionCalls("otel-0006")
+	if calls[2].Ctx != 0 {
+		t.Fatalf("m-o3 should be unmatched first: %+v", calls[2])
+	}
+	// Completes the partial last line, then adds a span for api-o3.
+	appendFile(t, filepath.Join(root, "otel", "export.jsonl"), "\n"+
+		`{"type":"span","spanId":"sp-o3","name":"chat","attributes":{"gen_ai.operation.name":"chat","gen_ai.conversation.id":"otel-0006","gen_ai.response.id":"api-o3","gen_ai.usage.input_tokens":25000,"gen_ai.usage.output_tokens":31,"gen_ai.usage.cache_read_input_tokens":24616}}`+"\n")
+	calls, _ = p.SessionCalls("otel-0006")
+	if calls[2] != (provider.CallRec{Mid: "m-o3", Time: parseMS("2026-01-01T11:00:10Z"), In: 384, Cr: 24616, Out: 31, Ctx: 25000, Hu: true}) {
+		t.Fatalf("m-o3 = %+v", calls[2])
+	}
+	roots, _ := p.BuildTree(fixtureNow)
+	if n := findNode(roots, "otel-0006"); n.MaxCtx != 25000 {
+		t.Fatalf("maxctx = %d", n.MaxCtx)
 	}
 }

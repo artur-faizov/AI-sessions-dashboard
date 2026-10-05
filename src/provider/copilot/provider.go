@@ -1,5 +1,5 @@
 // Package copilot serves the dashboard from GitHub Copilot CLI session data
-// (~/.copilot/session-state and session-store.db).
+// (~/.copilot/session-state, session-store.db, and the OpenTelemetry file export).
 package copilot
 
 import (
@@ -19,14 +19,21 @@ type Provider struct {
 	mu    sync.Mutex
 	cache map[string]cachedSession
 
+	otelEnv string // COPILOT_OTEL_FILE_EXPORTER_PATH at startup
+	otel    otelReader
+
 	dbWarnOnce sync.Once
 }
 
 var _ provider.Provider = (*Provider)(nil)
 
-// New resolves the data root: COPILOT_HOME, else ~/.copilot.
+// New resolves the data root (COPILOT_HOME, else ~/.copilot) and the
+// OpenTelemetry export path (COPILOT_OTEL_FILE_EXPORTER_PATH).
 func New() *Provider {
 	p := &Provider{}
+	if env := os.Getenv("COPILOT_OTEL_FILE_EXPORTER_PATH"); env != "" {
+		p.otelEnv = provider.ExpandUser(env)
+	}
 	if env := os.Getenv("COPILOT_HOME"); env != "" {
 		p.root = provider.ExpandUser(env)
 	} else {
@@ -70,7 +77,7 @@ func (p *Provider) SessionCalls(sid string) ([]provider.CallRec, error) {
 	if !ok {
 		return nil, fmt.Errorf("session not found: %s", sid)
 	}
-	return s.calls(agentID, p.loadUsage()), nil
+	return s.calls(agentID, p.loadTokens()), nil
 }
 
 func (p *Provider) SessionPrompt(sid string) ([]string, error) {

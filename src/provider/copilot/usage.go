@@ -124,6 +124,16 @@ func (p *Provider) loadUsage() usageIndex {
 	return idx
 }
 
+// tokenData is every token source for one request.
+type tokenData struct {
+	usage usageIndex
+	otel  otelIndex
+}
+
+func (p *Provider) loadTokens() tokenData {
+	return tokenData{usage: p.loadUsage(), otel: p.loadOTel()}
+}
+
 // --- token source selection ---
 
 type tokenSource int
@@ -132,6 +142,7 @@ const (
 	srcOutputOnly tokenSource = iota
 	srcShutdown
 	srcRows
+	srcOTel
 )
 
 type nodeTokens struct {
@@ -139,11 +150,68 @@ type nodeTokens struct {
 	source                          tokenSource
 }
 
+// otelFor returns the export tokens matched to an assistant item: same
+// session and response id = apiCallId, and the item is the one owning that id.
+func (s *session) otelFor(agentID string, index int, it *item, idx otelIndex) (otelTokens, bool) {
+	if it.kind != kindAssistant || it.apiCallID == "" || len(idx) == 0 {
+		return otelTokens{}, false
+	}
+	if ref := s.apiIDs[it.apiCallID]; ref.agent != agentID || ref.index != index {
+		return otelTokens{}, false
+	}
+	t, ok := idx[otelKey{conv: s.id, resp: it.apiCallID}]
+	return t, ok
+}
+
+// otelNodeTokens applies the export source to a node: per item for the root
+// (unmatched items contribute output only), span sums for a subagent. ok is
+// false when the node has no matched span.
+func (s *session) otelNodeTokens(agentID string, idx otelIndex) (nodeTokens, bool) {
+	st := s.streams[agentID]
+	if st == nil || len(idx) == 0 {
+		return nodeTokens{}, false
+	}
+	t := nodeTokens{source: srcOTel}
+	var unmatchedOut int64
+	matched := false
+	for i, it := range st.items {
+		if it.kind != kindAssistant {
+			continue
+		}
+		o, ok := s.otelFor(agentID, i, it, idx)
+		if !ok {
+			unmatchedOut += it.outTokens
+			continue
+		}
+		matched = true
+		t.in += o.fresh()
+		t.cr += o.cr
+		t.cw += o.cw
+		t.out += o.out
+		t.reason += o.reason
+		if agentID == "" && o.input > t.maxctx {
+			t.maxctx = o.input
+		}
+	}
+	if !matched {
+		return nodeTokens{}, false
+	}
+	if agentID == "" {
+		// A subagent span already sums all of its calls; root spans are per call.
+		t.out += unmatchedOut
+	}
+	return t, true
+}
+
 // nodeTokens picks the token source for a node under the no-substitution rule:
-// per-call rows, else (roots only) shutdown metrics, else per-message
-// outputTokens. A field no source reports stays 0; maxctx is set only from
-// per-call rows.
-func (s *session) nodeTokens(agentID string, usage usageIndex) nodeTokens {
+// export spans, else per-call rows, else (roots only) shutdown metrics, else
+// per-message outputTokens. A field no source reports stays 0; maxctx is set
+// only from root export spans or per-call rows.
+func (s *session) nodeTokens(agentID string, td tokenData) nodeTokens {
+	if t, ok := s.otelNodeTokens(agentID, td.otel); ok {
+		return t
+	}
+	usage := td.usage
 	if rows := usage[usageKey{session: s.id, agent: agentID}]; len(rows) > 0 {
 		t := nodeTokens{source: srcRows}
 		for _, r := range rows {

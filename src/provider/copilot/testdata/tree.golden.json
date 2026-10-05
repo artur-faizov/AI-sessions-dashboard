@@ -1,5 +1,62 @@
 [
   {
+    "id": "otel-0006",
+    "parent": null,
+    "title": "Trace the exporter",
+    "agent": null,
+    "model": "model-a",
+    "dir": "/work/proj",
+    "maxctx": 24616,
+    "in": 23,
+    "out": 236,
+    "reason": 12,
+    "cr": 47545,
+    "cw": 1048,
+    "created": 1767265200000,
+    "updated": 1767265210000,
+    "active": false,
+    "dur": 10000,
+    "beats": [],
+    "children": [
+      {
+        "id": "otel-0006/call-O",
+        "parent": "otel-0006",
+        "title": "Find exporter",
+        "agent": "explore",
+        "model": "model-b",
+        "dir": "/work/proj",
+        "maxctx": 0,
+        "in": 308,
+        "out": 574,
+        "reason": 0,
+        "cr": 40000,
+        "cw": 15000,
+        "created": 1767265204000,
+        "updated": 1767265207000,
+        "active": false,
+        "dur": 3000,
+        "beats": [],
+        "children": [],
+        "subtree": {
+          "in": 308,
+          "out": 574,
+          "reason": 0,
+          "cr": 40000,
+          "cw": 15000
+        },
+        "source": "copilot"
+      }
+    ],
+    "subtree": {
+      "in": 331,
+      "out": 810,
+      "reason": 12,
+      "cr": 87545,
+      "cw": 16048
+    },
+    "source": "copilot"
+  },
+  {
     "id": "garbled-0004",
     "parent": null,
     "title": "(untitled)",

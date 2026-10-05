@@ -14,10 +14,10 @@ import (
 const activeWindowMS = 10 * 60 * 1000
 
 func (p *Provider) buildTree(nowMS int64) []*provider.SessionNode {
-	usage := p.loadUsage()
+	td := p.loadTokens()
 	roots := []*provider.SessionNode{}
 	for _, s := range p.scan() {
-		roots = append(roots, s.tree(nowMS, usage))
+		roots = append(roots, s.tree(nowMS, td))
 	}
 	sort.SliceStable(roots, func(i, j int) bool { return roots[i].Created > roots[j].Created })
 	return roots
@@ -69,16 +69,16 @@ func setTokens(n *provider.SessionNode, t nodeTokens) {
 }
 
 // tree builds the root node of one session with its subagent subtree.
-func (s *session) tree(nowMS int64, usage usageIndex) *provider.SessionNode {
+func (s *session) tree(nowMS int64, td tokenData) *provider.SessionNode {
 	locked := hasLock(s.dir)
 	root := s.rootNode(nowMS, locked)
-	rootTokens := s.nodeTokens("", usage)
+	rootTokens := s.nodeTokens("", td)
 	setTokens(root, rootTokens)
 
 	nodes := map[string]*provider.SessionNode{"": root}
 	for _, id := range s.order {
 		n := s.subagentNode(s.subagents[id], root.Dir, nowMS, locked)
-		setTokens(n, s.nodeTokens(id, usage))
+		setTokens(n, s.nodeTokens(id, td))
 		nodes[id] = n
 	}
 	for _, id := range s.order {

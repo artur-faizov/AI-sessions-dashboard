@@ -33,7 +33,7 @@ endif
 
 LDFLAGS := -trimpath -ldflags "-s -w"
 
-.PHONY: build build-all test dev clean
+.PHONY: build build-all test dev clean copilot-otel-enable copilot-otel-status copilot-otel-disable
 
 build:
 	@mkdir -p $(DIST)
@@ -59,3 +59,13 @@ dev:
 
 clean:
 	rm -rf dist build
+# Copilot OpenTelemetry export (full token usage for --provider copilot).
+# Override the file with: make copilot-otel-enable COPILOT_OTEL_PATH=/abs/path.jsonl
+copilot-otel-enable:
+	@COPILOT_OTEL_PATH="$(COPILOT_OTEL_PATH)" bash scripts/copilot-otel.sh enable
+
+copilot-otel-status:
+	@COPILOT_OTEL_PATH="$(COPILOT_OTEL_PATH)" bash scripts/copilot-otel.sh status
+
+copilot-otel-disable:
+	@COPILOT_OTEL_PATH="$(COPILOT_OTEL_PATH)" bash scripts/copilot-otel.sh disable

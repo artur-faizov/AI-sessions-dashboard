@@ -16,7 +16,7 @@ func (st *stream) humanBefore(i int) bool {
 
 // calls returns one record per assistant API call of a node, in time order,
 // with token fields from the node's token source only.
-func (s *session) calls(agentID string, usage usageIndex) []provider.CallRec {
+func (s *session) calls(agentID string, td tokenData) []provider.CallRec {
 	st := s.streams[agentID]
 	if st == nil {
 		st = &stream{}
@@ -32,7 +32,24 @@ func (s *session) calls(agentID string, usage usageIndex) []provider.CallRec {
 		}
 	}
 	calls := []provider.CallRec{}
-	if rows := usage[usageKey{session: s.id, agent: agentID}]; len(rows) > 0 {
+	if _, ok := s.otelNodeTokens(agentID, td.otel); ok {
+		// Root calls take their matched span; subagent spans are per run, so
+		// subagent calls (and unmatched root calls) keep output only.
+		for _, m := range msgs {
+			rec := provider.CallRec{
+				Mid: m.it.mid, Time: m.it.timeMS, Out: m.it.outTokens,
+				Hu: st.humanBefore(m.index),
+			}
+			if agentID == "" {
+				if o, ok := s.otelFor(agentID, m.index, m.it, td.otel); ok {
+					rec.In, rec.Cr, rec.Cw, rec.Out, rec.Reason, rec.Ctx = o.fresh(), o.cr, o.cw, o.out, o.reason, o.input
+				}
+			}
+			calls = append(calls, rec)
+		}
+		return calls
+	}
+	if rows := td.usage[usageKey{session: s.id, agent: agentID}]; len(rows) > 0 {
 		// Rows carry no message id: pair them with assistant messages by order.
 		for k, r := range rows {
 			rec := provider.CallRec{
