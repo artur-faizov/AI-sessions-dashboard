@@ -211,6 +211,40 @@ test('recent-only filter keeps active sessions and their parent chain', async ()
     assert.ok(!tree.includes('data-id="alone"'), 'inactive standalone session is dropped');
 });
 
+test('agent badge hidden for default agent, shown for others (any depth)', async () => {
+    const ctx = boot({
+        '/api/tree': [
+            sess({id: 'r1', agent: 'build'}),
+            sess({id: 'r2', agent: 'plan'}),
+            sess({id: 'r3', agent: 'build', children: [
+                sess({id: 'kb', agent: 'build'}),
+                sess({id: 'ke', agent: 'explore'}),
+                sess({id: 'kg', agent: 'general'}),
+                sess({id: 'kv', agent: 'vision'}),
+                sess({id: 'kn', agent: ''}),
+            ]}),
+        ],
+    });
+    await settle();
+    const tree = ctx.els.get('#tree').innerHTML;
+    const row = (id) => {
+        const i = tree.indexOf(`data-id="${id}"`);
+        const j = tree.indexOf('data-id="', i + 1);
+        return tree.slice(i, j === -1 ? undefined : j);
+    };
+    assert.ok(!row('r1').includes('badge agent'), 'build root has no agent badge');
+    assert.ok(row('r2').includes('badge agent'), 'plan root keeps its badge');
+    assert.ok(!row('r3').includes('badge agent'), 'build root with children has no badge');
+    assert.ok(!row('kb').includes('badge agent'), 'build subagent has no badge');
+    const names = {ke: 'explore', kg: 'general', kv: 'vision'};
+    for (const [id, name] of Object.entries(names)) {
+        assert.ok(row(id).includes('badge agent'), `subagent ${name} keeps its badge`);
+        assert.ok(row(id).includes(`>${name}<`), `badge shows agent name for ${name}`);
+    }
+    assert.ok(row('kn').includes('badge agent'), 'empty-agent session keeps a badge');
+    assert.ok(row('kn').includes('>—<'), 'empty agent renders em dash');
+});
+
 test('active sessions render an ECG sparkline across the heart', async () => {
     const now = Date.now();
     const ctx = boot({

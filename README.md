@@ -118,6 +118,9 @@ Windows: run `src\build.bat` from the repo root (needs `python` in PATH).
 
 ### Interpreting numbers
 
+- Tree rows show an **agent badge** (e.g. `explore`, `general`, `vision`, `plan`) for
+  every agent except opencode's default (`build`) — the default would be a constant
+  on ~every session, so it is hidden. The agent is always visible in the detail panel
 - Big **input** on a leaf session (e.g. 600k+) means its own working context was large —
   many files/context fed to the model each step — not that it spawned subagents
 - A session's input is **cumulative over all calls**: every turn re-sends the whole

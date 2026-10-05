@@ -316,7 +316,8 @@
             padding: 4px 6px;
             border-radius: 6px;
             cursor: pointer;
-            flex-wrap: wrap
+            flex-wrap: wrap;
+            margin-bottom: 1px
         }
 
         .node:hover {
@@ -1549,6 +1550,8 @@
         document.querySelector('#summary').textContent = tr('summary', {n: TREE.length, spent: fmt(allSpent)});
     }
 
+    const DEFAULT_AGENT = 'build';
+
     function node(s, depth, HEARTS) {
         const t = s.subtree;
         const kids = sorted(s.children).filter(k =>
@@ -1564,12 +1567,13 @@
             ? `<svg class="ecg${HEARTS.get(s.id) ? ' ' + HEARTS.get(s.id) : ''}" viewBox="0 0 34 20" title="${esc(tr('node.active.tip'))} · ${esc(tr('node.active.updated', {ago: dur(Date.now() - s.updated)}))}"><polyline points="${ecgPoints(s.beats, Date.now())}"/></svg>`
             : '<span class="hcol"></span>';
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
+            const agentBadge = s.agent && s.agent === DEFAULT_AGENT ? '' : `<span class="badge agent">${esc(s.agent || '—')}</span>`;
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}" data-id="${s.id}">
     ${caret}
     ${heart}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
     <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
-    <span class="badge agent">${esc(s.agent || '—')}</span>
+    ${agentBadge}
     <span class="badge">${esc(modelName(s.model))}</span>${subBadges}
     <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="${tr('node.spent.tip')}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${tr('node.spent.tip')}"><b>${fmt(spent)}</b></span></span></div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS)).join('')}</ul>`;
