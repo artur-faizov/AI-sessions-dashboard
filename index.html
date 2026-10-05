@@ -416,6 +416,11 @@
             background: #1d2026
         }
 
+        table.calls .sep {
+            border-left: 1px solid var(--line);
+            padding-left: 10px
+        }
+
         #modal {
             position: fixed;
             inset: 0;
@@ -710,23 +715,35 @@
 
     function callsTable(calls) {
         if (!calls.length) return '<div class="empty">(no AI calls recorded)</div>';
+        const delta = i => i ? calls[i].ctx - calls[i - 1].ctx : calls[i].ctx;
         const mx = k => calls.reduce((m, c) => Math.max(m, c[k]), 1);
-        const mCtx = mx('ctx'), mIn = mx('in'), mCr = mx('cr'), mOut = mx('out'), mRn = mx('reason');
-        const bar = (v, m) => `<span class="vbar"><span style="width:${v ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
+        const mCtx = mx('ctx'), mD = Math.max(1, ...calls.map((c, i) => delta(i))),
+            mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr');
+        const bar = (v, m) => `<span class="vbar"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
         let rows = '';
         calls.forEach((c, i) => {
             rows += `<tr onclick="callPick('${esc(c.mid)}')">
-      <td class="num">${i + 1}</td>
-      <td class="num">${bar(c.ctx, mCtx)}<b class="ctxsize">${fmt(c.ctx)}</b></td>
-      <td class="num">${bar(c.in, mIn)}${fmt(c.in)}</td>
-      <td class="num">${bar(c.cr, mCr)}${fmt(c.cr)}</td>
-      <td class="num">${bar(c.out, mOut)}${fmt(c.out)}</td>
-      <td class="num">${bar(c.reason, mRn)}${fmt(c.reason)}</td></tr>`;
+  <td class="num">${i + 1}</td>
+  <td class="num">${bar(c.ctx, mCtx)}<b class="ctxsize">${fmt(c.ctx)}</b></td>
+  <td class="num">${bar(delta(i), mD)}${fmt(delta(i))}</td>
+  <td class="num">${bar(c.out, mOut)}${fmt(c.out)}</td>
+  <td class="num">${bar(c.reason, mRn)}${fmt(c.reason)}</td>
+  <td class="num sep">${bar(c.in, mIn)}${fmt(c.in)}</td>
+  <td class="num">${bar(c.cr, mCr)}${fmt(c.cr)}</td></tr>`;
         });
         const tot = calls.reduce((a, c) => ({ctx: a.ctx + c.ctx, in: a.in + c.in, cr: a.cr + c.cr, cw: a.cw + c.cw, out: a.out + c.out, reason: a.reason + c.reason}), {ctx: 0, in: 0, cr: 0, cw: 0, out: 0, reason: 0});
-        return `<table class="calls"><thead><tr><th>#</th><th>in (context)</th><th>fresh</th><th>cache r</th><th>out</th><th>reason</th></tr></thead>
+        const heads = [
+            ['#', 'call number in this session (chronological)', ''],
+            ['in (context)', 'total input of this request = fresh + cache read + cache write — the full context window sent to the model', ''],
+            ['delta', 'context growth vs the previous call (ctx[n] − ctx[n−1]): trigger text and tool results fed to this call + the previous call\u2019s output and reasoning. Negative = context shrank (compaction/summarization). First call: everything is new', ''],
+            ['out', 'tokens of the model\u2019s visible reply — fed back into the next call\u2019s context', ''],
+            ['reason', 'hidden thinking tokens generated before the reply, billed as output. With Anthropic they persist in context (included in delta); some providers discard them', ''],
+            ['fresh', 'input tokens processed WITHOUT the prompt cache — billed at full input price. A spike with cache r = 0 is a cache miss: the whole context was reprocessed (cache expired or invalidated)', 'sep'],
+            ['cache r', 'input tokens served from the provider\u2019s prompt cache (~10x cheaper). High = good cache reuse', '']
+        ];
+        return `<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
   <tbody>${rows}</tbody>
-  <tfoot><tr><td>Σ ${calls.length}</td><td>${fmt(tot.ctx)}</td><td>${fmt(tot.in)}</td><td>${fmt(tot.cr)}</td><td>${fmt(tot.out)}</td><td>${fmt(tot.reason)}</td></tr></tfoot></table>`;
+  <tfoot><tr><td>Σ ${calls.length}</td><td title="sum of request sizes (counts cache re-reads every call)">${fmt(tot.ctx)}</td><td title="sum of deltas = final context size">${fmt(calls[calls.length - 1].ctx)}</td><td>${fmt(tot.out)}</td><td>${fmt(tot.reason)}</td><td>${fmt(tot.in)}</td><td>${fmt(tot.cr)}</td></tr></tfoot></table>`;
     }
 
     let curCall = -1;
@@ -757,8 +774,10 @@
         if (!c) return;
         curCall = idx;
         const now = CALLS[CALLS.length - 1];
+        const prev = CALLS[idx - 1];
+        const d = prev ? c.ctx - prev.ctx : c.ctx;
         document.querySelector('#modal').hidden = false;
-        document.querySelector('#modal-head').innerHTML = `<span>Call #${c.n} / ${CALLS.length} · context now <b class="ctxsize">${fmt(now.ctx)}</b> · this request <b>${fmt(c.ctx)}</b> · fresh ${fmt(c.in)} · out ${fmt(c.out)}</span><button id="modal-close" onclick="modalClose()">✕</button>`;
+        document.querySelector('#modal-head').innerHTML = `<span>Call #${c.n} / ${CALLS.length} · context now <b class="ctxsize">${fmt(now.ctx)}</b> · this request <b>${fmt(c.ctx)}</b> · delta ${fmt(d)} · fresh (uncached, full price) ${fmt(c.in)} · out ${fmt(c.out)}</span><button id="modal-close" onclick="modalClose()">✕</button>`;
         updateNav();
         const body = document.querySelector('#modal-body');
         body.innerHTML = 'loading…';

@@ -48,14 +48,21 @@ Opens http://localhost:8787 in your browser.
   - own vs children vs subtree tokens (input, output, reasoning, cache read/write)
   - agent, model (provider / model / variant), timestamps, duration, max context
   - **every AI call in that session**: one table row per assistant message —
-    context size in (fresh input + cache read), fresh input, cache read, out,
-    reasoning; the Σ footer reconciles with the session's own-token counters
+    hover any column header for its meaning. Two groups: **context growth** —
+    `in (context)` (total input of the request = fresh + cache read + cache
+    write), `delta` (context growth vs the previous call ≈ trigger/tool
+    results fed in + previous call's output and reasoning; negative = context
+    shrank through compaction), `out`, `reason`; then (separated by a border)
+    **input billing** — `fresh` (input tokens billed at full price, uncached)
+    and `cache r` (~10x cheaper cached input). The Σ footer reconciles with
+    the session's own-token counters; Σ delta = final context size
   - **click a call row** → popup with the message that triggered that call:
     the user prompt (if it was the first call of a turn) or the previous
     call's tool command + result. Long parts are truncated at 60k chars.
     System prompt / tool schemas are not stored in the DB and not shown
   - popup header shows **context now** (session's current context window) vs
-    **this request** (size of the viewed call), plus fresh input and output
+    **this request** (size of the viewed call), plus delta (growth vs the
+    previous call), fresh (uncached) input and output
   - **‹ / › buttons** (and ← / → arrow keys) step through calls; the popup has a
     fixed size, so the buttons never move on screen — rapid clicking works
   - the **initial prompt sent to that session** (subagent's incoming request)
@@ -69,6 +76,10 @@ Opens http://localhost:8787 in your browser.
   conversation, so N calls at ~85k context accumulate ~N×85k input (mostly cheap
   cache reads). The "in (context)" column in the AI-calls table is the size of that
   single call — comparable to opencode's context gauge
+- A `fresh` spike with `cache r = 0` in the AI-calls table is a **cache miss**: the
+  provider's prompt cache didn't hit (expired after an idle gap or invalidated), so
+  the whole context was reprocessed at full input price — it is not the size of the
+  new trigger text (that is roughly the `delta` column)
 - Only rows with an expandable `+` and a `▾ N children` badge contain subagents
 
 ## Safety
