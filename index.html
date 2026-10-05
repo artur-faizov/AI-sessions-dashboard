@@ -165,17 +165,116 @@
             color: var(--fg)
         }
 
-        .tok {
+        .num b.ctxsize {
+            color: #1a1a1a
+        }
+
+        .vals {
+            display: inline-flex;
+            gap: 8px;
+            flex: none;
+            align-items: baseline
+        }
+
+        .val {
+            display: inline-block;
+            width: 5ch;
+            text-align: right;
             font-size: 12px;
             color: var(--dim);
             font-variant-numeric: tabular-nums;
             white-space: nowrap
         }
 
-        .cost {
+        .val b {
+            color: var(--fg)
+        }
+
+        .v-idx {
+            width: 3.5ch
+        }
+
+        .v-ctx {
+            width: 6ch
+        }
+
+        .v-tok {
+            width: 5.5ch
+        }
+
+        .vbar {
+            display: inline-block;
+            width: 20px;
+            height: 5px;
+            border-radius: 3px;
+            background: #232730;
+            vertical-align: middle;
+            overflow: hidden;
+            flex: none
+        }
+
+        .vbar span {
+            display: block;
+            height: 100%;
+            border-radius: 3px;
+            background: var(--acc)
+        }
+
+        .vbar.amber span {
+            background: var(--sub)
+        }
+
+        .thead {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--bg);
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+            padding: 4px 6px 6px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        .thead .grow {
+            flex: 1
+        }
+
+        .hlead {
+            width: 24px;
+            flex: none
+        }
+
+        .hsp {
+            width: 20px;
+            flex: none
+        }
+
+        .th {
+            cursor: pointer;
+            font-size: 11px
+        }
+
+        .th:hover {
+            color: var(--fg)
+        }
+
+        .th.active {
             color: var(--acc);
-            font-size: 12px;
-            white-space: nowrap
+            font-weight: 700;
+            position: relative
+        }
+
+        .th.active::after {
+            content: '▾';
+            position: absolute;
+            right: 100%;
+            margin-right: 3px
+        }
+
+        .th.active.asc::after {
+            content: '▴'
         }
 
         .caret {
@@ -239,25 +338,6 @@
             color: var(--dim);
             padding: 30px;
             text-align: center
-        }
-
-        .bar {
-            display: inline-flex;
-            height: 6px;
-            border-radius: 3px;
-            overflow: hidden;
-            vertical-align: middle;
-            margin-left: 8px
-        }
-
-        .bar .b-own {
-            background: var(--acc);
-            height: 100%
-        }
-
-        .bar .b-kids {
-            background: var(--sub);
-            height: 100%
         }
 
         .own {
@@ -324,12 +404,7 @@
             color: #9a5b0e
         }
 
-        .cbar {
-            display: inline-block;
-            height: 5px;
-            border-radius: 3px;
-            background: var(--acc);
-            vertical-align: middle;
+        table.calls .vbar {
             margin-right: 6px
         }
 
@@ -505,16 +580,28 @@
     </div>
 </div>
 <script>
-    let TREE = [], CALLS = [], sel = null;
+    let TREE = [], CALLS = [], sel = null, VMAX = {ctx: 0, tok: 0}, sortKey = null, sortAsc = false, ORDER = new Map();
+
+    function computeOrder() {
+        ORDER = new Map();
+        [...TREE].sort((a, b) => (a.created || 0) - (b.created || 0)).forEach((r, i) => ORDER.set(r.id, i + 1));
+        (function walk(ns) {
+            for (const x of ns) {
+                [...x.children].sort((a, b) => (a.created || 0) - (b.created || 0))
+                    .forEach((c, i) => ORDER.set(c.id, i + 1));
+                walk(x.children);
+            }
+        })(TREE);
+    }
     const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n || 0);
     const dur = ms => ms < 0 ? '—' : ms < 6e4 ? (ms / 1e3).toFixed(0) + 's' : ms < 36e5 ? (ms / 6e4).toFixed(1) + 'm' : (ms / 36e5).toFixed(1) + 'h';
     const when = t => t ? new Date(t).toLocaleString() : '—';
-    const modelOf = m => m ? (m.modelID || m.id || m) : '—';
+    const modelName = m => !m ? '—' : typeof m === 'object' ? (m.modelID || m.id || '—') : m;
 
     function matches(s) {
         const q = document.querySelector('#q').value.toLowerCase();
         if (!q) return true;
-        const hit = n => (n.title + ' ' + n.agent + ' ' + modelOf(n.model)).toLowerCase().includes(q);
+        const hit = n => (n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase().includes(q);
         const rec = n => hit(n) || n.children.some(rec);
         return rec(s);
     }
@@ -525,60 +612,83 @@
         return d
     }
 
+    function setSort(k) {
+        if (sortKey !== k) {
+            sortKey = k;
+            sortAsc = false;
+        } else if (!sortAsc) {
+            sortAsc = true;
+        } else {
+            sortKey = null;
+            sortAsc = false;
+        }
+        render();
+    }
+
+    function sortVal(s) {
+        return sortKey === 'dur' ? s.dur : sortKey === 'ctx' ? (s.maxctx || 0)
+            : sortKey === 'time' ? (s.created || 0)
+            : s.subtree.in + s.subtree.out + s.subtree.reason;
+    }
+
+    function sorted(ns) {
+        return sortKey ? [...ns].sort((a, b) => sortAsc ? sortVal(a) - sortVal(b) : sortVal(b) - sortVal(a)) : ns;
+    }
+
     function render() {
-        const dir = docmap();
         let h = '';
-        const roots = TREE.filter(matches);
-        for (const [dirName, sessions] of dir) {
+        const roots = sorted(TREE.filter(matches));
+        let mc = 0, mt = 0;
+        (function scan(ns) {
+            for (const x of ns) {
+                if (x.maxctx > mc) mc = x.maxctx;
+                const sp = x.subtree.in + x.subtree.out + x.subtree.reason;
+                if (sp > mt) mt = sp;
+                scan(x.children);
+            }
+        })(roots);
+        VMAX = {ctx: mc, tok: mt};
+        const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')">${lbl}</span>`;
+        h += `<div class="thead"><span class="hlead"></span>${th('time', '#', 'sort by session start time (newest first)')}<span class="grow"></span><span class="vals">${th('dur', 'dur', 'sort by duration')}<span class="hsp"></span>${th('ctx', 'ctx', 'sort by max context during session')}<span class="hsp"></span>${th('tok', 'spent', 'sort by tokens spent (in+out+reasoning)')}</span></div>`;
+        for (const [dirName, sessions] of docmap(roots)) {
             const vis = sessions.filter(matches);
             if (!vis.length) continue;
             const tot = vis.reduce((a, s) => {
                 const t = s.subtree;
-                return {in: a.in + t.in, out: a.out + t.out, c: a.c + t.cost}
-            }, 0);
-            h += `<div class="project">${dirName} — ${vis.length} session(s) · in ${fmt(tot.in)} · out ${fmt(tot.out)} · $${tot.c.toFixed(4)}</div><ul>`;
+                return {spent: a.spent + t.in + t.out + t.reason}
+            }, {spent: 0});
+            h += `<div class="project">${dirName} — ${vis.length} session(s) · spent ${fmt(tot.spent)}</div><ul>`;
             for (const s of vis) h += node(s, 1);
             h += '</ul>';
         }
         document.querySelector('#tree').innerHTML = h || '<div class="empty">No sessions match.</div>';
-        const allIn = TREE.reduce((a, s) => a + s.subtree.in, 0), allOut = TREE.reduce((a, s) => a + s.subtree.out, 0),
-            allC = TREE.reduce((a, s) => a + s.subtree.cost, 0);
-        document.querySelector('#summary').textContent = `${TREE.length} roots · in ${fmt(allIn)} · out ${fmt(allOut)} · $${allC.toFixed(4)}`;
-    }
-
-    function bar2(ownIn, kidIn) {
-        const tot = ownIn + kidIn;
-        if (!tot) return '';
-        const w = Math.min(120, tot / 30000);
-        if (!kidIn) return `<span class="bar" style="width:${w}px"><span class="b-own" style="width:${w}px"></span></span>`;
-        const ow = w * ownIn / tot;
-        return `<span class="bar" style="width:${w}px"><span class="b-own" style="width:${ow}px"></span><span class="b-kids" style="width:${w - ow}px"></span></span>`;
+        const allSpent = TREE.reduce((a, s) => a + s.subtree.in + s.subtree.out + s.subtree.reason, 0);
+        document.querySelector('#summary').textContent = `${TREE.length} roots · spent ${fmt(allSpent)}`;
     }
 
     function node(s, depth) {
-        const m = modelOf(s.model), t = s.subtree, kids = s.children;
+        const t = s.subtree, kids = sorted(s.children);
         const hasSub = kids.length > 0;
-        const kidIn = t.in - s.in;
+        const spent = t.in + t.out + t.reason;
+        const ctxPct = VMAX.ctx && s.maxctx ? Math.max(2, s.maxctx / VMAX.ctx * 100) : 0;
+        const tokPct = VMAX.tok && spent ? Math.max(2, spent / VMAX.tok * 100) : 0;
         const subBadges = hasSub ? `<span class="badge sub">▾ ${kids.length} child${kids.length > 1 ? 'ren' : ''}</span>` : '';
-        const bar = bar2(s.in, kidIn);
-        const ownIn = hasSub ? ` <span class="own">(own ${fmt(s.in)})</span>` : '';
         const open = depth < 2 || hasSub && kids.length <= 6;
         const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}" data-id="${s.id}">
     ${caret}
+    <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
     <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
     <span class="badge agent">${esc(s.agent || '—')}</span>
-    <span class="badge">${esc(m)}</span>
-    <span class="tok">in <b>${fmt(t.in)}</b>${ownIn} · out <b>${fmt(t.out)}</b>${t.cr ? ' · cache r ' + fmt(t.cr) : ''}</span>
-    <span class="cost">$${t.cost.toFixed(4)}</span>
-    <span class="num">${dur(s.dur)}</span>${subBadges}${bar}</div>`;
+    <span class="badge">${esc(modelName(s.model))}</span>${subBadges}
+    <span class="vals"><span class="val v-dur" title="wall-clock duration of this session">${dur(s.dur)}</span><span class="vbar" title="max context size reached during this session"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="max context size reached during this session">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="tokens spent (subtree): in + out + reasoning, cache excluded"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="tokens spent (subtree): in + out + reasoning, cache excluded"><b>${fmt(spent)}</b></span></span></div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1)).join('')}</ul>`;
         return h + '</li>';
     }
 
-    function docmap() {
+    function docmap(list) {
         const g = new Map();
-        for (const s of TREE) {
+        for (const s of list) {
             const k = s.dir || '(unknown)';
             if (!g.has(k)) g.set(k, []);
             g.get(k).push(s);
@@ -600,23 +710,23 @@
 
     function callsTable(calls) {
         if (!calls.length) return '<div class="empty">(no AI calls recorded)</div>';
-        const maxCtx = Math.max(...calls.map(c => c.ctx));
+        const mx = k => calls.reduce((m, c) => Math.max(m, c[k]), 1);
+        const mCtx = mx('ctx'), mIn = mx('in'), mCr = mx('cr'), mOut = mx('out'), mRn = mx('reason');
+        const bar = (v, m) => `<span class="vbar"><span style="width:${v ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
         let rows = '';
         calls.forEach((c, i) => {
-            const w = maxCtx ? Math.round(c.ctx / maxCtx * 100) : 0;
             rows += `<tr onclick="callPick('${esc(c.mid)}')">
       <td class="num">${i + 1}</td>
-      <td class="num">${new Date(c.time).toLocaleTimeString()}</td>
-      <td><span class="cbar" style="width:${Math.max(2, w)}%"></span><b class="ctxsize">${fmt(c.ctx)}</b></td>
-      <td class="num">${fmt(c.in)}</td>
-      <td class="num">${fmt(c.cr)}</td>
-      <td class="num">${fmt(c.out)}</td>
-      <td class="num">${fmt(c.reason)}</td></tr>`;
+      <td class="num">${bar(c.ctx, mCtx)}<b class="ctxsize">${fmt(c.ctx)}</b></td>
+      <td class="num">${bar(c.in, mIn)}${fmt(c.in)}</td>
+      <td class="num">${bar(c.cr, mCr)}${fmt(c.cr)}</td>
+      <td class="num">${bar(c.out, mOut)}${fmt(c.out)}</td>
+      <td class="num">${bar(c.reason, mRn)}${fmt(c.reason)}</td></tr>`;
         });
         const tot = calls.reduce((a, c) => ({ctx: a.ctx + c.ctx, in: a.in + c.in, cr: a.cr + c.cr, cw: a.cw + c.cw, out: a.out + c.out, reason: a.reason + c.reason}), {ctx: 0, in: 0, cr: 0, cw: 0, out: 0, reason: 0});
-        return `<table class="calls"><thead><tr><th>#</th><th>time</th><th>in (context)</th><th>fresh</th><th>cache r</th><th>out</th><th>reason</th></tr></thead>
+        return `<table class="calls"><thead><tr><th>#</th><th>in (context)</th><th>fresh</th><th>cache r</th><th>out</th><th>reason</th></tr></thead>
   <tbody>${rows}</tbody>
-  <tfoot><tr><td></td><td>Σ ${calls.length}</td><td>${fmt(tot.ctx)}</td><td>${fmt(tot.in)}</td><td>${fmt(tot.cr)}</td><td>${fmt(tot.out)}</td><td>${fmt(tot.reason)}</td></tr></tfoot></table>`;
+  <tfoot><tr><td>Σ ${calls.length}</td><td>${fmt(tot.ctx)}</td><td>${fmt(tot.in)}</td><td>${fmt(tot.cr)}</td><td>${fmt(tot.out)}</td><td>${fmt(tot.reason)}</td></tr></tfoot></table>`;
     }
 
     let curCall = -1;
@@ -706,19 +816,21 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
         const s = find(TREE, id);
         if (!s) return;
         const d = document.querySelector('#detail');
-        const t = s.subtree, m = modelOf(s.model);
+        const t = s.subtree;
+        const mObj = s.model && typeof s.model === 'object' ? s.model : null;
+        const mName = modelName(s.model);
+        const mFull = mObj ? `${mObj.providerID || '—'} / ${mName}${mObj.variant ? ' · ' + mObj.variant : ''}` : mName;
         const kidIn = t.in - s.in;
         d.innerHTML = `<h2 title="${esc(s.title)}">${esc(s.title)}</h2>
   <dl class="meta">
     <dt>Context now (last call)</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
-    <dt>Session</dt><dd>${s.id}</dd>
-    <dt>Agent / Model</dt><dd>${esc(s.agent || '—')} / ${esc(m)}</dd>
+    <dt>Max context during session</dt><dd>${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</dd>
+    <dt>Agent / Model</dt><dd>${esc(s.agent || '—')} / ${esc(mFull)}</dd>
     <dt>Directory</dt><dd>${esc(s.dir)}</dd>
     <dt>Created / Updated</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd>
     <dt>Own tokens</dt><dd>in <span class="own">${fmt(s.in)}</span> · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
     <dt>Children (subtree − own)</dt><dd>in <span class="kids">${fmt(kidIn)}</span> · out ${fmt(t.out - s.out)} · reason ${fmt(t.reason - s.reason)} · cache r ${fmt(t.cr - s.cr)} / w ${fmt(t.cw - s.cw)}</dd>
-    <dt>Subtree totals</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${s.children.length} direct child(ren)</dd>
-    <dt>Subtree cost</dt><dd>$${t.cost.toFixed(5)} (own $${s.cost.toFixed(5)})</dd></dl>
+    <dt>Subtree totals</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${s.children.length} direct child(ren)</dd></dl>
   <div class="sect">AI calls in this session</div><div id="calls">loading…</div>
   <div class="sect">Initial request sent to this agent</div><pre class="prompt" id="pp">loading…</pre>`;
         const pP = getJson('/api/prompt/' + encodeURIComponent(id), document.querySelector('#pp'));
@@ -755,6 +867,7 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
     async function load() {
         const r = await fetch('/api/tree');
         TREE = await r.json();
+        computeOrder();
         render();
     }
 

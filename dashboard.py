@@ -39,9 +39,34 @@ def fmt_duration(ms):
     return f"{m / 60:.1f}h"
 
 
-def build_tree():
+def session_max_contexts():
+    """Per-session max context size (fresh input + cache read + write) across that session's own AI calls."""
+    out = {}
     rows = db().execute(
-        """SELECT id, parent_id, title, agent, model, directory, cost,
+        """SELECT m.session_id AS sid, m.data FROM message m
+           JOIN session s ON s.id = m.session_id
+           WHERE s.time_archived IS NULL AND s.directory != ''
+             AND m.data LIKE '%"role":"assistant"%'"""
+    ).fetchall()
+    for r in rows:
+        try:
+            d = json.loads(r["data"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if d.get("role") != "assistant":
+            continue
+        t = d.get("tokens") or {}
+        cache = t.get("cache") or {}
+        ctx = (t.get("input") or 0) + (cache.get("read") or 0) + (cache.get("write") or 0)
+        if ctx and ctx > out.get(r["sid"], 0):
+            out[r["sid"]] = ctx
+    return out
+
+
+def build_tree():
+    maxctx = session_max_contexts()
+    rows = db().execute(
+        """SELECT id, parent_id, title, agent, model, directory,
                   tokens_input, tokens_output, tokens_reasoning,
                   tokens_cache_read, tokens_cache_write,
                   time_created, time_updated
@@ -53,8 +78,7 @@ def build_tree():
         model = r["model"]
         if model:
             try:
-                m = json.loads(model)
-                model = m.get("modelID", model)
+                model = json.loads(model)
             except (json.JSONDecodeError, TypeError):
                 pass
         nodes[r["id"]] = {
@@ -64,7 +88,7 @@ def build_tree():
             "agent": r["agent"],
             "model": model,
             "dir": r["directory"],
-            "cost": r["cost"],
+            "maxctx": maxctx.get(r["id"], 0),
             "in": r["tokens_input"],
             "out": r["tokens_output"],
             "reason": r["tokens_reasoning"],
@@ -87,14 +111,14 @@ def build_tree():
     def subtree(n):
         t = {
             "in": n["in"], "out": n["out"], "reason": n["reason"],
-            "cr": n["cr"], "cw": n["cw"], "cost": n["cost"],
+            "cr": n["cr"], "cw": n["cw"],
         }
         for c in n["children"]:
             st = subtree(c)
             for k in t:
                 t[k] += st[k]
         n["subtree"] = t
-        n["children"].sort(key=lambda c: c["created"] or 0)
+        n["children"].sort(key=lambda c: c["created"] or 0, reverse=True)
         return t
 
     for r in roots:
@@ -243,6 +267,7 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(obj).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -266,6 +291,7 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/":
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
                 self.end_headers()
                 self.wfile.write(load_page().encode())
             else:
@@ -287,7 +313,8 @@ def main():
     url = f"http://localhost:{PORT}"
     srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     print(f"Token usage tree: {url}  (DB: {DB_PATH}, read-only)")
-    threading.Timer(0.5, lambda: webbrowser.open(url)).start()
+    if not os.environ.get("NO_BROWSER"):
+        threading.Timer(0.5, lambda: webbrowser.open(url)).start()
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

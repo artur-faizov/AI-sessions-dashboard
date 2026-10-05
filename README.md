@@ -6,7 +6,7 @@ including every subagent, nested to any depth — as a tree.
 ## Why it exists
 
 OpenCode runs each subagent as a real **child session**. All of them — with token counts,
-model, cost, duration, and the prompt they were given — are persisted in a local SQLite
+model, duration, and the prompt they were given — are persisted in a local SQLite
 database (`~/.local/share/opencode/opencode.db`, table `session` linked by `parent_id`).
 None of the built-in tools show this data well:
 
@@ -16,7 +16,7 @@ None of the built-in tools show this data well:
 
 This tool answers questions like:
 
-- Which subagent consumed the most tokens / cost in a session?
+- Which subagent consumed the most tokens in a session?
 - Was a session's spend its own context, or its subagents?
 - What exact prompt was sent to a given subagent, and what model ran it?
 - Total usage across all sessions, grouped by project
@@ -36,14 +36,17 @@ Opens http://localhost:8787 in your browser.
 
 - Sessions are grouped by project directory; each root session nests its subagents
   (and their subagents) via `parent_id`
-- Every row shows **subtree totals**: input/output tokens (with cache read), cost,
-  and wall-clock duration of that session. Nodes with children also show their
-  **own** input in brackets — `in 656k (own 336k)` — and the bar is two-tone:
-  blue = own consumption, amber = subagents'
+- The name takes all remaining space; to its right sits a compact fixed-width set:
+  **no.** (position in history — roots numbered globally by start time, children
+  within their parent; full timestamp on hover) ·
+  wall-clock **duration** · **max context size reached during that session** (yellow) ·
+  **tokens spent** (subtree `in + out + reasoning`, cache excluded as it's cheap)
 - A `+` / `−` toggle appears only on nodes that actually have children
+- Click `time` / `dur` / `ctx` / `spent` in the sticky header to sort siblings at every
+  level of the tree — click cycles descending → ascending → off (newest first)
 - Click any row → side panel shows:
   - own vs children vs subtree tokens (input, output, reasoning, cache read/write)
-  - agent, model, timestamps, duration, cost (own and subtree)
+  - agent, model (provider / model / variant), timestamps, duration, max context
   - **every AI call in that session**: one table row per assistant message —
     context size in (fresh input + cache read), fresh input, cache read, out,
     reasoning; the Σ footer reconciles with the session's own-token counters
@@ -67,8 +70,6 @@ Opens http://localhost:8787 in your browser.
   cache reads). The "in (context)" column in the AI-calls table is the size of that
   single call — comparable to opencode's context gauge
 - Only rows with an expandable `+` and a `▾ N children` badge contain subagents
-- `cost` comes from what OpenCode recorded per session; provider pricing gaps
-  can make it `0.0` for some models
 
 ## Safety
 
