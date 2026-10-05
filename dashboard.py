@@ -5,11 +5,14 @@ import html
 import json
 import os
 import sqlite3
+import sys
 import threading
 import time
 import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+VERSION = "2.0.0"
 
 DB_PATH = os.path.expanduser("~/.local/share/opencode/opencode.db")
 PORT = int(os.environ.get("PORT", "8787"))
@@ -280,7 +283,7 @@ PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html
 def load_page():
     # read per request: edit index.html -> refresh browser, no restart needed
     with open(PAGE_FILE, encoding="utf-8") as f:
-        return f.read()
+        return f.read().replace("{{VERSION}}", VERSION)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -325,6 +328,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    if "--version" in sys.argv:
+        print(VERSION)
+        return
     if not os.path.exists(DB_PATH):
         print(f"DB not found: {DB_PATH}")
         return

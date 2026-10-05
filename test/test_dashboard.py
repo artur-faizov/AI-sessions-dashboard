@@ -1,5 +1,7 @@
 """Tests for dashboard.py — run: python3 test/test_dashboard.py"""
 
+import contextlib
+import io
 import json
 import os
 import sqlite3
@@ -100,6 +102,27 @@ class SessionCallsTest(unittest.TestCase):
         self.assertEqual(calls[0]["out"], 5)
         self.assertEqual(calls[0]["ctx"], 10)
         self.assertTrue(all(isinstance(c["hu"], bool) for c in calls))
+
+
+class VersionTest(unittest.TestCase):
+    def test_version_flag_prints_version_without_touching_db(self):
+        buf = io.StringIO()
+        old_argv = sys.argv
+        old_path = dashboard.DB_PATH
+        sys.argv = ["dashboard.py", "--version"]
+        dashboard.DB_PATH = "/nonexistent/dashboard-version-test.db"
+        try:
+            with contextlib.redirect_stdout(buf):
+                dashboard.main()
+        finally:
+            sys.argv = old_argv
+            dashboard.DB_PATH = old_path
+        self.assertEqual(buf.getvalue(), dashboard.VERSION + "\n")
+
+    def test_load_page_substitutes_version_placeholder(self):
+        page = dashboard.load_page()
+        self.assertNotIn("{{VERSION}}", page)
+        self.assertIn(dashboard.VERSION, page)
 
 
 if __name__ == "__main__":

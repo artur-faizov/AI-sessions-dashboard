@@ -30,6 +30,7 @@ python3 dashboard.py
 Opens http://localhost:8787 in your browser.
 
 - Custom port: `PORT=9000 python3 dashboard.py`
+- Show version: `python3 dashboard.py --version` (also displayed in the page header)
 - Press `Ctrl+C` to stop
 
 ### Reading the tree
