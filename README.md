@@ -54,13 +54,14 @@ Build a self-contained binary for **your** platform — bundles the Python
 runtime, so the file in `dist/` runs on its own, no Python needed:
 
 ```bash
-make build          # Linux / macOS (needs python3 + pip only at build time)
+make build-all      # builds the target matching the current OS,
+                    # skips the other ones (needs python3 + pip only at build time)
 ```
 
 Windows: run `src\build.bat` from the repo root (needs `python` in PATH).
 
-- Output: `dist/token-usage-tree-<os>-<arch>[.exe]`, e.g.
-  `token-usage-tree-darwin-arm64` or `token-usage-tree-linux-amd64`
+- Output: `dist/dashboard-lin-x64` (Linux), `dist/dashboard-mac-darwin`
+  (macOS) or `dist/dashboard.exe` (Windows)
 - Double-click it (or run from a terminal) — the dashboard opens in your
   browser, identical to `python3 dashboard.py`
 - PyInstaller builds for the machine it runs on — no cross-compiling,
