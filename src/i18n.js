@@ -1,0 +1,270 @@
+// UI text resources. To add a language: add a "xx: {...}" dictionary whose
+// keys mirror `en`, and add { code, label, locale } to LANGS below.
+// Plural values are arrays: 2 forms [one, other] (english-style) or
+// 3 forms [one, few, many] (russian-style); {n} receives the count.
+(function () {
+    const dicts = {
+        en: {
+            'doc.title': 'OpenCode Token Usage',
+            'app.title': 'Token Tree',
+            'filter.btn': 'Filter',
+            'filter.btn.title': 'session filter',
+            'filter.calls.btn.title': 'filter the calls table',
+            'hl.label': 'ctx highlight warn/crit, k',
+            'hl.title': 'rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red',
+            'hl.warn.title': 'warning threshold: rows with context above this value (in k tokens) are highlighted yellow',
+            'hl.crit.title': 'critical threshold: rows with context above this value (in k tokens) are highlighted red',
+            'hl.apply.title': 'Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.',
+            'hl.apply.label': 'apply threshold',
+            'refresh.title': 'auto-refresh in {n}s · click to refresh now',
+            'version.title': 'dashboard version',
+            'lang.title': 'Language',
+            'splitter.title': 'Drag to resize · double-click to reset',
+            'detail.select': 'Select a session…',
+            'tree.unknown_dir': '(unknown)',
+            'tree.th.time': '#',
+            'tree.th.dur': 'dur',
+            'tree.th.ctx': 'ctx',
+            'tree.th.spent': 'spent',
+            'tree.th.time.tip': 'sort by session start time (newest first)',
+            'tree.th.dur.tip': 'sort by duration',
+            'tree.th.ctx.tip': 'sort by max context during session',
+            'tree.th.spent.tip': 'sort by tokens spent (in+out+reasoning)',
+            'tree.sessions': ['{n} session', '{n} sessions'],
+            'tree.project.spent': 'spent {spent}',
+            'tree.empty': 'No sessions match the filter.',
+            'summary': ['{n} root · spent {spent}', '{n} roots · spent {spent}'],
+            'node.dur.tip': 'wall-clock duration of this session',
+            'node.ctx.tip': 'max context size reached during this session',
+            'node.spent.tip': 'tokens spent (subtree): in + out + reasoning, cache excluded',
+            'node.children_badge': ['▾ {n} child', '▾ {n} children'],
+            'calls.empty': '(no AI calls recorded)',
+            'calls.empty_filtered': '(no calls match the filter)',
+            'calls.hum.tip': 'triggered by a human message',
+            'calls.th.num': '#',
+            'calls.th.ctx': 'in (context)',
+            'calls.th.delta': 'delta',
+            'calls.th.out': 'out',
+            'calls.th.reason': 'reason',
+            'calls.th.in': 'fresh',
+            'calls.th.cr': 'cache r',
+            'calls.th.num.tip': 'call number in this session (chronological)',
+            'calls.th.ctx.tip': 'total input of this request = fresh + cache read + cache write — the full context window sent to the model',
+            'calls.th.delta.tip': 'context growth vs the previous call (ctx[n] − ctx[n−1]): trigger text and tool results fed to this call + the previous call’s output and reasoning. Negative = context shrank (compaction/summarization). First call: everything is new',
+            'calls.th.out.tip': 'tokens of the model’s visible reply — fed back into the next call’s context',
+            'calls.th.reason.tip': 'hidden thinking tokens generated before the reply, billed as output. With Anthropic they persist in context (included in delta); some providers discard them',
+            'calls.th.in.tip': 'input tokens processed WITHOUT the prompt cache — billed at full input price. A spike with cache r = 0 is a cache miss: the whole context was reprocessed (cache expired or invalidated)',
+            'calls.th.cr.tip': 'input tokens served from the provider’s prompt cache (~10x cheaper). High = good cache reuse',
+            'calls.foot.sum.tip': 'sum of request sizes (counts cache re-reads every call)',
+            'calls.foot.delta.tip': 'sum of deltas = final context size',
+            'calls.foot.all': 'Σ {n}',
+            'calls.foot.filtered': 'Σ filtered {n}',
+            'calls.foot.all_label': 'Σ all {n}',
+            'call.head': 'Call #{n} / {total} · context now <b class="ctxsize">{now}</b> · this request <b>{req}</b> · delta {delta} · fresh (uncached, full price) {fresh} · out {out}',
+            'loading': 'loading…',
+            'load.fail': '(failed to load: {msg} — old dashboard.py still running? restart it)',
+            'trig.user': 'User prompt — start of this turn',
+            'trig.assistant': 'Tool result fed to this call — output of the previous call',
+            'trig.start': 'First call of the session — nothing preceded it',
+            'trig.text': 'text',
+            'trig.tool': 'tool {tool} — {status}',
+            'trig.input': 'input:',
+            'trig.output': '--- output ---',
+            'trig.trunc': '(truncated…)',
+            'trig.trunc_in': '(input truncated…)',
+            'trig.trunc_out': '(output truncated…)',
+            'trig.empty': '(no recorded content)',
+            'detail.ctx_now': 'Context now (last call)',
+            'detail.ctx_max': 'Max context during session',
+            'detail.agent_model': 'Agent / Model',
+            'detail.dir': 'Directory',
+            'detail.created_updated': 'Created / Updated',
+            'detail.own': 'Own tokens',
+            'detail.kids': 'Children (subtree − own)',
+            'detail.subtree': 'Subtree totals',
+            'detail.direct_children': ['{n} direct child', '{n} direct children'],
+            'detail.calls': 'AI calls in this session',
+            'detail.prompt': 'Initial request sent to this agent',
+            'prompt.empty': '(no recorded user prompt)',
+            'ftree.title': 'Session filter',
+            'fmod.text': 'Text',
+            'ftree.text.ph': 'title, agent, model…',
+            'fmod.model': 'Model',
+            'fmod.provider': 'Provider',
+            'fmod.no_values': '(no values yet)',
+            'fmod.ranges': 'Ranges (inclusive)',
+            'fmod.min': 'min',
+            'fmod.max': 'max',
+            'fmod.h': 'h',
+            'fmod.m': 'm',
+            'fmod.s': 's',
+            'fmod.reset': 'Reset all',
+            'ftree.ctx': 'Context size (k)',
+            'ftree.spent': 'Spent tokens (k)',
+            'ftree.dur_min': 'Min duration',
+            'ftree.dur_max': 'Max duration',
+            'fcall.title': 'AI calls filter',
+            'fcall.text': 'Text (matches call timestamp)',
+            'fcall.text.ph': 'e.g. 14: or 10/5'
+        },
+        ru: {
+            'doc.title': 'Использование токенов OpenCode',
+            'app.title': 'Дерево токенов',
+            'filter.btn': 'Фильтр',
+            'filter.btn.title': 'фильтр сессий',
+            'filter.calls.btn.title': 'фильтр таблицы вызовов',
+            'hl.label': 'подсветка контекста warn/crit, k',
+            'hl.title': 'строки с контекстом выше этих значений (в тысячах токенов) подсвечиваются: warn — жёлтым, crit — красным',
+            'hl.warn.title': 'порог предупреждения: строки с контекстом выше этого значения (в тысячах токенов) подсвечиваются жёлтым',
+            'hl.crit.title': 'критический порог: строки с контекстом выше этого значения (в тысячах токенов) подсвечиваются красным',
+            'hl.apply.title': 'Оставить в дереве только сессии, чей контекст превышает порог warn или crit (плюс родительскую цепочку к ним). Список вызовов ИИ этим фильтром не ограничивается — только подсвечивается.',
+            'hl.apply.label': 'применить порог',
+            'refresh.title': 'авто-обновление через {n} с · нажмите для обновления сейчас',
+            'version.title': 'версия дашборда',
+            'lang.title': 'Язык',
+            'splitter.title': 'Потяните для изменения размера · двойной клик — сбросить',
+            'detail.select': 'Выберите сессию…',
+            'tree.unknown_dir': '(неизвестно)',
+            'tree.th.time': '#',
+            'tree.th.dur': 'длит',
+            'tree.th.ctx': 'кткс',
+            'tree.th.spent': 'потр.',
+            'tree.th.time.tip': 'сортировка по времени начала сессии (сначала новые)',
+            'tree.th.dur.tip': 'сортировка по длительности',
+            'tree.th.ctx.tip': 'сортировка по максимальному контексту за сессию',
+            'tree.th.spent.tip': 'сортировка по потраченным токенам (in+out+reasoning)',
+            'tree.sessions': ['{n} сессия', '{n} сессии', '{n} сессий'],
+            'tree.project.spent': 'потрачено {spent}',
+            'tree.empty': 'Нет сессий, соответствующих фильтру.',
+            'summary': ['{n} корень · потрачено {spent}', '{n} корня · потрачено {spent}', '{n} корней · потрачено {spent}'],
+            'node.dur.tip': 'реальная длительность этой сессии',
+            'node.ctx.tip': 'максимальный размер контекста за эту сессию',
+            'node.spent.tip': 'потрачено токенов (поддерево): in + out + reasoning, кеш не в счёт',
+            'node.children_badge': ['▾ {n} потомок', '▾ {n} потомка', '▾ {n} потомков'],
+            'calls.empty': '(нет записанных вызовов ИИ)',
+            'calls.empty_filtered': '(нет вызовов, соответствующих фильтру)',
+            'calls.hum.tip': 'вызвано сообщением человека',
+            'calls.th.num': '#',
+            'calls.th.ctx': 'вход (контекст)',
+            'calls.th.delta': 'дельта',
+            'calls.th.out': 'выход',
+            'calls.th.reason': 'разм.',
+            'calls.th.in': 'свежие',
+            'calls.th.cr': 'кеш чт.',
+            'calls.th.num.tip': 'номер вызова в этой сессии (в хронологическом порядке)',
+            'calls.th.ctx.tip': 'полный вход этого запроса = свежие + чтение кеша + запись кеша — всё контекстное окно, отправленное модели',
+            'calls.th.delta.tip': 'прирост контекста относительно предыдущего вызова (ctx[n] − ctx[n−1]): текст-триггер и результаты инструментов, переданные этому вызову, плюс вывод и размышления предыдущего вызова. Отрицательное значение = контекст уменьшился (компакция/суммаризация). Первый вызов: всё новое',
+            'calls.th.out.tip': 'токены видимого ответа модели — попадают в контекст следующего вызова',
+            'calls.th.reason.tip': 'скрытые токены размышлений перед ответом, тарифицируются как выход. У Anthropic они остаются в контексте (входят в дельту); некоторые провайдеры их отбрасывают',
+            'calls.th.in.tip': 'входные токены, обработанные БЕЗ кеша промпта — по полной цене входа. Всплеск при «кеш чт = 0» — промах кеша: весь контекст обработан заново (кеш истёк или сброшен)',
+            'calls.th.cr.tip': 'входные токены из кеша промпта провайдера (~в 10 раз дешевле). Высокое значение = хороший реюз кеша',
+            'calls.foot.sum.tip': 'сумма размеров запросов (повторные чтения кеша считаются при каждом вызове)',
+            'calls.foot.delta.tip': 'сумма дельт = итоговый размер контекста',
+            'calls.foot.all': 'Σ {n}',
+            'calls.foot.filtered': 'Σ по фильтру {n}',
+            'calls.foot.all_label': 'Σ все {n}',
+            'call.head': 'Вызов #{n} / {total} · контекст сейчас <b class="ctxsize">{now}</b> · этот запрос <b>{req}</b> · дельта {delta} · свежие (без кеша, полная цена) {fresh} · выход {out}',
+            'loading': 'загрузка…',
+            'load.fail': '(не удалось загрузить: {msg} — запущен старый dashboard.py? перезапустите его)',
+            'trig.user': 'Запрос пользователя — начало этого хода',
+            'trig.assistant': 'Результат инструмента, переданный этому вызову — вывод предыдущего вызова',
+            'trig.start': 'Первый вызов сессии — до него ничего не было',
+            'trig.text': 'текст',
+            'trig.tool': 'инструмент {tool} — {status}',
+            'trig.input': 'вход:',
+            'trig.output': '--- вывод ---',
+            'trig.trunc': '(обрезано…)',
+            'trig.trunc_in': '(вход обрезан…)',
+            'trig.trunc_out': '(вывод обрезан…)',
+            'trig.empty': '(записанного содержимого нет)',
+            'detail.ctx_now': 'Контекст сейчас (последний вызов)',
+            'detail.ctx_max': 'Макс. контекст за сессию',
+            'detail.agent_model': 'Агент / Модель',
+            'detail.dir': 'Директория',
+            'detail.created_updated': 'Создано / Обновлено',
+            'detail.own': 'Свои токены',
+            'detail.kids': 'Потомки (поддерево − свои)',
+            'detail.subtree': 'Итого по поддереву',
+            'detail.direct_children': ['{n} прямой потомок', '{n} прямых потомка', '{n} прямых потомков'],
+            'detail.calls': 'Вызовы ИИ в этой сессии',
+            'detail.prompt': 'Исходный запрос, отправленный этому агенту',
+            'prompt.empty': '(запрос пользователя не записан)',
+            'ftree.title': 'Фильтр сессий',
+            'fmod.text': 'Текст',
+            'ftree.text.ph': 'название, агент, модель…',
+            'fmod.model': 'Модель',
+            'fmod.provider': 'Провайдер',
+            'fmod.no_values': '(значений пока нет)',
+            'fmod.ranges': 'Диапазоны (включительно)',
+            'fmod.min': 'мин',
+            'fmod.max': 'макс',
+            'fmod.h': 'ч',
+            'fmod.m': 'м',
+            'fmod.s': 'с',
+            'fmod.reset': 'Сбросить всё',
+            'ftree.ctx': 'Размер контекста (k)',
+            'ftree.spent': 'Потрачено токенов (k)',
+            'ftree.dur_min': 'Мин. длительность',
+            'ftree.dur_max': 'Макс. длительность',
+            'fcall.title': 'Фильтр вызовов ИИ',
+            'fcall.text': 'Текст (по времени вызова)',
+            'fcall.text.ph': 'напр. 14: или 10/5'
+        }
+    };
+
+    const LANGS = [
+        { code: 'en', label: 'EN', locale: 'en-US' },
+        { code: 'ru', label: 'RU', locale: 'ru-RU' }
+    ];
+
+    const DEFAULT_LANG = 'en';
+    let cur = DEFAULT_LANG;
+
+    function pickPlural(n, forms) {
+        if (forms.length < 3) return n === 1 ? forms[0] : forms[1];
+        const m10 = n % 10, m100 = n % 100;
+        if (m10 === 1 && m100 !== 11) return forms[0];
+        if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return forms[1];
+        return forms[2];
+    }
+
+    function tr(key, params) {
+        const d = dicts[cur] || dicts[DEFAULT_LANG];
+        let v = Object.prototype.hasOwnProperty.call(d, key) ? d[key] : dicts[DEFAULT_LANG][key];
+        if (Array.isArray(v)) v = pickPlural(params && params.n != null ? params.n : 1, v);
+        if (typeof v !== 'string') return key;
+        return params ? v.replace(/\{(\w+)\}/g, (m, k) => k in params ? params[k] : m) : v;
+    }
+
+    function curLang() {
+        return cur;
+    }
+
+    function locale() {
+        const l = LANGS.find(x => x.code === cur);
+        return l ? l.locale : 'en-US';
+    }
+
+    function setLang(lang) {
+        if (!dicts[lang]) return cur;
+        cur = lang;
+        try {
+            if (typeof localStorage !== 'undefined') localStorage.setItem('lang', lang);
+        } catch (e) { /* storage unavailable (private mode etc.) */ }
+        return cur;
+    }
+
+    function initLang() {
+        let saved = null;
+        try {
+            if (typeof localStorage !== 'undefined') saved = localStorage.getItem('lang');
+        } catch (e) { /* ignore */ }
+        cur = saved && dicts[saved] ? saved : DEFAULT_LANG;
+        return cur;
+    }
+
+    const I18N = { tr, setLang, curLang, locale, LANGS, dicts, pickPlural };
+    if (typeof window !== 'undefined') window.I18N = I18N;
+    if (typeof module !== 'undefined' && module.exports) module.exports = I18N;
+    initLang();
+})();

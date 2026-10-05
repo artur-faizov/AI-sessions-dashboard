@@ -6,3 +6,4 @@
 6. filter based on max context window size, based on token spent in sum in kilo values
 7. add program version to code, param --version as in UI top right corner
 8. filters from top and bottom, for session list as well, separate popup screen with separate model filter, text filter and so on
+9. refresh does not refresh session call AI list

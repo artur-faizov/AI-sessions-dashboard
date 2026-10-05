@@ -101,6 +101,32 @@
             border-color: var(--acc)
         }
 
+        .langsw {
+            display: inline-flex;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+            user-select: none;
+            font-size: 12px
+        }
+
+        .langsw span {
+            padding: 3px 8px;
+            cursor: pointer;
+            color: var(--dim);
+            background: #1d2026
+        }
+
+        .langsw span:hover {
+            color: var(--fg)
+        }
+
+        .langsw span.on {
+            color: var(--acc);
+            background: #232730;
+            font-weight: 600
+        }
+
         .hlbox {
             display: flex;
             gap: 6px;
@@ -839,17 +865,18 @@
     </style>
 </head>
 <body>
-<header><h1>Token Tree</h1>
+<header><h1 id="apptitle">Token Tree</h1>
     <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
-    <label class="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span>ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
+    <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="hlapplylabel" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now">5</button>
     <span id="summary" class="num"></span>
-    <span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></header>
+    <span id="version" class="ver" title="dashboard version">v{{VERSION}}</span>
+    <span id="langsw" class="langsw" title="Language"></span></header>
 <main>
     <div id="tree"></div>
     <div id="splitter" title="Drag to resize · double-click to reset"></div>
     <div id="detail">
-        <div class="empty">Select a session…</div>
+        <div class="empty" id="detailempty">Select a session…</div>
     </div>
 </main>
 <div id="modal" hidden>
@@ -868,9 +895,11 @@
         <div id="fmodal-body"></div>
     </div>
 </div>
+<script src="/i18n.js"></script>
 <script>
     let TREE = [], CALLS = [], VISIBLE = [], sel = null, VMAX = {ctx: 0, tok: 0},
         sortKey = null, sortAsc = false, ORDER = new Map(), COLLAPSED = new Set(), EXPANDED = new Set();
+    const tr = I18N.tr;
 
     function computeOrder() {
         ORDER = new Map();
@@ -885,7 +914,7 @@
     }
     const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n || 0);
     const dur = ms => ms < 0 ? '—' : ms < 6e4 ? (ms / 1e3).toFixed(0) + 's' : ms < 36e5 ? (ms / 6e4).toFixed(1) + 'm' : (ms / 36e5).toFixed(1) + 'h';
-    const when = t => t ? new Date(t).toLocaleString() : '—';
+    const when = t => t ? new Date(t).toLocaleString(I18N.locale()) : '—';
     // FILTER-LOGIC-START
     // Pure filter predicates — no DOM access. test/filter.test.mjs extracts exactly
     // this block and runs it in node, so keep it self-contained between the markers.
@@ -1008,8 +1037,11 @@
         document.querySelector('#fmodal').hidden = false;
     }
 
+    let fmodalKind = null;
+
     function fmodalClose() {
         document.querySelector('#fmodal').hidden = true;
+        fmodalKind = null;
     }
 
     function numInput(id, val, ph, cls) {
@@ -1017,7 +1049,7 @@
     }
 
     function rangeRow(label, minId, maxId, f, minK, maxK) {
-        return `<div class="frow"><span class="flbl">${label}</span><span class="finputs">${numInput(minId, f[minK], 'min')} – ${numInput(maxId, f[maxK], 'max')}</span></div>`;
+        return `<div class="frow"><span class="flbl">${label}</span><span class="finputs">${numInput(minId, f[minK], tr('fmod.min'))} – ${numInput(maxId, f[maxK], tr('fmod.max'))}</span></div>`;
     }
 
     function msToHms(ms) {
@@ -1028,11 +1060,11 @@
 
     function durRow(label, prefix, ms) {
         const [h, m, s] = msToHms(ms);
-        return `<div class="frow"><span class="flbl">${label}</span><span class="finputs">${numInput(prefix + 'h', h, 'h', 'h')}${numInput(prefix + 'm', m, 'm', 'h')}${numInput(prefix + 's', s, 's', 'h')}</span></div>`;
+        return `<div class="frow"><span class="flbl">${label}</span><span class="finputs">${numInput(prefix + 'h', h, tr('fmod.h'), 'h')}${numInput(prefix + 'm', m, tr('fmod.m'), 'h')}${numInput(prefix + 's', s, tr('fmod.s'), 'h')}</span></div>`;
     }
 
     function ckList(id, values, set) {
-        if (!values.length) return `<div class="cklist" id="${id}"><span class="num">(no values yet)</span></div>`;
+        if (!values.length) return `<div class="cklist" id="${id}"><span class="num">${tr('fmod.no_values')}</span></div>`;
         return `<div class="cklist" id="${id}">` + values.map(v =>
             `<label><input type="checkbox" data-val="${esc(v)}"${set.has(v) ? ' checked' : ''}>${esc(v)}</label>`).join('') + '</div>';
     }
@@ -1101,19 +1133,20 @@
 
     function openTreeFilter() {
         const f = treeFilter;
-        fmodalOpen('Session filter', `
-        <div class="fsect">Text</div>
-        <div class="frow"><span class="finputs"><input type="text" id="ft-text" value="${esc(f.text)}" placeholder="title, agent, model…" style="width:100%"></span></div>
-        <div class="fsect">Model</div>
+        fmodalKind = 'tree';
+        fmodalOpen(tr('ftree.title'), `
+        <div class="fsect">${tr('fmod.text')}</div>
+        <div class="frow"><span class="finputs"><input type="text" id="ft-text" value="${esc(f.text)}" placeholder="${tr('ftree.text.ph')}" style="width:100%"></span></div>
+        <div class="fsect">${tr('fmod.model')}</div>
         ${ckList('ft-models', collectValues(n => modelName(n.model)), f.models)}
-        <div class="fsect">Provider</div>
+        <div class="fsect">${tr('fmod.provider')}</div>
         ${ckList('ft-provs', collectValues(nodeProvider), f.providers)}
-        <div class="fsect">Ranges (inclusive)</div>
-        ${rangeRow('Context size (k)', 'ft-ctxmin', 'ft-ctxmax', f, 'ctxMin', 'ctxMax')}
-        ${rangeRow('Spent tokens (k)', 'ft-spentmin', 'ft-spentmax', f, 'spentMin', 'spentMax')}
-        ${durRow('Min duration', 'ft-dmin', f.durMin)}
-        ${durRow('Max duration', 'ft-dmax', f.durMax)}
-        <button class="freset" onclick="resetTreeFilter()">Reset all</button>`);
+        <div class="fsect">${tr('fmod.ranges')}</div>
+        ${rangeRow(tr('ftree.ctx'), 'ft-ctxmin', 'ft-ctxmax', f, 'ctxMin', 'ctxMax')}
+        ${rangeRow(tr('ftree.spent'), 'ft-spentmin', 'ft-spentmax', f, 'spentMin', 'spentMax')}
+        ${durRow(tr('ftree.dur_min'), 'ft-dmin', f.durMin)}
+        ${durRow(tr('ftree.dur_max'), 'ft-dmax', f.durMax)}
+        <button class="freset" onclick="resetTreeFilter()">${tr('fmod.reset')}</button>`);
         const apply = applyTreeFilter;
         document.querySelector('#ft-text').addEventListener('input', e => {
             f.text = e.target.value;
@@ -1143,18 +1176,19 @@
 
     function openCallFilter() {
         const f = callFilter;
-        fmodalOpen('AI calls filter', `
-        <div class="fsect">Text (matches call timestamp)</div>
-        <div class="frow"><span class="finputs"><input type="text" id="fc-text" value="${esc(f.text)}" placeholder="e.g. 14: or 10/5" style="width:100%"></span></div>
-        <div class="fsect">Ranges (inclusive)</div>
-        ${rangeRow('#', 'fc-nummin', 'fc-nummax', f, 'numMin', 'numMax')}
-        ${rangeRow('in (context)', 'fc-ctxmin', 'fc-ctxmax', f, 'ctxMin', 'ctxMax')}
-        ${rangeRow('delta', 'fc-dmin', 'fc-dmax', f, 'deltaMin', 'deltaMax')}
-        ${rangeRow('out', 'fc-outmin', 'fc-outmax', f, 'outMin', 'outMax')}
-        ${rangeRow('reason', 'fc-rmin', 'fc-rmax', f, 'reasonMin', 'reasonMax')}
-        ${rangeRow('fresh', 'fc-inmin', 'fc-inmax', f, 'inMin', 'inMax')}
-        ${rangeRow('cache r', 'fc-crmin', 'fc-crmax', f, 'crMin', 'crMax')}
-        <button class="freset" onclick="resetCallFilter()">Reset all</button>`);
+        fmodalKind = 'call';
+        fmodalOpen(tr('fcall.title'), `
+        <div class="fsect">${tr('fcall.text')}</div>
+        <div class="frow"><span class="finputs"><input type="text" id="fc-text" value="${esc(f.text)}" placeholder="${tr('fcall.text.ph')}" style="width:100%"></span></div>
+        <div class="fsect">${tr('fmod.ranges')}</div>
+        ${rangeRow(tr('calls.th.num'), 'fc-nummin', 'fc-nummax', f, 'numMin', 'numMax')}
+        ${rangeRow(tr('calls.th.ctx'), 'fc-ctxmin', 'fc-ctxmax', f, 'ctxMin', 'ctxMax')}
+        ${rangeRow(tr('calls.th.delta'), 'fc-dmin', 'fc-dmax', f, 'deltaMin', 'deltaMax')}
+        ${rangeRow(tr('calls.th.out'), 'fc-outmin', 'fc-outmax', f, 'outMin', 'outMax')}
+        ${rangeRow(tr('calls.th.reason'), 'fc-rmin', 'fc-rmax', f, 'reasonMin', 'reasonMax')}
+        ${rangeRow(tr('calls.th.in'), 'fc-inmin', 'fc-inmax', f, 'inMin', 'inMax')}
+        ${rangeRow(tr('calls.th.cr'), 'fc-crmin', 'fc-crmax', f, 'crMin', 'crMax')}
+        <button class="freset" onclick="resetCallFilter()">${tr('fmod.reset')}</button>`);
         const apply = applyCallFilter;
         document.querySelector('#fc-text').addEventListener('input', e => {
             f.text = e.target.value;
@@ -1215,7 +1249,7 @@
         })(roots);
         VMAX = {ctx: mc, tok: mt};
         const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')">${lbl}</span>`;
-        h += `<div class="thead"><span class="hlead"></span>${th('time', '#', 'sort by session start time (newest first)')}<span class="grow"></span><span class="vals">${th('dur', 'dur', 'sort by duration')}<span class="hsp"></span>${th('ctx', 'ctx', 'sort by max context during session')}<span class="hsp"></span>${th('tok', 'spent', 'sort by tokens spent (in+out+reasoning)')}</span></div>`;
+        h += `<div class="thead"><span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}<span class="grow"></span><span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}</span></div>`;
         let groups = 0;
         for (const [dirName, sessions] of docmap(roots)) {
             const vis = sessions.filter(matches);
@@ -1225,14 +1259,14 @@
                 const t = s.subtree;
                 return {spent: a.spent + t.in + t.out + t.reason}
             }, {spent: 0});
-            h += `<div class="project">${dirName} — ${vis.length} session(s) · spent ${fmt(tot.spent)}</div><ul>`;
+            h += `<div class="project">${dirName} — ${tr('tree.sessions', {n: vis.length})} · ${tr('tree.project.spent', {spent: fmt(tot.spent)})}</div><ul>`;
             for (const s of vis) h += node(s, 1);
             h += '</ul>';
         }
-        if (!groups) h += '<div class="empty">No sessions match the filter.</div>';
+        if (!groups) h += `<div class="empty">${tr('tree.empty')}</div>`;
         document.querySelector('#tree').innerHTML = h;
         const allSpent = TREE.reduce((a, s) => a + s.subtree.in + s.subtree.out + s.subtree.reason, 0);
-        document.querySelector('#summary').textContent = `${TREE.length} roots · spent ${fmt(allSpent)}`;
+        document.querySelector('#summary').textContent = tr('summary', {n: TREE.length, spent: fmt(allSpent)});
     }
 
     function node(s, depth) {
@@ -1242,7 +1276,7 @@
         const spent = t.in + t.out + t.reason;
         const ctxPct = VMAX.ctx && s.maxctx ? Math.max(2, s.maxctx / VMAX.ctx * 100) : 0;
         const tokPct = VMAX.tok && spent ? Math.max(2, spent / VMAX.tok * 100) : 0;
-        const subBadges = hasSub ? `<span class="badge sub">▾ ${kids.length} child${kids.length > 1 ? 'ren' : ''}</span>` : '';
+        const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
@@ -1252,7 +1286,7 @@
     <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
     <span class="badge agent">${esc(s.agent || '—')}</span>
     <span class="badge">${esc(modelName(s.model))}</span>${subBadges}
-    <span class="vals"><span class="val v-dur" title="wall-clock duration of this session">${dur(s.dur)}</span><span class="vbar" title="max context size reached during this session"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="max context size reached during this session">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="tokens spent (subtree): in + out + reasoning, cache excluded"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="tokens spent (subtree): in + out + reasoning, cache excluded"><b>${fmt(spent)}</b></span></span></div>`;
+    <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="${tr('node.spent.tip')}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${tr('node.spent.tip')}"><b>${fmt(spent)}</b></span></span></div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1)).join('')}</ul>`;
         return h + '</li>';
     }
@@ -1260,7 +1294,7 @@
     function docmap(list) {
         const g = new Map();
         for (const s of list) {
-            const k = s.dir || '(unknown)';
+            const k = s.dir || tr('tree.unknown_dir');
             if (!g.has(k)) g.set(k, []);
             g.get(k).push(s);
         }
@@ -1292,11 +1326,11 @@
     function callsTable(calls) {
         if (!calls.length) {
             VISIBLE = [];
-            return '<div class="empty">(no AI calls recorded)</div>';
+            return `<div class="empty">${tr('calls.empty')}</div>`;
         }
         const vis = visibleCallRows(calls, callFilter, c => when(c.time));
         VISIBLE = vis.map(r => r.n - 1);
-        if (!vis.length) return '<div class="empty">(no calls match the filter)</div>';
+        if (!vis.length) return `<div class="empty">${tr('calls.empty_filtered')}</div>`;
         const all = calls.map((c, i) => ({
             n: i + 1, ctx: c.ctx, delta: callDeltaAt(calls, i),
             out: c.out, reason: c.reason, in: c.in, cr: c.cr
@@ -1308,7 +1342,7 @@
         let rows = '';
         vis.forEach(r => {
             const cls = r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
-            rows += `<tr${cls ? ` class="${cls}"` : ''}${r.hu ? ' title="triggered by a human message"' : ''} onclick="callPick('${esc(r.mid)}')">
+            rows += `<tr${cls ? ` class="${cls}"` : ''}${r.hu ? ` title="${tr('calls.hum.tip')}"` : ''} onclick="callPick('${esc(r.mid)}')">
   <td class="num">${r.hu ? '<span class="human-ic">👤</span>' : ''}${r.n}</td>
   <td class="num">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
   <td class="num">${bar(r.delta, mD)}${fmt(r.delta)}</td>
@@ -1319,22 +1353,22 @@
         });
         const sum = rs => rs.reduce((a, r) => ({ctx: a.ctx + r.ctx, in: a.in + r.in, cr: a.cr + r.cr, out: a.out + r.out, reason: a.reason + r.reason}), {ctx: 0, in: 0, cr: 0, out: 0, reason: 0});
         const ta = sum(all), tv = sum(vis);
-        const footRow = (lbl, t, n, lastCtx) => `<tr><td>${lbl} ${n}</td><td title="sum of request sizes (counts cache re-reads every call)">${fmt(t.ctx)}</td><td title="sum of deltas = final context size">${fmt(lastCtx)}</td><td>${fmt(t.out)}</td><td>${fmt(t.reason)}</td><td>${fmt(t.in)}</td><td>${fmt(t.cr)}</td></tr>`;
+        const footRow = (lbl, t, lastCtx) => `<tr><td>${lbl}</td><td title="${tr('calls.foot.sum.tip')}">${fmt(t.ctx)}</td><td title="${tr('calls.foot.delta.tip')}">${fmt(lastCtx)}</td><td>${fmt(t.out)}</td><td>${fmt(t.reason)}</td><td>${fmt(t.in)}</td><td>${fmt(t.cr)}</td></tr>`;
         let foot;
         if (callFilterActive()) {
-            foot = footRow('Σ filtered', tv, vis.length, vis[vis.length - 1].ctx)
-                + footRow('Σ all', ta, calls.length, calls[calls.length - 1].ctx);
+            foot = footRow(tr('calls.foot.filtered', {n: vis.length}), tv, vis[vis.length - 1].ctx)
+                + footRow(tr('calls.foot.all_label', {n: calls.length}), ta, calls[calls.length - 1].ctx);
         } else {
-            foot = footRow('Σ', ta, calls.length, calls[calls.length - 1].ctx);
+            foot = footRow(tr('calls.foot.all', {n: calls.length}), ta, calls[calls.length - 1].ctx);
         }
         const heads = [
-            ['#', 'call number in this session (chronological)', ''],
-            ['in (context)', 'total input of this request = fresh + cache read + cache write — the full context window sent to the model', ''],
-            ['delta', 'context growth vs the previous call (ctx[n] − ctx[n−1]): trigger text and tool results fed to this call + the previous call\u2019s output and reasoning. Negative = context shrank (compaction/summarization). First call: everything is new', ''],
-            ['out', 'tokens of the model\u2019s visible reply — fed back into the next call\u2019s context', ''],
-            ['reason', 'hidden thinking tokens generated before the reply, billed as output. With Anthropic they persist in context (included in delta); some providers discard them', ''],
-            ['fresh', 'input tokens processed WITHOUT the prompt cache — billed at full input price. A spike with cache r = 0 is a cache miss: the whole context was reprocessed (cache expired or invalidated)', 'sep'],
-            ['cache r', 'input tokens served from the provider\u2019s prompt cache (~10x cheaper). High = good cache reuse', '']
+            [tr('calls.th.num'), tr('calls.th.num.tip'), ''],
+            [tr('calls.th.ctx'), tr('calls.th.ctx.tip'), ''],
+            [tr('calls.th.delta'), tr('calls.th.delta.tip'), ''],
+            [tr('calls.th.out'), tr('calls.th.out.tip'), ''],
+            [tr('calls.th.reason'), tr('calls.th.reason.tip'), ''],
+            [tr('calls.th.in'), tr('calls.th.in.tip'), 'sep'],
+            [tr('calls.th.cr'), tr('calls.th.cr.tip'), '']
         ];
         return `<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
   <tbody>${rows}</tbody>
@@ -1376,10 +1410,10 @@
         const prev = CALLS[idx - 1];
         const d = prev ? c.ctx - prev.ctx : c.ctx;
         document.querySelector('#modal').hidden = false;
-        document.querySelector('#modal-head').innerHTML = `<span>Call #${c.n} / ${CALLS.length} · context now <b class="ctxsize">${fmt(now.ctx)}</b> · this request <b>${fmt(c.ctx)}</b> · delta ${fmt(d)} · fresh (uncached, full price) ${fmt(c.in)} · out ${fmt(c.out)}</span><button id="modal-close" onclick="modalClose()">✕</button>`;
+        document.querySelector('#modal-head').innerHTML = `<span>${tr('call.head', {n: c.n, total: CALLS.length, now: fmt(now.ctx), req: fmt(c.ctx), delta: fmt(d), fresh: fmt(c.in), out: fmt(c.out)})}</span><button id="modal-close" onclick="modalClose()">✕</button>`;
         updateNav();
         const body = document.querySelector('#modal-body');
-        body.innerHTML = 'loading…';
+        body.innerHTML = tr('loading');
         try {
             const r = await fetch('/api/trigger/' + encodeURIComponent(c.mid));
             if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1387,27 +1421,27 @@
             if (curCall !== idx) return;
             renderTrigger(j);
         } catch (e) {
-            if (curCall === idx) body.innerHTML = `<div class="empty">(failed to load: ${esc(e.message)} — old dashboard.py still running? restart it)</div>`;
+            if (curCall === idx) body.innerHTML = `<div class="empty">${tr('load.fail', {msg: esc(e.message)})}</div>`;
         }
     }
 
     function renderTrigger(j) {
-        const lbl = j.case === 'user' ? 'User prompt — start of this turn'
-            : j.case === 'assistant' ? 'Tool result fed to this call — output of the previous call'
-            : 'First call of the session — nothing preceded it';
+        const lbl = j.case === 'user' ? tr('trig.user')
+            : j.case === 'assistant' ? tr('trig.assistant')
+            : tr('trig.start');
         let h = `<div class="tblock"><div class="lbl">${lbl}</div></div>`;
         for (const p of (j.parts || [])) {
             if (p.kind === 'text') {
-                h += `<div class="tblock"><div class="lbl">text</div><pre class="prompt">${esc(p.text)}${p.cut ? '\n\n(truncated…)' : ''}</pre></div>`;
+                h += `<div class="tblock"><div class="lbl">${tr('trig.text')}</div><pre class="prompt">${esc(p.text)}${p.cut ? '\n\n' + tr('trig.trunc') : ''}</pre></div>`;
             } else if (p.kind === 'tool') {
-                h += `<div class="tblock"><div class="lbl">tool ${esc(p.tool)} — ${esc(p.status || '—')}</div><pre class="prompt">input:
-${esc(p.input)}${p.cut_i ? '\n(input truncated…)' : ''}${p.output ? `
+                h += `<div class="tblock"><div class="lbl">${tr('trig.tool', {tool: esc(p.tool), status: esc(p.status || '—')})}</div><pre class="prompt">${tr('trig.input')}
+${esc(p.input)}${p.cut_i ? '\n' + tr('trig.trunc_in') : ''}${p.output ? `
 
---- output ---
-${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
+${tr('trig.output')}
+${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>`;
             }
         }
-        if (!(j.parts || []).length && j.case !== 'start') h += '<div class="empty">(no recorded content)</div>';
+        if (!(j.parts || []).length && j.case !== 'start') h += `<div class="empty">${tr('trig.empty')}</div>`;
         document.querySelector('#modal-body').innerHTML = h;
     }
 
@@ -1428,7 +1462,7 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
             if (!r.ok) throw new Error('HTTP ' + r.status);
             return await r.json();
         } catch (e) {
-            if (errEl) errEl.innerHTML = `(failed to load: ${esc(e.message)} — old dashboard.py still running? restart it)`;
+            if (errEl) errEl.innerHTML = tr('load.fail', {msg: esc(e.message)});
             return null;
         }
     }
@@ -1445,16 +1479,16 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
         const kidIn = t.in - s.in;
         d.innerHTML = `<h2 title="${esc(s.title)}">${esc(s.title)}</h2>
   <dl class="meta">
-    <dt>Context now (last call)</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
-    <dt>Max context during session</dt><dd>${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</dd>
-    <dt>Agent / Model</dt><dd>${esc(s.agent || '—')} / ${esc(mFull)}</dd>
-    <dt>Directory</dt><dd>${esc(s.dir)}</dd>
-    <dt>Created / Updated</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd>
-    <dt>Own tokens</dt><dd>in <span class="own">${fmt(s.in)}</span> · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
-    <dt>Children (subtree − own)</dt><dd>in <span class="kids">${fmt(kidIn)}</span> · out ${fmt(t.out - s.out)} · reason ${fmt(t.reason - s.reason)} · cache r ${fmt(t.cr - s.cr)} / w ${fmt(t.cw - s.cw)}</dd>
-    <dt>Subtree totals</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${s.children.length} direct child(ren)</dd></dl>
-  <div class="sect">AI calls in this session <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="filter the calls table">Filter</button></div><div id="calls">loading…</div>
-  <div class="sect">Initial request sent to this agent</div><pre class="prompt" id="pp">loading…</pre>`;
+    <dt>${tr('detail.ctx_now')}</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
+    <dt>${tr('detail.ctx_max')}</dt><dd>${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</dd>
+    <dt>${tr('detail.agent_model')}</dt><dd>${esc(s.agent || '—')} / ${esc(mFull)}</dd>
+    <dt>${tr('detail.dir')}</dt><dd>${esc(s.dir)}</dd>
+    <dt>${tr('detail.created_updated')}</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd>
+    <dt>${tr('detail.own')}</dt><dd>in <span class="own">${fmt(s.in)}</span> · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
+    <dt>${tr('detail.kids')}</dt><dd>in <span class="kids">${fmt(kidIn)}</span> · out ${fmt(t.out - s.out)} · reason ${fmt(t.reason - s.reason)} · cache r ${fmt(t.cr - s.cr)} / w ${fmt(t.cw - s.cw)}</dd>
+    <dt>${tr('detail.subtree')}</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${tr('detail.direct_children', {n: s.children.length})}</dd></dl>
+  <div class="sect">${tr('detail.calls')} <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div><div id="calls">${tr('loading')}</div>
+  <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre>`;
         const pP = getJson('/api/prompt/' + encodeURIComponent(id), document.querySelector('#pp'));
         const pC = getJson('/api/calls/' + encodeURIComponent(id), document.querySelector('#calls'));
         const pj = await pP;
@@ -1462,7 +1496,7 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
         if (sel !== id) return;
         if (pj) {
             const pp = document.querySelector('#pp');
-            pp.textContent = (pj.texts && pj.texts.length) ? pj.texts.join('\n\n—\n\n') : '(no recorded user prompt)';
+            pp.textContent = (pj.texts && pj.texts.length) ? pj.texts.join('\n\n—\n\n') : tr('prompt.empty');
         }
         if (cj) {
             CALLS = (cj.calls || []).map((c, i) => Object.assign({}, c, {n: i + 1}));
@@ -1492,7 +1526,51 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
     function refreshLabel() {
         const b = document.querySelector('#refresh');
         b.textContent = refreshLeft;
-        b.title = `auto-refresh in ${refreshLeft}s · click to refresh now`;
+        b.title = tr('refresh.title', {n: refreshLeft});
+    }
+
+    function buildLangSwitcher() {
+        const el = document.querySelector('#langsw');
+        el.title = tr('lang.title');
+        el.innerHTML = I18N.LANGS.map(l =>
+            `<span data-lang="${l.code}"${I18N.curLang() === l.code ? ' class="on"' : ''}>${l.label}</span>`).join('');
+        el.querySelectorAll('span').forEach(b => b.addEventListener('click', () => {
+            if (I18N.curLang() !== b.dataset.lang) {
+                I18N.setLang(b.dataset.lang);
+                applyLang();
+            }
+        }));
+    }
+
+    function applyLangStatic() {
+        document.documentElement.lang = I18N.curLang();
+        document.title = tr('doc.title');
+        document.querySelector('#apptitle').textContent = tr('app.title');
+        const fb = document.querySelector('#tree-fbtn');
+        fb.textContent = tr('filter.btn');
+        fb.title = tr('filter.btn.title');
+        document.querySelector('#hlbox').title = tr('hl.title');
+        document.querySelector('#hllabel').textContent = tr('hl.label');
+        document.querySelector('#hlwarn').title = tr('hl.warn.title');
+        document.querySelector('#hlcrit').title = tr('hl.crit.title');
+        document.querySelector('#hlapply').title = tr('hl.apply.title');
+        document.querySelector('#hlapplylabel').title = tr('hl.apply.title');
+        document.querySelector('#hlapplylabel').textContent = tr('hl.apply.label');
+        document.querySelector('#version').title = tr('version.title');
+        document.querySelector('#splitter').title = tr('splitter.title');
+        const de = document.querySelector('#detailempty');
+        if (de) de.textContent = tr('detail.select');
+        refreshLabel();
+        buildLangSwitcher();
+    }
+
+    function applyLang() {
+        applyLangStatic();
+        render();
+        if (sel) pick(sel);
+        if (curCall >= 0) showCall(curCall);
+        if (fmodalKind === 'tree') openTreeFilter();
+        else if (fmodalKind === 'call') openCallFilter();
     }
 
     function refreshTick() {
@@ -1516,6 +1594,7 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
         }
     }
 
+    applyLangStatic();
     load();
     setInterval(refreshTick, 1000);
 

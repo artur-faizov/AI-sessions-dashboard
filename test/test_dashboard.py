@@ -141,5 +141,27 @@ class FrozenPageTest(unittest.TestCase):
                 sys._MEIPASS = saved_meipass
 
 
+class I18nTest(unittest.TestCase):
+    def test_load_i18n_reads_src_i18n_js(self):
+        content = dashboard.load_i18n()
+        self.assertIn("I18N", content)
+        self.assertIn("en", content)
+        self.assertIn("ru", content)
+
+    def test_load_i18n_reads_i18n_from_meipass_when_frozen(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "i18n.js"), "w", encoding="utf-8") as f:
+                f.write("frozen i18n")
+            saved_frozen = getattr(sys, "frozen", False)
+            saved_meipass = getattr(sys, "_MEIPASS", None)
+            sys.frozen = True
+            sys._MEIPASS = d
+            try:
+                self.assertEqual(dashboard.load_i18n(), "frozen i18n")
+            finally:
+                sys.frozen = saved_frozen
+                sys._MEIPASS = saved_meipass
+
+
 if __name__ == "__main__":
     unittest.main()

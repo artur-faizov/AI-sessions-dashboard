@@ -20,6 +20,7 @@ if "%ARCH%"=="ARM64" set ARCH=arm64
 .buildvenv\Scripts\python -m PyInstaller --onefile --clean ^
     --name token-usage-tree-windows-%ARCH% ^
     --add-data "%CD%\src\index.html;." ^
+    --add-data "%CD%\src\i18n.js;." ^
     --distpath dist --workpath build --specpath build ^
     dashboard.py || exit /b 1
 

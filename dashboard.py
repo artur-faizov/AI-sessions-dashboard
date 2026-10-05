@@ -289,6 +289,18 @@ def load_page():
         return f.read().replace("{{VERSION}}", VERSION)
 
 
+def i18n_file():
+    if getattr(sys, "frozen", False):  # PyInstaller bundle: i18n.js sits in _MEIPASS
+        return os.path.join(sys._MEIPASS, "i18n.js")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "i18n.js")
+
+
+def load_i18n():
+    # read per request, same edit-and-refresh flow as the page
+    with open(i18n_file(), encoding="utf-8") as f:
+        return f.read()
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -318,6 +330,12 @@ class Handler(BaseHTTPRequestHandler):
                 res = call_trigger(mid)
                 self._json(res if res is not None else {"error": "message not found"},
                             200 if res is not None else 404)
+            elif path == "/i18n.js":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/javascript; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(load_i18n().encode())
             elif path == "/":
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")

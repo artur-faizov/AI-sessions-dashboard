@@ -19,6 +19,7 @@ build: $(PY)
 	$(PY) -m PyInstaller --onefile --clean \
 		--name $(NAME)-$(PLATFORM) \
 		--add-data $(CURDIR)/src/index.html:. \
+		--add-data $(CURDIR)/src/i18n.js:. \
 		--distpath dist --workpath build --specpath build \
 		dashboard.py
 	@echo "Built dist/$(NAME)-$(PLATFORM)"
@@ -29,7 +30,7 @@ $(PY):
 
 test:
 	python3 test/test_dashboard.py
-	node --test test/filter.test.mjs
+	node --test test/filter.test.mjs test/i18n.test.mjs
 
 clean:
 	rm -rf dist build $(VENV) *.spec
