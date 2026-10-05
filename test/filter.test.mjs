@@ -20,6 +20,8 @@ const node = (o = {}) => ({
 });
 const tf = (o = {}) => ({
     text: '', models: new Set(), providers: new Set(),
+    numMin: null, numMax: null,
+    datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
     ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null, ...o,
 });
 const cf = (o = {}) => ({
@@ -121,6 +123,89 @@ test('tree node must satisfy ALL active criteria (AND)', () => {
     assert.equal(L.treeMatchesNode(n, tf({ ...f, models: new Set(['other']) })), false);
     assert.equal(L.treeMatchesNode(n, tf({ ...f, ctxMin: 20 })), false);
     assert.equal(L.treeMatchesNode(n, tf({ ...f, text: 'other' })), false);
+});
+
+test('tree order filter: min/max on node order number, inclusive', () => {
+    const n = node({ order: 3 });
+    assert.equal(L.treeMatchesNode(n, tf({ numMin: 3 })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ numMax: 3 })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ numMin: 4 })), false);
+    assert.equal(L.treeMatchesNode(n, tf({ numMax: 2 })), false);
+});
+
+test('tree order filter: node without order counts as 0', () => {
+    assert.equal(L.treeMatchesNode(node(), tf({ numMin: 1 })), false);
+    assert.equal(L.treeMatchesNode(node(), tf({ numMax: 0 })), true);
+});
+
+test('tree date filter: created within inclusive ms range, created=0 passes open range', () => {
+    const n = node({ created: new Date('2026-10-05T12:00').getTime() });
+    assert.equal(L.treeMatchesNode(n, tf({
+        dateMin: new Date('2026-10-05T00:00').getTime(),
+        dateMax: new Date('2026-10-05T23:59:59.999').getTime(),
+    })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ dateMin: new Date('2026-10-06T00:00').getTime() })), false);
+    assert.equal(L.treeMatchesNode(n, tf({ dateMax: new Date('2026-10-04T23:59:59.999').getTime() })), false);
+    assert.equal(L.treeMatchesNode(node({ created: 0 }), tf()), true);
+});
+
+test('presetRange: today = local midnight, no upper bound', () => {
+    const now = new Date('2026-10-05T15:30').getTime();
+    const [min, max] = L.presetRange('today', now);
+    assert.equal(min, new Date('2026-10-05T00:00').getTime());
+    assert.equal(max, null);
+});
+
+test('presetRange: week starts Monday — mid-week and Sunday both map to it', () => {
+    const wed = new Date('2026-10-07T10:00').getTime();
+    assert.equal(L.presetRange('week', wed)[0], new Date('2026-10-05T00:00').getTime());
+    const sun = new Date('2026-10-11T23:00').getTime();
+    assert.equal(L.presetRange('week', sun)[0], new Date('2026-10-05T00:00').getTime());
+    const mon = new Date('2026-10-05T00:00').getTime();
+    assert.equal(L.presetRange('week', mon)[0], mon);
+});
+
+test('presetRange: month = local midnight of the 1st, no upper bound', () => {
+    const [min, max] = L.presetRange('month', new Date('2026-10-15T08:00').getTime());
+    assert.equal(min, new Date('2026-10-01T00:00').getTime());
+    assert.equal(max, null);
+});
+
+test('presetRange: null or unknown/custom preset = fully open range', () => {
+    assert.deepEqual([...L.presetRange(null, 123)], [null, null]);
+    assert.deepEqual([...L.presetRange(undefined, 123)], [null, null]);
+    assert.deepEqual([...L.presetRange('custom', 123)], [null, null]);
+});
+
+test('dateStrToRange: YYYY-MM-DD pair -> inclusive local day bounds', () => {
+    const [min, max] = L.dateStrToRange('2026-10-05', '2026-10-06');
+    assert.equal(min, new Date('2026-10-05T00:00').getTime());
+    assert.equal(max, new Date('2026-10-06T23:59:59.999').getTime());
+});
+
+test('dateStrToRange: empty or invalid side stays open', () => {
+    assert.deepEqual([...L.dateStrToRange('', '2026-10-06')], [null, new Date('2026-10-06T23:59:59.999').getTime()]);
+    assert.deepEqual([...L.dateStrToRange('2026-10-05', '')], [new Date('2026-10-05T00:00').getTime(), null]);
+    assert.deepEqual([...L.dateStrToRange(null, null)], [null, null]);
+    assert.deepEqual([...L.dateStrToRange('garbage', '')], [null, null]);
+});
+
+test('resolveDateBounds: preset resolved against the passed now, custom via strings', () => {
+    const now = new Date('2026-10-07T15:00').getTime();
+    assert.deepEqual([...L.resolveDateBounds(tf({ datePreset: 'today' }), now)], [...L.presetRange('today', now)]);
+    assert.deepEqual(
+        [...L.resolveDateBounds(tf({ datePreset: 'custom', dateFrom: '2026-10-05', dateTo: '2026-10-06' }), 0)],
+        [...L.dateStrToRange('2026-10-05', '2026-10-06')],
+    );
+    assert.deepEqual([...L.resolveDateBounds(tf(), 123)], [null, null]);
+});
+
+test('tree node order and date criteria AND together with the rest', () => {
+    const n = node({ order: 2, created: new Date('2026-10-05T12:00').getTime(), title: 'fix bug' });
+    const f = tf({ text: 'bug', numMin: 2, dateMin: new Date('2026-10-05T00:00').getTime() });
+    assert.equal(L.treeMatchesNode(n, f), true);
+    assert.equal(L.treeMatchesNode(n, tf({ ...f, numMin: 3 })), false);
+    assert.equal(L.treeMatchesNode(n, tf({ ...f, dateMin: new Date('2026-10-06T00:00').getTime() })), false);
 });
 
 test('treeVisible: root shown if it or any descendant matches', () => {

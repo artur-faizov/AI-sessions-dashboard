@@ -790,6 +790,14 @@
             width: 54px
         }
 
+        .finputs input[type=date] {
+            width: 128px
+        }
+
+        #ft-drow .finputs {
+            flex-wrap: wrap
+        }
+
         .cklist {
             max-height: 132px;
             overflow: auto;
@@ -807,6 +815,26 @@
             align-items: center;
             font-size: 13px;
             cursor: pointer
+        }
+
+        .dateopts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+            flex: 1
+        }
+
+        .dateopt {
+            display: inline-flex;
+            gap: 5px;
+            align-items: center;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap
+        }
+
+        .dateopt input {
+            accent-color: var(--acc)
         }
 
         .cklist input {
@@ -903,11 +931,17 @@
 
     function computeOrder() {
         ORDER = new Map();
-        [...TREE].sort((a, b) => (a.created || 0) - (b.created || 0)).forEach((r, i) => ORDER.set(r.id, i + 1));
+        [...TREE].sort((a, b) => (a.created || 0) - (b.created || 0)).forEach((r, i) => {
+            ORDER.set(r.id, i + 1);
+            r.order = i + 1;
+        });
         (function walk(ns) {
             for (const x of ns) {
                 [...x.children].sort((a, b) => (a.created || 0) - (b.created || 0))
-                    .forEach((c, i) => ORDER.set(c.id, i + 1));
+                    .forEach((c, i) => {
+                        ORDER.set(c.id, i + 1);
+                        c.order = i + 1;
+                    });
                 walk(x.children);
             }
         })(TREE);
@@ -940,6 +974,31 @@
         return k == null ? null : k * 1000;
     }
 
+    function presetRange(preset, now) {
+        if (preset !== 'today' && preset !== 'week' && preset !== 'month') return [null, null];
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        if (preset === 'week') d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+        else if (preset === 'month') d.setDate(1);
+        return [d.getTime(), null];
+    }
+
+    function dayStartMs(str) {
+        if (!str) return null;
+        const t = new Date(str + 'T00:00').getTime();
+        return Number.isFinite(t) ? t : null;
+    }
+
+    function dateStrToRange(from, to) {
+        const mn = dayStartMs(from), mx = dayStartMs(to);
+        return [mn, mx == null ? null : mx + 86400000 - 1];
+    }
+
+    function resolveDateBounds(f, now) {
+        if (f.datePreset === 'custom') return dateStrToRange(f.dateFrom, f.dateTo);
+        return presetRange(f.datePreset, now);
+    }
+
     function treeMatchesNode(n, f) {
         if (f.text) {
             const hay = (n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase();
@@ -947,6 +1006,8 @@
         }
         if (f.models.size && !f.models.has(modelName(n.model))) return false;
         if (f.providers.size && !f.providers.has(nodeProvider(n))) return false;
+        if (!inRange(n.order || 0, f.numMin, f.numMax)) return false;
+        if (!inRange(n.created || 0, f.dateMin, f.dateMax)) return false;
         if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
         if (!inRange(n.subtree.in + n.subtree.out + n.subtree.reason, kilo(f.spentMin), kilo(f.spentMax))) return false;
         if (!inRange(n.dur, f.durMin, f.durMax)) return false;
@@ -991,13 +1052,15 @@
     }
 
     if (typeof module !== 'undefined' && module.exports) module.exports = {
-        modelName, nodeProvider, inRange, hmsToMs, treeMatchesNode, treeVisible,
-        hotLevel, treeHotVisible, callDeltaAt, callRowMatches, visibleCallRows
+        modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
+        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, callDeltaAt, callRowMatches, visibleCallRows
     };
     // FILTER-LOGIC-END
 
     const newTreeFilter = () => ({
         text: '', models: new Set(), providers: new Set(),
+        numMin: null, numMax: null,
+        datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
         ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null
     });
     const newCallFilter = () => ({
@@ -1012,13 +1075,15 @@
     }
 
     function matches(s) {
-        return treeVisible(s, treeFilter);
+        const b = resolveDateBounds(treeFilter, Date.now());
+        return treeVisible(s, Object.assign({}, treeFilter, {dateMin: b[0], dateMax: b[1]}));
     }
 
     function treeFilterActive() {
         const f = treeFilter;
-        return !!(f.text || f.models.size || f.providers.size || f.ctxMin != null || f.ctxMax != null
-            || f.spentMin != null || f.spentMax != null || f.durMin != null || f.durMax != null);
+        return !!(f.text || f.models.size || f.providers.size || f.numMin != null || f.numMax != null
+            || (f.datePreset != null && (f.datePreset !== 'custom' || f.dateFrom || f.dateTo))
+            || f.ctxMin != null || f.ctxMax != null || f.spentMin != null || f.spentMax != null || f.durMin != null || f.durMax != null);
     }
 
     function callFilterActive() {
@@ -1134,6 +1199,7 @@
     function openTreeFilter() {
         const f = treeFilter;
         fmodalKind = 'tree';
+        const dradio = (v, key) => `<label class="dateopt"><input type="radio" name="ft-dpreset" value="${v}"${(f.datePreset || '') === v ? ' checked' : ''}>${tr(key)}</label>`;
         fmodalOpen(tr('ftree.title'), `
         <div class="fsect">${tr('fmod.text')}</div>
         <div class="frow"><span class="finputs"><input type="text" id="ft-text" value="${esc(f.text)}" placeholder="${tr('ftree.text.ph')}" style="width:100%"></span></div>
@@ -1142,10 +1208,14 @@
         <div class="fsect">${tr('fmod.provider')}</div>
         ${ckList('ft-provs', collectValues(nodeProvider), f.providers)}
         <div class="fsect">${tr('fmod.ranges')}</div>
+        ${rangeRow(tr('calls.th.num'), 'ft-nummin', 'ft-nummax', f, 'numMin', 'numMax')}
         ${rangeRow(tr('ftree.ctx'), 'ft-ctxmin', 'ft-ctxmax', f, 'ctxMin', 'ctxMax')}
         ${rangeRow(tr('ftree.spent'), 'ft-spentmin', 'ft-spentmax', f, 'spentMin', 'spentMax')}
         ${durRow(tr('ftree.dur_min'), 'ft-dmin', f.durMin)}
         ${durRow(tr('ftree.dur_max'), 'ft-dmax', f.durMax)}
+        <div class="fsect">${tr('ftree.date')}</div>
+        <div class="frow"><span class="dateopts">${dradio('', 'fmod.any')}${dradio('today', 'ftree.date.today')}${dradio('week', 'ftree.date.week')}${dradio('month', 'ftree.date.month')}${dradio('custom', 'fmod.custom')}</span></div>
+        <div class="frow" id="ft-drow"${f.datePreset === 'custom' ? '' : ' style="display:none"'}><span class="flbl">${tr('fmod.from_to')}</span><span class="finputs"><input type="date" id="ft-dfrom" value="${esc(f.dateFrom || '')}"><input type="date" id="ft-dto" value="${esc(f.dateTo || '')}"></span></div>
         <button class="freset" onclick="resetTreeFilter()">${tr('fmod.reset')}</button>`);
         const apply = applyTreeFilter;
         document.querySelector('#ft-text').addEventListener('input', e => {
@@ -1154,12 +1224,39 @@
         });
         bindCk('ft-models', f.models, apply);
         bindCk('ft-provs', f.providers, apply);
+        bindNum('ft-nummin', f, 'numMin', apply);
+        bindNum('ft-nummax', f, 'numMax', apply);
         bindNum('ft-ctxmin', f, 'ctxMin', apply);
         bindNum('ft-ctxmax', f, 'ctxMax', apply);
         bindNum('ft-spentmin', f, 'spentMin', apply);
         bindNum('ft-spentmax', f, 'spentMax', apply);
         bindHms('ft-dmin', f, 'durMin', apply);
         bindHms('ft-dmax', f, 'durMax', apply);
+        const updDates = () => {
+            document.querySelector('#ft-drow').style.display = f.datePreset === 'custom' ? '' : 'none';
+        };
+        document.querySelectorAll('#fmodal input[name=ft-dpreset]').forEach(r => r.addEventListener('change', e => {
+            if (!e.target.checked) return;
+            f.datePreset = e.target.value || null;
+            if (f.datePreset !== 'custom') {
+                f.dateFrom = f.dateTo = null;
+                document.querySelector('#ft-dfrom').value = '';
+                document.querySelector('#ft-dto').value = '';
+            }
+            updDates();
+            apply();
+        }));
+        [['ft-dfrom', 'dateFrom'], ['ft-dto', 'dateTo']].forEach(([id, k]) => {
+            const el = document.querySelector('#' + id);
+            el.addEventListener('input', () => {
+                f[k] = el.value || null;
+                if (f[k] && f.datePreset !== 'custom') {
+                    f.datePreset = 'custom';
+                    updDates();
+                }
+                apply();
+            });
+        });
     }
 
     function resetTreeFilter() {
@@ -1467,28 +1564,52 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         }
     }
 
-    async function pick(id) {
-        sel = id;
-        const s = find(TREE, id);
-        if (!s) return;
-        const d = document.querySelector('#detail');
+    function metaDl(s) {
         const t = s.subtree;
         const mObj = s.model && typeof s.model === 'object' ? s.model : null;
         const mName = modelName(s.model);
         const mFull = mObj ? `${mObj.providerID || '—'} / ${mName}${mObj.variant ? ' · ' + mObj.variant : ''}` : mName;
         const kidIn = t.in - s.in;
-        d.innerHTML = `<h2 title="${esc(s.title)}">${esc(s.title)}</h2>
-  <dl class="meta">
-    <dt>${tr('detail.ctx_now')}</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
+        return `<dt>${tr('detail.ctx_now')}</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
     <dt>${tr('detail.ctx_max')}</dt><dd>${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</dd>
     <dt>${tr('detail.agent_model')}</dt><dd>${esc(s.agent || '—')} / ${esc(mFull)}</dd>
     <dt>${tr('detail.dir')}</dt><dd>${esc(s.dir)}</dd>
     <dt>${tr('detail.created_updated')}</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd>
     <dt>${tr('detail.own')}</dt><dd>in <span class="own">${fmt(s.in)}</span> · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
     <dt>${tr('detail.kids')}</dt><dd>in <span class="kids">${fmt(kidIn)}</span> · out ${fmt(t.out - s.out)} · reason ${fmt(t.reason - s.reason)} · cache r ${fmt(t.cr - s.cr)} / w ${fmt(t.cw - s.cw)}</dd>
-    <dt>${tr('detail.subtree')}</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${tr('detail.direct_children', {n: s.children.length})}</dd></dl>
+    <dt>${tr('detail.subtree')}</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${tr('detail.direct_children', {n: s.children.length})}</dd>`;
+    }
+
+    async function pick(id) {
+        sel = id;
+        const s = find(TREE, id);
+        if (!s) return;
+        document.querySelector('#detail').innerHTML = `<h2 id="dtitle" title="${esc(s.title)}">${esc(s.title)}</h2>
+  <dl class="meta" id="meta">${metaDl(s)}</dl>
   <div class="sect">${tr('detail.calls')} <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div><div id="calls">${tr('loading')}</div>
   <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre>`;
+        await fillDetail(id);
+    }
+
+    async function refreshDetail() {
+        const id = sel;
+        if (!id) return;
+        const s = find(TREE, id);
+        if (!s) return;
+        const h2 = document.querySelector('#dtitle');
+        if (h2) {
+            h2.textContent = s.title;
+            h2.title = s.title;
+        }
+        const dl = document.querySelector('#meta');
+        if (dl) {
+            dl.innerHTML = metaDl(s);
+            if (CALLS.length) document.querySelector('#ctxnow').textContent = fmt(CALLS[CALLS.length - 1].ctx);
+        }
+        await fillDetail(id);
+    }
+
+    async function fillDetail(id) {
         const pP = getJson('/api/prompt/' + encodeURIComponent(id), document.querySelector('#pp'));
         const pC = getJson('/api/calls/' + encodeURIComponent(id), document.querySelector('#calls'));
         const pj = await pP;
@@ -1588,6 +1709,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             TREE = await r.json();
             computeOrder();
             render();
+            refreshDetail();
             updateFilterBtns();
         } finally {
             sp.classList.remove('busy');

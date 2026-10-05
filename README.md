@@ -92,7 +92,14 @@ Windows: run `src\build.bat` from the repo root (needs `python` in PATH).
   - **‹ / › buttons** (and ← / → arrow keys) step through calls; the popup has a
     fixed size, so the buttons never move on screen — rapid clicking works
   - the **initial prompt sent to that session** (subagent's incoming request)
-- Filter box matches title / agent / model; "live" checkbox re-reads data every 10s
+- The **Filter** button opens the session filter: text (title / agent / model),
+  model and provider checkboxes, and inclusive ranges — order number (`#`),
+  max context (k tokens), tokens spent (k tokens), duration. The **Created date**
+  section narrows by session start: presets Today / This week (from Monday) /
+  This month, or Custom `from` / `to` dates (inclusive, local timezone — presets
+  re-resolve on each refresh, so "Today" survives midnight). A session stays
+  visible while it or any descendant matches; the same pattern (per-column ranges)
+  is available for the AI-calls table via its own Filter button
 
 ### Interpreting numbers
 

@@ -30,7 +30,7 @@ $(PY):
 
 test:
 	python3 test/test_dashboard.py
-	node --test test/filter.test.mjs test/i18n.test.mjs
+	node --test test/filter.test.mjs test/i18n.test.mjs test/refresh.test.mjs
 
 clean:
 	rm -rf dist build $(VENV) *.spec
