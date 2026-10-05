@@ -33,14 +33,32 @@
             padding: 10px 18px;
             display: flex;
             gap: 16px;
-            align-items: center;
+            align-items: flex-start;
             z-index: 5
+        }
+
+        .hgrp {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            min-width: 0
+        }
+
+        .hgrp.center {
+            margin: 0 auto;
+            flex-wrap: wrap
+        }
+
+        .hgrp.right {
+            margin-left: auto;
+            flex: none
         }
 
         header h1 {
             font-size: 15px;
             margin: 0;
-            font-weight: 600
+            font-weight: 600;
+            line-height: 29px
         }
 
         #provsel {
@@ -69,14 +87,18 @@
             font-variant-numeric: tabular-nums
         }
 
+        .headcol {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-start;
+            flex: none
+        }
         .dbwrap {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
             display: inline-flex;
             gap: 6px;
             align-items: center;
-            z-index: 6
+            flex-wrap: wrap
         }
 
         .dblabel {
@@ -428,7 +450,7 @@
         }
 
         #summary {
-            margin-left: auto
+            white-space: nowrap
         }
 
         .num b {
@@ -992,11 +1014,6 @@
         }
 
         @media (max-width: 900px) {
-            .dbwrap {
-                position: static;
-                transform: none
-            }
-
             .cnav.prev {
                 left: 6px
             }
@@ -1024,15 +1041,14 @@
     </style>
 </head>
 <body>
-<header><h1 id="apptitle"><select id="provsel" title="data source"></select></h1>
-    <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
+<header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button></span></div>
+    <div class="hgrp center" id="grp-filter"><button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
     <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="hlapplylabel" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
     <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent sessions only</span></label>
-    <span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button></span>
-    <span id="summary" class="num"></span>
-    <span id="version" class="ver" title="dashboard version">v{{VERSION}}</span>
+    <span id="summary" class="num"></span></div>
+    <div class="hgrp right" id="grp-meta"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span>
     <span id="langsw" class="langsw" title="Language"></span>
-    <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></header>
+    <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></div></header>
 <main>
     <div id="tree"></div>
     <div id="splitter" title="Drag to resize · double-click to reset"></div>
