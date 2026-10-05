@@ -37,11 +37,24 @@ Opens http://localhost:8787 in your browser.
 - Sessions are grouped by project directory; each root session nests its subagents
   (and their subagents) via `parent_id`
 - Every row shows **subtree totals**: input/output tokens (with cache read), cost,
-  and wall-clock duration of that session
+  and wall-clock duration of that session. Nodes with children also show their
+  **own** input in brackets — `in 656k (own 336k)` — and the bar is two-tone:
+  blue = own consumption, amber = subagents'
 - A `+` / `−` toggle appears only on nodes that actually have children
 - Click any row → side panel shows:
-  - own tokens vs subtree tokens (input, output, reasoning, cache read/write)
+  - own vs children vs subtree tokens (input, output, reasoning, cache read/write)
   - agent, model, timestamps, duration, cost (own and subtree)
+  - **every AI call in that session**: one table row per assistant message —
+    context size in (fresh input + cache read), fresh input, cache read, out,
+    reasoning; the Σ footer reconciles with the session's own-token counters
+  - **click a call row** → popup with the message that triggered that call:
+    the user prompt (if it was the first call of a turn) or the previous
+    call's tool command + result. Long parts are truncated at 60k chars.
+    System prompt / tool schemas are not stored in the DB and not shown
+  - popup header shows **context now** (session's current context window) vs
+    **this request** (size of the viewed call), plus fresh input and output
+  - **‹ / › buttons** (and ← / → arrow keys) step through calls; the popup has a
+    fixed size, so the buttons never move on screen — rapid clicking works
   - the **initial prompt sent to that session** (subagent's incoming request)
 - Filter box matches title / agent / model; "live" checkbox re-reads data every 10s
 
@@ -49,6 +62,10 @@ Opens http://localhost:8787 in your browser.
 
 - Big **input** on a leaf session (e.g. 600k+) means its own working context was large —
   many files/context fed to the model each step — not that it spawned subagents
+- A session's input is **cumulative over all calls**: every turn re-sends the whole
+  conversation, so N calls at ~85k context accumulate ~N×85k input (mostly cheap
+  cache reads). The "in (context)" column in the AI-calls table is the size of that
+  single call — comparable to opencode's context gauge
 - Only rows with an expandable `+` and a `▾ N children` badge contain subagents
 - `cost` comes from what OpenCode recorded per session; provider pricing gaps
   can make it `0.0` for some models

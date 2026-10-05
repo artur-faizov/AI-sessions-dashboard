@@ -242,15 +242,229 @@
         }
 
         .bar {
-            display: inline-block;
+            display: inline-flex;
             height: 6px;
             border-radius: 3px;
-            background: linear-gradient(90deg, var(--acc), var(--sub));
+            overflow: hidden;
             vertical-align: middle;
             margin-left: 8px
         }
 
+        .bar .b-own {
+            background: var(--acc);
+            height: 100%
+        }
+
+        .bar .b-kids {
+            background: var(--sub);
+            height: 100%
+        }
+
+        .own {
+            color: var(--acc)
+        }
+
+        .kids {
+            color: var(--sub)
+        }
+
+        table.calls {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums
+        }
+
+        table.calls th {
+            text-align: left;
+            color: var(--dim);
+            font-weight: 500;
+            padding: 3px 6px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        table.calls td {
+            padding: 3px 6px;
+            border-bottom: 1px solid #1f2229
+        }
+
+        table.calls tfoot td {
+            border-top: 1px solid var(--line);
+            border-bottom: none;
+            color: var(--fg)
+        }
+
+        .ctxsize {
+            background: #ffd43b;
+            color: #1a1a1a;
+            font-weight: 700;
+            padding: 0 5px;
+            border-radius: 4px
+        }
+
+        #detail .meta {
+            background: #b3cdf0;
+            padding: 10px 12px;
+            border-radius: 8px
+        }
+
+        #detail .meta dt {
+            color: #3c4e6e
+        }
+
+        #detail .meta dd {
+            color: #10161f
+        }
+
+        #detail .meta .own {
+            color: #1c5bb8
+        }
+
+        #detail .meta .kids {
+            color: #9a5b0e
+        }
+
+        .cbar {
+            display: inline-block;
+            height: 5px;
+            border-radius: 3px;
+            background: var(--acc);
+            vertical-align: middle;
+            margin-right: 6px
+        }
+
+        table.calls tbody tr {
+            cursor: pointer
+        }
+
+        table.calls tbody tr:hover {
+            background: #1d2026
+        }
+
+        #modal {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        #modal[hidden] {
+            display: none
+        }
+
+        #modal-bg {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .55)
+        }
+
+        #modal-box {
+            position: relative;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            width: min(860px, 92vw);
+            height: min(760px, 86vh);
+            display: flex;
+            flex-direction: column
+        }
+
+        .cnav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            color: #4a2f00;
+            background: #f8c471;
+            border: 1px solid #d99a3d;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 700
+        }
+
+        .cnav:hover {
+            background: #f5ae4a
+        }
+
+        .cnav.disabled {
+            opacity: .25;
+            cursor: default
+        }
+
+        .cnav.prev {
+            left: -52px
+        }
+
+        .cnav.next {
+            right: -52px
+        }
+
+        #modal-head {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            font-size: 13px;
+            background: #a9c7f2;
+            color: #14213d;
+            border-radius: 9px 9px 0 0
+        }
+
+        #modal-head .num {
+            color: #41557a
+        }
+
+        #modal-close {
+            cursor: pointer;
+            color: #41557a;
+            border: none;
+            background: none;
+            font-size: 16px;
+            padding: 2px 6px
+        }
+
+        #modal-close:hover {
+            color: #14213d
+        }
+
+        #modal-body {
+            padding: 12px 16px;
+            overflow: auto
+        }
+
+        .tblock {
+            margin: 10px 0
+        }
+
+        .tblock .lbl {
+            color: var(--dim);
+            font-size: 12px;
+            margin-bottom: 4px
+        }
+
+        .tblock pre.prompt {
+            max-height: 40vh
+        }
+
         @media (max-width: 900px) {
+            .cnav.prev {
+                left: 6px
+            }
+
+            .cnav.next {
+                right: 6px
+            }
+
             main {
                 flex-direction: column
             }
@@ -281,8 +495,17 @@
         <div class="empty">Select a session…</div>
     </div>
 </main>
+<div id="modal" hidden>
+    <div id="modal-bg" onclick="modalClose()"></div>
+    <div id="modal-box">
+        <div id="modal-head"></div>
+        <div id="modal-body"></div>
+        <span class="cnav prev" id="cnav-prev" onclick="callNav(-1)">‹</span>
+        <span class="cnav next" id="cnav-next" onclick="callNav(1)">›</span>
+    </div>
+</div>
 <script>
-    let TREE = [], sel = null;
+    let TREE = [], CALLS = [], sel = null;
     const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n || 0);
     const dur = ms => ms < 0 ? '—' : ms < 6e4 ? (ms / 1e3).toFixed(0) + 's' : ms < 36e5 ? (ms / 6e4).toFixed(1) + 'm' : (ms / 36e5).toFixed(1) + 'h';
     const when = t => t ? new Date(t).toLocaleString() : '—';
@@ -323,11 +546,22 @@
         document.querySelector('#summary').textContent = `${TREE.length} roots · in ${fmt(allIn)} · out ${fmt(allOut)} · $${allC.toFixed(4)}`;
     }
 
+    function bar2(ownIn, kidIn) {
+        const tot = ownIn + kidIn;
+        if (!tot) return '';
+        const w = Math.min(120, tot / 30000);
+        if (!kidIn) return `<span class="bar" style="width:${w}px"><span class="b-own" style="width:${w}px"></span></span>`;
+        const ow = w * ownIn / tot;
+        return `<span class="bar" style="width:${w}px"><span class="b-own" style="width:${ow}px"></span><span class="b-kids" style="width:${w - ow}px"></span></span>`;
+    }
+
     function node(s, depth) {
         const m = modelOf(s.model), t = s.subtree, kids = s.children;
         const hasSub = kids.length > 0;
+        const kidIn = t.in - s.in;
         const subBadges = hasSub ? `<span class="badge sub">▾ ${kids.length} child${kids.length > 1 ? 'ren' : ''}</span>` : '';
-        const bar = t.in > 0 ? `<span class="bar" style="width:${Math.min(120, t.in / 30000)}px"></span>` : '';
+        const bar = bar2(s.in, kidIn);
+        const ownIn = hasSub ? ` <span class="own">(own ${fmt(s.in)})</span>` : '';
         const open = depth < 2 || hasSub && kids.length <= 6;
         const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}" data-id="${s.id}">
@@ -335,7 +569,7 @@
     <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
     <span class="badge agent">${esc(s.agent || '—')}</span>
     <span class="badge">${esc(m)}</span>
-    <span class="tok">in <b>${fmt(t.in)}</b> · out <b>${fmt(t.out)}</b>${t.cr ? ' · cache r ' + fmt(t.cr) : ''}</span>
+    <span class="tok">in <b>${fmt(t.in)}</b>${ownIn} · out <b>${fmt(t.out)}</b>${t.cr ? ' · cache r ' + fmt(t.cr) : ''}</span>
     <span class="cost">$${t.cost.toFixed(4)}</span>
     <span class="num">${dur(s.dur)}</span>${subBadges}${bar}</div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1)).join('')}</ul>`;
@@ -364,26 +598,143 @@
         return String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]))
     }
 
+    function callsTable(calls) {
+        if (!calls.length) return '<div class="empty">(no AI calls recorded)</div>';
+        const maxCtx = Math.max(...calls.map(c => c.ctx));
+        let rows = '';
+        calls.forEach((c, i) => {
+            const w = maxCtx ? Math.round(c.ctx / maxCtx * 100) : 0;
+            rows += `<tr onclick="callPick('${esc(c.mid)}')">
+      <td class="num">${i + 1}</td>
+      <td class="num">${new Date(c.time).toLocaleTimeString()}</td>
+      <td><span class="cbar" style="width:${Math.max(2, w)}%"></span><b class="ctxsize">${fmt(c.ctx)}</b></td>
+      <td class="num">${fmt(c.in)}</td>
+      <td class="num">${fmt(c.cr)}</td>
+      <td class="num">${fmt(c.out)}</td>
+      <td class="num">${fmt(c.reason)}</td></tr>`;
+        });
+        const tot = calls.reduce((a, c) => ({ctx: a.ctx + c.ctx, in: a.in + c.in, cr: a.cr + c.cr, cw: a.cw + c.cw, out: a.out + c.out, reason: a.reason + c.reason}), {ctx: 0, in: 0, cr: 0, cw: 0, out: 0, reason: 0});
+        return `<table class="calls"><thead><tr><th>#</th><th>time</th><th>in (context)</th><th>fresh</th><th>cache r</th><th>out</th><th>reason</th></tr></thead>
+  <tbody>${rows}</tbody>
+  <tfoot><tr><td></td><td>Σ ${calls.length}</td><td>${fmt(tot.ctx)}</td><td>${fmt(tot.in)}</td><td>${fmt(tot.cr)}</td><td>${fmt(tot.out)}</td><td>${fmt(tot.reason)}</td></tr></tfoot></table>`;
+    }
+
+    let curCall = -1;
+
+    function modalClose() {
+        curCall = -1;
+        document.querySelector('#modal').hidden = true;
+    }
+
+    function callPick(mid) {
+        const i = CALLS.findIndex(x => x.mid === mid);
+        if (i >= 0) return showCall(i);
+    }
+
+    function callNav(d) {
+        const i = curCall + d;
+        if (i < 0 || i >= CALLS.length) return;
+        return showCall(i);
+    }
+
+    function updateNav() {
+        document.querySelector('#cnav-prev').classList.toggle('disabled', curCall <= 0);
+        document.querySelector('#cnav-next').classList.toggle('disabled', curCall >= CALLS.length - 1);
+    }
+
+    async function showCall(idx) {
+        const c = CALLS[idx];
+        if (!c) return;
+        curCall = idx;
+        const now = CALLS[CALLS.length - 1];
+        document.querySelector('#modal').hidden = false;
+        document.querySelector('#modal-head').innerHTML = `<span>Call #${c.n} / ${CALLS.length} · context now <b class="ctxsize">${fmt(now.ctx)}</b> · this request <b>${fmt(c.ctx)}</b> · fresh ${fmt(c.in)} · out ${fmt(c.out)}</span><button id="modal-close" onclick="modalClose()">✕</button>`;
+        updateNav();
+        const body = document.querySelector('#modal-body');
+        body.innerHTML = 'loading…';
+        try {
+            const r = await fetch('/api/trigger/' + encodeURIComponent(c.mid));
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const j = await r.json();
+            if (curCall !== idx) return;
+            renderTrigger(j);
+        } catch (e) {
+            if (curCall === idx) body.innerHTML = `<div class="empty">(failed to load: ${esc(e.message)} — old dashboard.py still running? restart it)</div>`;
+        }
+    }
+
+    function renderTrigger(j) {
+        const lbl = j.case === 'user' ? 'User prompt — start of this turn'
+            : j.case === 'assistant' ? 'Tool result fed to this call — output of the previous call'
+            : 'First call of the session — nothing preceded it';
+        let h = `<div class="tblock"><div class="lbl">${lbl}</div></div>`;
+        for (const p of (j.parts || [])) {
+            if (p.kind === 'text') {
+                h += `<div class="tblock"><div class="lbl">text</div><pre class="prompt">${esc(p.text)}${p.cut ? '\n\n(truncated…)' : ''}</pre></div>`;
+            } else if (p.kind === 'tool') {
+                h += `<div class="tblock"><div class="lbl">tool ${esc(p.tool)} — ${esc(p.status || '—')}</div><pre class="prompt">input:
+${esc(p.input)}${p.cut_i ? '\n(input truncated…)' : ''}${p.output ? `
+
+--- output ---
+${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
+            }
+        }
+        if (!(j.parts || []).length && j.case !== 'start') h += '<div class="empty">(no recorded content)</div>';
+        document.querySelector('#modal-body').innerHTML = h;
+    }
+
+    window.addEventListener('keydown', e => {
+        if (document.querySelector('#modal').hidden) return;
+        if (e.key === 'Escape') modalClose();
+        else if (e.key === 'ArrowLeft') callNav(-1);
+        else if (e.key === 'ArrowRight') callNav(1);
+    });
+
+    async function getJson(u, errEl) {
+        try {
+            const r = await fetch(u);
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return await r.json();
+        } catch (e) {
+            if (errEl) errEl.innerHTML = `(failed to load: ${esc(e.message)} — old dashboard.py still running? restart it)`;
+            return null;
+        }
+    }
+
     async function pick(id) {
         sel = id;
         const s = find(TREE, id);
         if (!s) return;
         const d = document.querySelector('#detail');
         const t = s.subtree, m = modelOf(s.model);
+        const kidIn = t.in - s.in;
         d.innerHTML = `<h2 title="${esc(s.title)}">${esc(s.title)}</h2>
   <dl class="meta">
+    <dt>Context now (last call)</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
     <dt>Session</dt><dd>${s.id}</dd>
     <dt>Agent / Model</dt><dd>${esc(s.agent || '—')} / ${esc(m)}</dd>
     <dt>Directory</dt><dd>${esc(s.dir)}</dd>
     <dt>Created / Updated</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd>
-    <dt>Own tokens</dt><dd>in ${fmt(s.in)} · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
+    <dt>Own tokens</dt><dd>in <span class="own">${fmt(s.in)}</span> · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
+    <dt>Children (subtree − own)</dt><dd>in <span class="kids">${fmt(kidIn)}</span> · out ${fmt(t.out - s.out)} · reason ${fmt(t.reason - s.reason)} · cache r ${fmt(t.cr - s.cr)} / w ${fmt(t.cw - s.cw)}</dd>
     <dt>Subtree totals</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${s.children.length} direct child(ren)</dd>
     <dt>Subtree cost</dt><dd>$${t.cost.toFixed(5)} (own $${s.cost.toFixed(5)})</dd></dl>
+  <div class="sect">AI calls in this session</div><div id="calls">loading…</div>
   <div class="sect">Initial request sent to this agent</div><pre class="prompt" id="pp">loading…</pre>`;
-        const r = await fetch('/api/prompt/' + encodeURIComponent(id));
-        const j = await r.json();
-        const pp = document.querySelector('#pp');
-        pp.textContent = (j.texts && j.texts.length) ? j.texts.join('\\n\\n—\\n\\n') : '(no recorded user prompt)';
+        const pP = getJson('/api/prompt/' + encodeURIComponent(id), document.querySelector('#pp'));
+        const pC = getJson('/api/calls/' + encodeURIComponent(id), document.querySelector('#calls'));
+        const pj = await pP;
+        const cj = await pC;
+        if (sel !== id) return;
+        if (pj) {
+            const pp = document.querySelector('#pp');
+            pp.textContent = (pj.texts && pj.texts.length) ? pj.texts.join('\n\n—\n\n') : '(no recorded user prompt)';
+        }
+        if (cj) {
+            CALLS = (cj.calls || []).map((c, i) => Object.assign({}, c, {n: i + 1}));
+            document.querySelector('#calls').innerHTML = callsTable(CALLS);
+            document.querySelector('#ctxnow').textContent = CALLS.length ? fmt(CALLS[CALLS.length - 1].ctx) : '—';
+        }
     }
 
     function find(ns, id) {

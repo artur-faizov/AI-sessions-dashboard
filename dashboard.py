@@ -128,6 +128,104 @@ def session_prompt(session_id):
     return texts
 
 
+TRIGGER_MAX = 60000
+
+
+def _clip(s):
+    if s is None:
+        return "", False
+    if not isinstance(s, str):
+        s = json.dumps(s, ensure_ascii=False, indent=1)
+    if len(s) > TRIGGER_MAX:
+        return s[:TRIGGER_MAX], True
+    return s, False
+
+
+def session_calls(session_id):
+    """Per-AI-call token usage: one record per assistant message that recorded usage."""
+    rows = db().execute(
+        """SELECT id, time_created, data FROM message
+           WHERE session_id = ? AND data LIKE '%"role":"assistant"%'
+           ORDER BY time_created, id""",
+        (session_id,),
+    ).fetchall()
+    calls = []
+    for r in rows:
+        try:
+            d = json.loads(r["data"])
+        except json.JSONDecodeError:
+            continue
+        if d.get("role") != "assistant":
+            continue
+        t = d.get("tokens") or {}
+        cache = t.get("cache") or {}
+        inp = t.get("input") or 0
+        cr = cache.get("read") or 0
+        cw = cache.get("write") or 0
+        out = t.get("output") or 0
+        reason = t.get("reasoning") or 0
+        if not (inp or cr or cw or out or reason):
+            continue
+        calls.append({
+            "mid": r["id"],
+            "time": r["time_created"],
+            "in": inp, "cr": cr, "cw": cw,
+            "out": out, "reason": reason,
+            "ctx": inp + cr + cw,
+        })
+    return calls
+
+
+def call_trigger(message_id):
+    """The input that triggered a given assistant call: content of the preceding message."""
+    row = db().execute(
+        "SELECT id, session_id, time_created, data FROM message WHERE id = ?",
+        (message_id,),
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        d = json.loads(row["data"])
+    except json.JSONDecodeError:
+        d = {}
+    if d.get("role") != "assistant":
+        return None
+    prev = db().execute(
+        """SELECT id, time_created, data FROM message
+           WHERE session_id = ? AND (time_created < ? OR (time_created = ? AND id < ?))
+           ORDER BY time_created DESC, id DESC LIMIT 1""",
+        (row["session_id"], row["time_created"], row["time_created"], row["id"]),
+    ).fetchone()
+    if not prev:
+        return {"case": "start", "time": None, "parts": []}
+    try:
+        pd = json.loads(prev["data"])
+    except json.JSONDecodeError:
+        pd = {}
+    parts = []
+    prows = db().execute(
+        "SELECT data FROM part WHERE message_id = ? ORDER BY id", (prev["id"],)
+    ).fetchall()
+    for p in prows:
+        try:
+            pj = json.loads(p["data"])
+        except json.JSONDecodeError:
+            continue
+        t = pj.get("type")
+        if t == "text" and pj.get("text"):
+            txt, cut = _clip(pj["text"])
+            parts.append({"kind": "text", "text": txt, "cut": cut})
+        elif t == "tool":
+            st = pj.get("state") or {}
+            inp_s, cut_i = _clip(st.get("input"))
+            out_s, cut_o = _clip(st.get("output"))
+            parts.append({"kind": "tool", "tool": pj.get("tool"), "status": st.get("status"),
+                          "input": inp_s, "cut_i": cut_i, "output": out_s, "cut_o": cut_o})
+    if pd.get("role") == "user":
+        return {"case": "user", "time": prev["time_created"], "parts": parts}
+    return {"case": "assistant", "time": prev["time_created"], "parts": parts}
+
+
 PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
 
 
@@ -157,6 +255,14 @@ class Handler(BaseHTTPRequestHandler):
             elif path.startswith("/api/prompt/"):
                 sid = path[len("/api/prompt/"):]
                 self._json({"texts": session_prompt(sid)})
+            elif path.startswith("/api/calls/"):
+                sid = path[len("/api/calls/"):]
+                self._json({"calls": session_calls(sid)})
+            elif path.startswith("/api/trigger/"):
+                mid = path[len("/api/trigger/"):]
+                res = call_trigger(mid)
+                self._json(res if res is not None else {"error": "message not found"},
+                            200 if res is not None else 404)
             elif path == "/":
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
