@@ -1,0 +1,17 @@
+schema: spec-driven
+created: 2026-10-05
+change_id: 09763efb-d6b2-4215-93e9-70201533ea07
+task: null
+classification:
+  type: feature
+  size: medium
+  context: brownfield
+approval: null
+telemetry:
+  enabled: true
+  require_task_on_apply: false
+  sequence: 1
+  draft_emitted: false
+  ready_emitted: false
+  active_run: null
+  last_run: null
