@@ -1,4 +1,4 @@
-package main
+package dashboard
 
 import (
 	"context"
@@ -35,11 +35,11 @@ func sliceContains(xs []string, s string) bool {
 	return false
 }
 
-func main() {
-	args := os.Args[1:]
+// Run starts the dashboard with the given CLI args and returns the exit code.
+func Run(args []string) int {
 	if sliceContains(args, "--version") || sliceContains(args, "-version") {
 		fmt.Println(Version)
-		return
+		return 0
 	}
 	dev := sliceContains(args, "--dev") || sliceContains(args, "-dev") || sliceContains(args, "-dev=true") || sliceContains(args, "--dev=true")
 
@@ -75,8 +75,8 @@ func main() {
 		}
 		if off == portTries-1 {
 			fmt.Printf("Cannot start server on port %d: %v\n", p, err)
-			fmt.Printf("Try a different port:  PORT=%d go run .\n", p+1)
-			return
+			fmt.Printf("Try a different port:  PORT=%d go run ./cmd/dashboard\n", p+1)
+			return 1
 		}
 	}
 	port = ln.Addr().(*net.TCPAddr).Port
@@ -99,7 +99,8 @@ func main() {
 	}()
 	if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 		fmt.Fprintf(os.Stderr, "server error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 	fmt.Println("\nbye")
+	return 0
 }

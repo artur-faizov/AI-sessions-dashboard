@@ -37,7 +37,7 @@ LDFLAGS := -trimpath -ldflags "-s -w"
 
 build:
 	@mkdir -p $(DIST)
-	CGO_ENABLED=0 $(GO) build $(LDFLAGS) -o $(HOST_OUT) .
+	CGO_ENABLED=0 $(GO) build $(LDFLAGS) -o $(HOST_OUT) ./cmd/dashboard
 	@echo "Built $(HOST_OUT)"
 
 build-all:
@@ -47,7 +47,7 @@ build-all:
 		out=$(DIST)/dashboard-$$name; \
 		[ "$$os" = windows ] && out=$(DIST)/dashboard.exe; \
 		echo "Building $$out (GOOS=$$os GOARCH=$$arch)"; \
-		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch $(GO) build $(LDFLAGS) -o $$out . || exit 1; \
+		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch $(GO) build $(LDFLAGS) -o $$out ./cmd/dashboard || exit 1; \
 	done
 
 test:
@@ -55,7 +55,7 @@ test:
 	node --test test/filter.test.mjs test/i18n.test.mjs test/refresh.test.mjs test/dbfield.test.mjs
 
 dev:
-	$(GO) run . -dev
+	$(GO) run ./cmd/dashboard -dev
 
 clean:
 	rm -rf dist build

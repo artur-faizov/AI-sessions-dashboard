@@ -24,17 +24,17 @@ This tool answers questions like:
 ## How to use
 
 ```bash
-go run .
+go run ./cmd/dashboard
 ```
 
 (or run a prebuilt binary from `dist/` — see "Standalone executable" below)
 
 Opens http://localhost:8787 in your browser.
 
-- Custom port: `PORT=9000 go run .` — if the port is busy, it
+- Custom port: `PORT=9000 go run ./cmd/dashboard` — if the port is busy, it
   automatically tries the next ports (8788, 8789, …) and says so
-- Custom database: `go run . --db /path/to/opencode.db` (or `DB_PATH=/path/to/opencode.db go run .`)
-- Show version: `go run . --version` (also displayed in the page header)
+- Custom database: `go run ./cmd/dashboard --db /path/to/opencode.db` (or `DB_PATH=/path/to/opencode.db go run ./cmd/dashboard`)
+- Show version: `go run ./cmd/dashboard --version` (also displayed in the page header)
 - Press `Ctrl+C` to stop
 
 ### Database location
@@ -66,7 +66,7 @@ make build-all   # all five targets, cross-compiled from any host OS
   (darwin/arm64), `dist/dashboard-mac-darwin-amd64` (darwin/amd64),
   `dist/dashboard.exe` (windows/amd64)
 - Double-click it (or run from a terminal) — the dashboard opens in your
-  browser, identical to `go run .`
+  browser, identical to `go run ./cmd/dashboard`
 - The binary is unsigned, so first run trips the OS warning:
   macOS Gatekeeper — right-click → Open, or
   `xattr -d com.apple.quarantine <file>`; Windows SmartScreen —
@@ -151,20 +151,23 @@ make build-all   # all five targets, cross-compiled from any host OS
 
 ## Files
 
-- `main.go` — entry point: `--version`, `--db` and `-dev` flags, port
+- `cmd/dashboard/main.go` — entrypoint: thin `main` that calls `dashboard.Run`
+- `src/dashboard/run.go` — startup: `--version`, `--db` and `-dev` flags, port
   fallback, Ctrl-C graceful shutdown
-- `server.go` — HTTP server: routing, JSON helpers, `/` and `/i18n.js` handlers
-- `db.go` — read-only DB access: location auto-detection, validation,
+- `src/dashboard/server.go` — HTTP server: routing, JSON helpers, `/` and `/i18n.js` handlers
+- `src/dashboard/db.go` — read-only DB access: location auto-detection, validation,
   switchable connection pool
-- `tree.go` — session tree building: nesting via `parent_id`, subtree sums,
+- `src/dashboard/tree.go` — session tree building: nesting via `parent_id`, subtree sums,
   sorting
-- `calls.go` — per-AI-call usage rows and trigger extraction
-- `assets.go` — embeds `src/index.html` and `src/i18n.js` via go:embed
-- `browser.go` — opens the dashboard in the default browser
+- `src/dashboard/calls.go` — per-AI-call usage rows and trigger extraction
+- `src/dashboard/assets.go` — serves the frontend: `{{VERSION}}` substitution
+  and dev-mode disk reads for `src/index.html` / `src/i18n.js`
+- `src/dashboard/browser.go` — opens the dashboard in the default browser
+- `src/embed.go` — go:embed of the frontend (`src/index.html`, `src/i18n.js`)
 - `go.mod` / `go.sum` — Go module (modernc.org/sqlite pure-Go SQLite
   driver — no CGO)
 - `src/index.html` — the UI (HTML/CSS/JS), embedded into the binary via
-  go:embed; edit-and-refresh via `make dev` / `go run . -dev`, which
+  go:embed; edit-and-refresh via `make dev` / `go run ./cmd/dashboard -dev`, which
   serves the assets from `src/` on disk — no server restart needed
 - `test/*.test.mjs` — frontend tests (4 files, unchanged by the port);
   `make test` = `go test ./...` + `node --test` over them

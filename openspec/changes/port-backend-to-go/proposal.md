@@ -51,8 +51,9 @@ before this change. `go-backend` is introduced as the first live spec.)
 
 - **Removed**: `dashboard.py`, `test/test_dashboard.py`, `src/build.bat`,
   `.buildvenv` machinery in the Makefile.
-- **Added**: `go.mod` / Go source (server, db layer, api handlers),
-  Go test files, `go:embed` of `src/index.html` and `src/i18n.js`.
+- **Added**: `go.mod` / Go source (cmd/dashboard entrypoint, src/dashboard
+  library, src webui embed package), Go test files, `go:embed` of
+  `src/index.html` and `src/i18n.js`.
 - **Changed**: `Makefile` (build targets become `go build` with
   GOOS/GOARCH matrix), `README.md` (build instructions, Python
   prerequisites section removed), `.gitignore` (Go artifacts).

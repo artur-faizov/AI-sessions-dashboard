@@ -34,18 +34,21 @@ motivation.
 ### D1: Go module layout
 
 ```
-main.go            — flag parsing, port fallback, browser open, shutdown
-server.go          — routes (net/http ServeMux), handlers, JSON helpers
-db.go              — candidates, validation, read-only pool, switching
-tree.go            — build_tree, session_max_contexts, beats, subtree math
-calls.go           — session_calls, call_trigger, human-message detection
-assets.go          — go:embed src/index.html, src/i18n.js; {{VERSION}} swap
+cmd/dashboard/main.go  — thin entrypoint: os.Exit(dashboard.Run(os.Args[1:]))
+src/embed.go           — package webui: go:embed of src/index.html, src/i18n.js
+src/dashboard/run.go   — flag parsing, port fallback, browser open, shutdown
+src/dashboard/server.go — routes (net/http ServeMux), handlers, JSON helpers
+src/dashboard/db.go    — candidates, validation, read-only pool, switching
+src/dashboard/tree.go  — build_tree, session_max_contexts, beats, subtree math
+src/dashboard/calls.go — session_calls, call_trigger, human-message detection
+src/dashboard/browser.go — opens the dashboard URL in the system browser
+src/dashboard/assets.go — {{VERSION}} swap; dev-mode disk reads of src/
 ```
 
-One package (`main`), mirroring the single-file simplicity of the
-Python original. Alternative considered: multi-package layout
-(`internal/api`, `internal/store`) — rejected for this size; the file
-split above keeps units readable without ceremony.
+A thin `cmd` entrypoint plus a `package dashboard` library and a `webui`
+embed package for the frontend assets. Alternative considered:
+multi-package layout (`internal/api`, `internal/store`) — rejected for
+this size; the file split above keeps units readable without ceremony.
 
 ### D2: SQLite driver — modernc.org/sqlite (pure Go)
 
@@ -85,7 +88,7 @@ message `data` JSON is parsed with `encoding/json` into
 
 Python re-reads `index.html`/`i18n.js` per request so frontend devs can
 edit and refresh. The Go binary embeds them. For dev convenience,
-`make dev` (or `go run .`) reads from disk when the files exist next
+`make dev` (or `go run ./cmd/dashboard`) reads from disk when the files exist next
 to the binary? No — keep it honest: assets are embedded; frontend
 iteration happens via `make dev` which starts the server with a flag
 `-dev` that serves from the `src/` directory on disk when present.

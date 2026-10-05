@@ -1,20 +1,15 @@
-package main
+package dashboard
 
 import (
-	_ "embed"
 	"os"
 	"strings"
+
+	webui "github.com/artur-faizov/token-monitor/src"
 )
-
-//go:embed src/index.html
-var indexHTML string
-
-//go:embed src/i18n.js
-var i18nJS string
 
 // loadPage returns the dashboard HTML with the {{VERSION}} placeholder substituted.
 func loadPage(dev bool) string {
-	s := indexHTML
+	s := webui.IndexHTML()
 	if dev {
 		if b, err := os.ReadFile("src/index.html"); err == nil {
 			s = string(b)
@@ -30,5 +25,5 @@ func loadI18n(dev bool) string {
 			return string(b)
 		}
 	}
-	return i18nJS
+	return webui.I18nJS()
 }

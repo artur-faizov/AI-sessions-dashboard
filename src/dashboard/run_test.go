@@ -1,4 +1,4 @@
-package main
+package dashboard
 
 import (
 	"encoding/json"
@@ -34,17 +34,13 @@ func captureStdout(t *testing.T, f func()) string {
 	return out
 }
 
-func withArgs(t *testing.T, args ...string) {
-	t.Helper()
-	old := os.Args
-	os.Args = append([]string{"dashboard"}, args...)
-	t.Cleanup(func() { os.Args = old })
-}
-
 func TestVersionFlagPrintsVersion(t *testing.T) {
-	withArgs(t, "--version")
 	t.Setenv("DB_PATH", "/nonexistent/dashboard-version-test.db")
-	out := captureStdout(t, main)
+	var code int
+	out := captureStdout(t, func() { code = Run([]string{"--version"}) })
+	if code != 0 {
+		t.Fatalf("exit code %d, want 0", code)
+	}
 	if out != Version+"\n" {
 		t.Fatalf("output %q", out)
 	}
@@ -69,8 +65,11 @@ func TestPortInUseGivesClearMessageWithoutPanicking(t *testing.T) {
 	t.Setenv("NO_BROWSER", "1")
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
 	t.Setenv("DB_PATH", "")
-	withArgs(t)
-	out := captureStdout(t, main)
+	var code int
+	out := captureStdout(t, func() { code = Run([]string{}) })
+	if code != 1 {
+		t.Fatalf("exit code %d, want 1", code)
+	}
 	if !strings.Contains(out, "already in use") && !strings.Contains(out, "Cannot start server") {
 		t.Fatalf("no clear message in output: %q", out)
 	}
@@ -85,14 +84,14 @@ func TestMainFallsBackToNextFreePort(t *testing.T) {
 	t.Setenv("NO_BROWSER", "1")
 	t.Setenv("XDG_DATA_HOME", t.TempDir())
 	t.Setenv("DB_PATH", "")
-	withArgs(t)
 	oldSrv, oldLn := mainSrv, mainLn
 	t.Cleanup(func() { mainSrv, mainLn = oldSrv, oldLn })
 
 	var out string
+	var code int
 	done := make(chan struct{})
 	go func() {
-		out = captureStdout(t, main)
+		out = captureStdout(t, func() { code = Run([]string{}) })
 		close(done)
 	}()
 	deadline := time.Now().Add(5 * time.Second)
@@ -103,7 +102,7 @@ func TestMainFallsBackToNextFreePort(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	if mainSrv == nil {
-		t.Fatal("main must start a server even when the port is busy")
+		t.Fatal("Run must start a server even when the port is busy")
 	}
 	chosen := (*mainLn).Addr().(*net.TCPAddr).Port
 	if chosen <= port {
@@ -121,20 +120,10 @@ func TestMainFallsBackToNextFreePort(t *testing.T) {
 	}
 	mainSrv.Close()
 	<-done
+	if code != 0 {
+		t.Fatalf("exit code %d, want 0", code)
+	}
 	if !strings.Contains(out, "already in use") || !strings.Contains(out, fmt.Sprintf("%d", chosen)) {
 		t.Fatalf("fallback message missing: %q", out)
 	}
-}
-
-func contains(s, sub string) bool {
-	return len(sub) == 0 || indexOf(s, sub) >= 0
-}
-
-func indexOf(s, sub string) int {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
-	}
-	return -1
 }
