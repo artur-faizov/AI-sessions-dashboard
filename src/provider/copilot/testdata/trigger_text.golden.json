@@ -1,0 +1,11 @@
+{
+  "case": "user",
+  "time": 1767261602000,
+  "parts": [
+    {
+      "kind": "text",
+      "text": "Explain the parser",
+      "cut": false
+    }
+  ]
+}

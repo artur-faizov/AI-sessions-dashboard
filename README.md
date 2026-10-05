@@ -83,10 +83,19 @@ make build-all   # all five targets, cross-compiled from any host OS
   wall-clock **duration** · **max context size reached during that session** (yellow) ·
   **tokens spent** (subtree `in + out + reasoning`, cache excluded as it's cheap)
 - A `+` / `−` toggle appears only on nodes that actually have children
-- Click `time` / `dur` / `ctx` / `spent` in the sticky header to sort siblings at every
+- The sticky header labels every column: `EKG` · `#` · `session` · `AI model` ·
+  `dur` · `ctx` · `spent`
+- Click `#` / `dur` / `ctx` / `spent` in the sticky header to sort siblings at every
   level of the tree — click cycles descending → ascending → off (newest first)
+- Keyboard: `↑` / `↓` (and `Home` / `End`) move the selection through visible rows,
+  `→` / `←` expand / collapse (or jump to the parent), `Enter` toggles children
+- The selected session is kept in the URL (`#session=<id>`): links open straight to
+  it (collapsed ancestors are expanded), and browser Back / Forward walk the
+  sessions you clicked
+- Subagent titles drop opencode's `(@agent subagent)` suffix when the agent badge
+  already shows it (the full title is on hover)
 - Click any row → side panel shows:
-  - own vs children vs subtree tokens (input, output, reasoning, cache read/write)
+  - a token grid: own / children / subtree × in, out, reason, cache r, cache w
   - agent, model (provider / model / variant), timestamps, duration, max context
   - **every AI call in that session**: one table row per assistant message —
     hover any column header for its meaning. Two groups: **context growth** —
@@ -116,7 +125,10 @@ make build-all   # all five targets, cross-compiled from any host OS
   This month, or Custom `from` / `to` dates (inclusive, local timezone — presets
   re-resolve on each refresh, so "Today" survives midnight). A session stays
   visible while it or any descendant matches; the same pattern (per-column ranges)
-  is available for the AI-calls table via its own Filter button
+  is available for the AI-calls table via its own Filter button. A Filter button
+  is highlighted only while a filter is set and shows how many criteria are active
+  (`Filter · 2`); the dialog header shows a live "N of M shown" count, and the
+  model / provider lists have `all` / `none` shortcuts
 
 ### Interpreting numbers
 
@@ -146,6 +158,34 @@ provider-specific is a capability on the interface, e.g. `PathSwitchable()` driv
 Select a provider with `--provider NAME` or `PROVIDER=NAME`; without one, the first
 provider registered in `main.go` is used (no automatic fallback when its data is missing).
 
+### Copilot CLI provider
+
+`--provider copilot` (or `PROVIDER=copilot`, or the UI switcher) reads GitHub Copilot
+CLI data from `COPILOT_HOME` (default `~/.copilot`), read-only:
+
+```sh
+go run ./cmd/dashboard --provider copilot
+COPILOT_HOME=/path/to/.copilot ./dist/dashboard-lin-x64 --provider copilot
+```
+
+- sessions come from `session-state/<id>/events.jsonl` + `workspace.yaml`; startup fails
+  with the missing path if `<COPILOT_HOME>/session-state` does not exist
+- subagents started via the `task` tool become child nodes (nested subagents nest too)
+- a session is active while an `inuse.*.lock` file exists and its last event is under
+  10 minutes old
+
+Token coverage is limited by what Copilot CLI writes to disk. Each node takes its
+numbers from the first source available, and a field is never estimated or derived
+from another field. Fields with no source show 0:
+
+1. per-call rows in `session-store.db` (`assistant_usage_events`): all fields, plus
+   context size. These are used when present (often empty in practice).
+2. root sessions only: `session.shutdown` model metrics (written on a clean exit).
+   These give input (fresh, cache excluded), output, cache read/write and reasoning,
+   as session totals that already include subagent spend.
+3. otherwise **output tokens only** (per-message `outputTokens`); input, cache and
+   reasoning stay 0. `subagent.completed.totalTokens` is never shown as a token field.
+
 To add a provider:
 
 1. Create `src/provider/<name>/` with a `New()` constructor returning a type that
@@ -170,7 +210,7 @@ To add a provider:
 ## Files
 
 - `cmd/dashboard/main.go` — entrypoint: builds the ordered provider list
-  (`opencode.New(...)`, `claude.New()`; the first is the default) and calls `dashboard.Run`
+  (`opencode.New(...)`, `claude.New()`, `copilot.New()`; the first is the default) and calls `dashboard.Run`
 - `src/dashboard/run.go` — startup: `--version`, `--provider` and `-dev` flags, provider
   selection, port fallback, Ctrl-C graceful shutdown
 - `src/dashboard/server.go` — HTTP server: routing, JSON helpers, `/` and `/i18n.js` handlers;
@@ -181,6 +221,8 @@ To add a provider:
   validation, runtime-switchable read-only pool, session tree, per-call usage, triggers
 - `src/provider/claude/` — Claude Code provider: parses `~/.claude/projects` JSONL
   transcripts (incl. subagents) into the same payloads
+- `src/provider/copilot/` — Copilot CLI provider: parses `~/.copilot/session-state`
+  event logs (incl. nested subagents) and `session-store.db` usage rows
 - `src/dashboard/assets.go` — serves the frontend: `{{VERSION}}` substitution
   and dev-mode disk reads for `src/index.html` / `src/i18n.js`
 - `src/dashboard/browser.go` — opens the dashboard in the default browser

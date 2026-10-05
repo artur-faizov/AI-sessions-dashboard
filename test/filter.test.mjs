@@ -384,3 +384,33 @@ test('visibleCallRows: propagates hu (human-triggered) flag as boolean', () => {
     const vis = L.visibleCallRows(calls, cf());
     assert.deepEqual(vis.map(r => r.hu), [true, false, true]);
 });
+
+test('displayTitle: drops the "(@agent subagent)" suffix only for the same agent', () => {
+    assert.equal(L.displayTitle('Fix bug (@general subagent)', 'general'), 'Fix bug');
+    assert.equal(L.displayTitle('Fix bug (@general subagent)', 'explore'), 'Fix bug (@general subagent)');
+    assert.equal(L.displayTitle('Fix bug (@general subagent)', ''), 'Fix bug (@general subagent)');
+    assert.equal(L.displayTitle('(@general subagent)', 'general'), '(@general subagent)');
+    assert.equal(L.displayTitle('Plain title', 'general'), 'Plain title');
+    assert.equal(L.displayTitle(null, 'general'), '');
+});
+
+test('treeFilterCount: one per active criterion group', () => {
+    assert.equal(L.treeFilterCount(tf()), 0);
+    assert.equal(L.treeFilterCount(tf({text: 'x', models: new Set(['a', 'b']), ctxMin: 1, ctxMax: 5})), 3);
+    assert.equal(L.treeFilterCount(tf({datePreset: 'today'})), 1);
+    assert.equal(L.treeFilterCount(tf({datePreset: 'custom'})), 0);
+    assert.equal(L.treeFilterCount(tf({datePreset: 'custom', dateTo: '2026-01-01', durMax: 0})), 2);
+});
+
+test('callFilterCount: one per active criterion group', () => {
+    assert.equal(L.callFilterCount(cf()), 0);
+    assert.equal(L.callFilterCount(cf({text: 'a', deltaMin: -5, crMax: 0})), 3);
+});
+
+test('parseHashSel: reads the session id from the url hash', () => {
+    assert.equal(L.parseHashSel(''), null);
+    assert.equal(L.parseHashSel('#session='), null);
+    assert.equal(L.parseHashSel('#session=ses_1'), 'ses_1');
+    assert.equal(L.parseHashSel('#x=1&session=a%2Fb'), 'a/b');
+    assert.equal(L.parseHashSel('#session=%E0%A4%A'), null);
+});

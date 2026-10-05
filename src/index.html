@@ -22,7 +22,10 @@
             margin: 0;
             font: 14px/1.45 -apple-system, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg);
-            color: var(--fg)
+            color: var(--fg);
+            height: 100vh;
+            display: flex;
+            flex-direction: column
         }
 
         header {
@@ -139,9 +142,9 @@
         }
 
         .fbtn {
-            background: var(--acc);
-            border: 1px solid var(--acc);
-            color: #1a1a1a;
+            background: #1d2026;
+            border: 1px solid var(--line);
+            color: var(--fg);
             border-radius: 6px;
             padding: 4px 12px;
             cursor: pointer;
@@ -151,17 +154,17 @@
         }
 
         .fbtn:hover {
-            background: #8db1ff
+            border-color: var(--acc)
         }
 
         .fbtn.on {
-            background: #f7768e;
-            border-color: #f7768e;
+            background: var(--acc);
+            border-color: var(--acc);
             color: #1a1a1a
         }
 
         .fbtn.on:hover {
-            background: #ff93a7
+            background: #8db1ff
         }
 
         .rbtn {
@@ -317,13 +320,14 @@
 
         main {
             display: flex;
-            height: calc(100vh - 47px)
+            flex: 1;
+            min-height: 0
         }
 
         #tree {
             flex: 1;
             overflow: auto;
-            padding: 12px 18px
+            padding: 0 18px 12px
         }
 
         #splitter {
@@ -520,13 +524,14 @@
             position: sticky;
             top: 0;
             z-index: 2;
-            background: var(--bg);
+            background: #262b36;
             display: flex;
             gap: 10px;
             align-items: baseline;
-            padding: 4px 6px 6px;
+            padding: 7px 4px;
             margin-bottom: 6px;
-            border-bottom: 1px solid var(--line)
+            border: 2px solid #3d4455;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, .35)
         }
 
         .thead .grow {
@@ -534,8 +539,15 @@
         }
 
         .hlead {
-            width: 24px;
+            width: 14px;
             flex: none
+        }
+
+        .thc, .thl {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--fg);
+            white-space: nowrap
         }
 
         .hsp {
@@ -545,16 +557,15 @@
 
         .th {
             cursor: pointer;
-            font-size: 11px
+            overflow: visible
         }
 
-        .th:hover {
-            color: var(--fg)
+        .th:hover .thl {
+            color: var(--acc)
         }
 
-        .th.active {
+        .th.active, .th.active .thl {
             color: var(--acc);
-            font-weight: 700;
             position: relative
         }
 
@@ -590,11 +601,19 @@
         }
 
         #detail .meta {
+            background: #1a1d22;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 13px;
+            margin-bottom: 14px
+        }
+
+        #detail .meta dl {
             display: grid;
             grid-template-columns:auto 1fr;
             gap: 4px 14px;
-            font-size: 13px;
-            margin-bottom: 14px
+            margin: 0
         }
 
         #detail .meta dt {
@@ -603,7 +622,52 @@
 
         #detail .meta dd {
             margin: 0;
+            font-variant-numeric: tabular-nums;
+            overflow-wrap: anywhere
+        }
+
+        table.tokgrid {
+            border-collapse: collapse;
+            margin-top: 10px;
+            width: 100%;
             font-variant-numeric: tabular-nums
+        }
+
+        table.tokgrid th, table.tokgrid td {
+            padding: 3px 8px;
+            text-align: right;
+            border-top: 1px solid var(--line)
+        }
+
+        table.tokgrid thead th {
+            color: var(--dim);
+            font-weight: 500;
+            font-size: 12px;
+            border-top: none
+        }
+
+        table.tokgrid tbody th {
+            text-align: left;
+            font-weight: 500;
+            color: var(--dim);
+            padding-left: 0;
+            white-space: nowrap
+        }
+
+        table.tokgrid .sep {
+            border-left: 1px solid var(--line)
+        }
+
+        table.tokgrid tr.own td:nth-of-type(1) {
+            color: var(--acc)
+        }
+
+        table.tokgrid tr.kids td:nth-of-type(1) {
+            color: var(--sub)
+        }
+
+        table.tokgrid tr.total td {
+            font-weight: 700
         }
 
         pre.prompt {
@@ -673,28 +737,6 @@
             font-weight: 700;
             padding: 0 5px;
             border-radius: 4px
-        }
-
-        #detail .meta {
-            background: #b3cdf0;
-            padding: 10px 12px;
-            border-radius: 8px
-        }
-
-        #detail .meta dt {
-            color: #3c4e6e
-        }
-
-        #detail .meta dd {
-            color: #10161f
-        }
-
-        #detail .meta .own {
-            color: #1c5bb8
-        }
-
-        #detail .meta .kids {
-            color: #9a5b0e
         }
 
         table.calls .vbar {
@@ -894,7 +936,41 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: .5px;
-            margin: 12px 0 5px
+            margin: 12px 0 5px;
+            display: flex;
+            align-items: center
+        }
+
+        .cktogs {
+            margin-left: auto;
+            display: inline-flex;
+            gap: 4px
+        }
+
+        .cktog {
+            background: none;
+            border: 1px solid var(--line);
+            color: var(--dim);
+            border-radius: 4px;
+            padding: 0 7px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 11px;
+            text-transform: none;
+            letter-spacing: 0
+        }
+
+        .cktog:hover {
+            color: var(--fg);
+            border-color: var(--acc)
+        }
+
+        .fcount {
+            margin-left: auto;
+            color: var(--dim);
+            font-weight: 400;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums
         }
 
         .frow {
@@ -1095,7 +1171,10 @@
             }
         })(TREE);
     }
-    const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n || 0);
+    const fmt = n => {
+        const a = Math.abs(n || 0), s = n < 0 ? '-' : '';
+        return a >= 1e6 ? s + (a / 1e6).toFixed(1) + 'M' : a >= 1e3 ? s + (a / 1e3).toFixed(1) + 'k' : s + a;
+    };
     const dur = ms => ms < 0 ? '—' : ms < 6e4 ? (ms / 1e3).toFixed(0) + 's' : ms < 36e5 ? (ms / 6e4).toFixed(1) + 'm' : (ms / 36e5).toFixed(1) + 'h';
     const when = t => t ? new Date(t).toLocaleString(I18N.locale()) : '—';
     // FILTER-LOGIC-START
@@ -1237,10 +1316,42 @@
         })).filter(r => callRowMatches(r, f));
     }
 
+    // opencode titles subagent sessions "Task (@general subagent)"; the agent
+    // badge already says that, so the suffix is dropped when it names the same agent.
+    function displayTitle(title, agent) {
+        const t = String(title ?? '');
+        if (!agent) return t;
+        const m = /\s*\(@([\w.-]+) subagent\)\s*$/.exec(t);
+        return m && m[1] === agent && m.index > 0 ? t.slice(0, m.index) : t;
+    }
+
+    function treeFilterCount(f) {
+        const set = (a, b) => a != null || b != null;
+        return [
+            !!f.text, f.models.size > 0, f.providers.size > 0, set(f.numMin, f.numMax),
+            f.datePreset != null && (f.datePreset !== 'custom' || !!f.dateFrom || !!f.dateTo),
+            set(f.ctxMin, f.ctxMax), set(f.spentMin, f.spentMax), set(f.durMin, f.durMax)
+        ].filter(Boolean).length;
+    }
+
+    function callFilterCount(f) {
+        const set = (a, b) => a != null || b != null;
+        return [
+            !!f.text, set(f.numMin, f.numMax), set(f.ctxMin, f.ctxMax), set(f.deltaMin, f.deltaMax),
+            set(f.outMin, f.outMax), set(f.reasonMin, f.reasonMax), set(f.inMin, f.inMax), set(f.crMin, f.crMax)
+        ].filter(Boolean).length;
+    }
+
+    function parseHashSel(hash) {
+        const m = /(?:^#|&)session=([^&]*)/.exec(hash || '');
+        if (!m || !m[1]) return null;
+        try { return decodeURIComponent(m[1]); } catch (e) { return null; }
+    }
+
     if (typeof module !== 'undefined' && module.exports) module.exports = {
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
         treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, heartSizes, ecgPoints,
-        callDeltaAt, callRowMatches, visibleCallRows
+        callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel
     };
     // FILTER-LOGIC-END
 
@@ -1309,15 +1420,35 @@
     }
 
     function updateFilterBtns() {
-        document.querySelector('#tree-fbtn').classList.toggle('on', treeFilterActive());
+        const lbl = n => tr('filter.btn') + (n ? ' · ' + n : '');
+        const tb = document.querySelector('#tree-fbtn');
+        const tn = treeFilterCount(treeFilter);
+        tb.classList.toggle('on', tn > 0);
+        tb.textContent = lbl(tn);
         const cb = document.querySelector('#call-fbtn');
-        if (cb) cb.classList.toggle('on', callFilterActive());
+        if (cb) {
+            const cn = callFilterCount(callFilter);
+            cb.classList.toggle('on', cn > 0);
+            cb.textContent = lbl(cn);
+        }
+        updateFilterCount();
+    }
+
+    let SHOWN = {roots: 0, total: 0};
+
+    function updateFilterCount() {
+        const el = document.querySelector('#fcount');
+        if (!el) return;
+        el.textContent = fmodalKind === 'tree'
+            ? tr('ftree.count', {n: SHOWN.roots, total: SHOWN.total})
+            : tr('fcall.count', {n: VISIBLE.length, total: CALLS.length});
     }
 
     function fmodalOpen(title, bodyHtml) {
-        document.querySelector('#fmodal-head').innerHTML = `<span>${title}</span><button class="xbtn" onclick="fmodalClose()">✕</button>`;
+        document.querySelector('#fmodal-head').innerHTML = `<span>${title}</span><span class="fcount" id="fcount"></span><button class="xbtn" onclick="fmodalClose()">✕</button>`;
         document.querySelector('#fmodal-body').innerHTML = bodyHtml;
         document.querySelector('#fmodal').hidden = false;
+        updateFilterCount();
     }
 
     let fmodalKind = null;
@@ -1371,11 +1502,25 @@
     }
 
     function bindCk(id, set, apply) {
-        document.querySelector('#' + id).addEventListener('change', e => {
+        const box = document.querySelector('#' + id);
+        box.addEventListener('change', e => {
             if (e.target.checked) set.add(e.target.dataset.val);
             else set.delete(e.target.dataset.val);
             apply();
         });
+        document.querySelectorAll(`.cktog[data-for="${id}"]`).forEach(b => b.addEventListener('click', () => {
+            const on = b.dataset.act === 'all';
+            set.clear();
+            box.querySelectorAll('input[type=checkbox]').forEach(c => {
+                c.checked = on;
+                if (on) set.add(c.dataset.val);
+            });
+            apply();
+        }));
+    }
+
+    function ckAllNone(id) {
+        return `<span class="cktogs"><button class="cktog" data-for="${id}" data-act="all" title="${esc(tr('fmod.all.tip'))}">${tr('fmod.all')}</button><button class="cktog" data-for="${id}" data-act="none" title="${esc(tr('fmod.none.tip'))}">${tr('fmod.none')}</button></span>`;
     }
 
     function collectValues(fn) {
@@ -1430,9 +1575,9 @@
         fmodalOpen(tr('ftree.title'), `
         <div class="fsect">${tr('fmod.text')}</div>
         <div class="frow"><span class="finputs"><input type="text" id="ft-text" value="${esc(f.text)}" placeholder="${tr('ftree.text.ph')}" style="width:100%"></span></div>
-        <div class="fsect">${tr('fmod.model')}</div>
+        <div class="fsect">${tr('fmod.model')}${ckAllNone('ft-models')}</div>
         ${ckList('ft-models', collectValues(n => modelName(n.model)), f.models)}
-        <div class="fsect">${tr('fmod.provider')}</div>
+        <div class="fsect">${tr('fmod.provider')}${ckAllNone('ft-provs')}</div>
         ${ckList('ft-provs', collectValues(nodeProvider), f.providers)}
         <div class="fsect">${tr('fmod.ranges')}</div>
         ${rangeRow(tr('calls.th.num'), 'ft-nummin', 'ft-nummax', f, 'numMin', 'numMax')}
@@ -1576,13 +1721,16 @@
             }
         })(roots);
         VMAX = {ctx: mc, tok: mt};
-        const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')">${lbl}</span>`;
-        h += `<div class="thead"><span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}<span class="grow"></span><span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}</span></div>`;
+        const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')"><span class="thl">${lbl}</span></span>`;
+        const thc = (cls, lbl, tip) => `<span class="thc ${cls}" title="${esc(tip)}">${lbl}</span>`;
+        h += `<div class="thead">${thc('hcol', tr('tree.th.ekg'), tr('tree.th.ekg.tip'))}<span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}${thc('grow', tr('tree.th.session'), tr('tree.th.session.tip'))}${thc('', tr('tree.th.model'), tr('tree.th.model.tip'))}<span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}</span></div>`;
         let groups = 0;
+        SHOWN = {roots: 0, total: TREE.length};
         for (const [dirName, sessions] of docmap(roots)) {
             const vis = sessions.filter(matches);
             if (!vis.length) continue;
             groups++;
+            SHOWN.roots += vis.length;
             const tot = vis.reduce((a, s) => {
                 const t = s.subtree;
                 return {spent: a.spent + t.in + t.out + t.reason}
@@ -1595,6 +1743,7 @@
         document.querySelector('#tree').innerHTML = h;
         const allSpent = TREE.reduce((a, s) => a + s.subtree.in + s.subtree.out + s.subtree.reason, 0);
         document.querySelector('#summary').textContent = tr('summary', {n: TREE.length, spent: fmt(allSpent)});
+        updateFilterCount();
     }
 
     const DEFAULT_AGENT = 'build';
@@ -1619,9 +1768,9 @@
     ${heart}
     ${caret}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
-    <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
-    ${agentBadge}
-    <span class="badge">${esc(modelName(s.model))}</span>${subBadges}
+    <span class="ttl" title="${esc(s.title)}">${esc(agentBadge ? displayTitle(s.title, s.agent) : s.title)}</span>
+    ${agentBadge}${subBadges}
+    <span class="badge">${esc(modelName(s.model))}</span>
     <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="${tr('node.spent.tip')}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${tr('node.spent.tip')}"><b>${fmt(spent)}</b></span></span></div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS)).join('')}</ul>`;
         return h + '</li>';
@@ -1786,7 +1935,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             if (e.key === 'Escape') fmodalClose();
             return;
         }
-        if (document.querySelector('#modal').hidden) return;
+        if (document.querySelector('#modal').hidden) return treeKey(e);
         if (e.key === 'Escape') modalClose();
         else if (e.key === 'ArrowLeft') callNav(-1);
         else if (e.key === 'ArrowRight') callNav(1);
@@ -1808,15 +1957,16 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const mObj = s.model && typeof s.model === 'object' ? s.model : null;
         const mName = modelName(s.model);
         const mFull = mObj ? `${mObj.providerID || '—'} / ${mName}${mObj.variant ? ' · ' + mObj.variant : ''}` : mName;
-        const kidIn = t.in - s.in;
-        return `<dt>${tr('detail.ctx_now')}</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
+        const kids = {in: t.in - s.in, out: t.out - s.out, reason: t.reason - s.reason, cr: t.cr - s.cr, cw: t.cw - s.cw};
+        const row = (lbl, v, cls, tip) => `<tr${cls ? ` class="${cls}"` : ''}><th title="${esc(tip)}">${lbl}</th><td>${fmt(v.in)}</td><td>${fmt(v.out)}</td><td>${fmt(v.reason)}</td><td class="sep">${fmt(v.cr)}</td><td>${fmt(v.cw)}</td></tr>`;
+        const hasKids = s.children.length > 0;
+        return `<dl><dt>${tr('detail.ctx_now')}</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
     <dt>${tr('detail.ctx_max')}</dt><dd>${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</dd>
     <dt>${tr('detail.agent_model')}</dt><dd>${esc(s.agent || '—')} / ${esc(mFull)}</dd>
     <dt>${tr('detail.dir')}</dt><dd>${esc(s.dir)}</dd>
-    <dt>${tr('detail.created_updated')}</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd>
-    <dt>${tr('detail.own')}</dt><dd>in <span class="own">${fmt(s.in)}</span> · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
-    <dt>${tr('detail.kids')}</dt><dd>in <span class="kids">${fmt(kidIn)}</span> · out ${fmt(t.out - s.out)} · reason ${fmt(t.reason - s.reason)} · cache r ${fmt(t.cr - s.cr)} / w ${fmt(t.cw - s.cw)}</dd>
-    <dt>${tr('detail.subtree')}</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${tr('detail.direct_children', {n: s.children.length})}</dd>`;
+    <dt>${tr('detail.created_updated')}</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd></dl>
+    <table class="tokgrid"><thead><tr><th></th><th>${tr('detail.tok.in')}</th><th>${tr('detail.tok.out')}</th><th>${tr('detail.tok.reason')}</th><th class="sep">${tr('detail.tok.cr')}</th><th>${tr('detail.tok.cw')}</th></tr></thead>
+    <tbody>${row(tr('detail.tok.own'), s, 'own', tr('detail.own'))}${hasKids ? row(tr('detail.tok.kids', {n: s.children.length}), kids, 'kids', tr('detail.kids')) + row(tr('detail.tok.subtree'), t, 'total', tr('detail.subtree')) : ''}</tbody></table>`;
     }
 
     async function pick(id) {
@@ -1824,7 +1974,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const s = find(TREE, id);
         if (!s) return;
         document.querySelector('#detail').innerHTML = `<h2 id="dtitle" title="${esc(s.title)}">${esc(s.title)}</h2>
-  <dl class="meta" id="meta">${metaDl(s)}</dl>
+  <div class="meta" id="meta">${metaDl(s)}</div>
   <div class="sect">${tr('detail.calls')} <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div><div id="calls">${tr('loading')}</div>
   <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre>`;
         await fillDetail(id);
@@ -1875,14 +2025,117 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         return null
     }
 
+    function markSel(id) {
+        document.querySelectorAll('#tree .node.sel').forEach(x => x.classList.remove('sel'));
+        const nd = document.querySelector(`#tree .node[data-id="${CSS.escape(id)}"]`);
+        if (nd) nd.classList.add('sel');
+        return nd;
+    }
+
+    function syncUrl(id, push) {
+        if (typeof location === 'undefined' || typeof history === 'undefined') return;
+        const h = id ? '#session=' + encodeURIComponent(id) : '';
+        if (location.hash === h || (!h && !location.hash)) return;
+        const url = location.pathname + location.search + h;
+        if (push) history.pushState(null, '', url); else history.replaceState(null, '', url);
+    }
+
+    // expand every collapsed ancestor so the selected row is reachable in the tree
+    function revealPath(id) {
+        const path = [];
+        (function walk(ns) {
+            for (const x of ns) {
+                if (x.id === id) return true;
+                path.push(x.id);
+                if (walk(x.children)) return true;
+                path.pop();
+            }
+            return false;
+        })(TREE);
+        let changed = false;
+        for (const a of path) {
+            if (!EXPANDED.has(a)) changed = true;
+            COLLAPSED.delete(a);
+            EXPANDED.add(a);
+        }
+        if (changed) render();
+    }
+
+    function selectSession(id, o) {
+        o = o || {};
+        if (!find(TREE, id)) return false;
+        if (o.reveal) revealPath(id);
+        const nd = markSel(id);
+        if (nd && o.scroll) nd.scrollIntoView({block: 'nearest'});
+        syncUrl(id, !!o.push);
+        if (sel !== id) {
+            clearTimeout(selectSession.t);
+            if (o.delay) {
+                sel = id;
+                selectSession.t = setTimeout(() => sel === id && pick(id), o.delay);
+            } else pick(id);
+        }
+        return true;
+    }
+
+    function applyHashSel() {
+        if (typeof location === 'undefined') return;
+        const id = parseHashSel(location.hash);
+        if (!id && sel) {
+            clearTimeout(selectSession.t);
+            sel = null;
+            CALLS = [];
+            markSel('');
+            document.querySelector('#detail').innerHTML = `<div class="empty" id="detailempty">${tr('detail.select')}</div>`;
+            return;
+        }
+        if (id && id !== sel) selectSession(id, {reveal: true, scroll: true});
+    }
+
+    window.addEventListener('popstate', applyHashSel);
+
+    function visibleNodes() {
+        return [...document.querySelectorAll('#tree .node')].filter(n => n.offsetParent !== null);
+    }
+
+    function treeKey(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const tag = (e.target && e.target.tagName) || '';
+        if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag) || (e.target && e.target.isContentEditable)) return;
+        if (tag === 'BUTTON' && e.key === 'Enter') return;
+        if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Home', 'End'].includes(e.key)) return;
+        const nodes = visibleNodes();
+        if (!nodes.length) return;
+        e.preventDefault();
+        const cur = nodes.findIndex(n => n.dataset.id === sel);
+        const go = i => selectSession(nodes[Math.max(0, Math.min(nodes.length - 1, i))].dataset.id, {scroll: true, delay: 150});
+        if (e.key === 'ArrowDown') return go(cur < 0 ? 0 : cur + 1);
+        if (e.key === 'ArrowUp') return go(cur < 0 ? 0 : cur - 1);
+        if (e.key === 'Home') return go(0);
+        if (e.key === 'End') return go(nodes.length - 1);
+        if (cur < 0) return;
+        const nd = nodes[cur], caret = nd.querySelector('.caret');
+        const ul = nd.parentElement.querySelector(':scope > ul');
+        const open = ul && ul.style.display !== 'none';
+        if (e.key === 'Enter') {
+            if (ul) caret.click();
+        } else if (e.key === 'ArrowRight') {
+            if (ul && !open) caret.click();
+            else if (open) go(cur + 1);
+        } else if (e.key === 'ArrowLeft') {
+            if (open) caret.click();
+            else {
+                const up = nd.parentElement.parentElement.closest('li');
+                if (up) selectSession(up.querySelector(':scope > .node').dataset.id, {scroll: true, delay: 150});
+            }
+        }
+    }
+
     document.querySelector('#tree').addEventListener('click', e => {
         const nd = e.target.closest('.node');
         if (nd && !e.target.classList.contains('caret')) {
-            if (!nd.classList.contains('sel')) {
-                document.querySelectorAll('#tree .node.sel').forEach(x => x.classList.remove('sel'));
-                nd.classList.add('sel');
-            }
-            pick(nd.dataset.id);
+            if (nd.dataset.id === sel) return;
+            selectSession(nd.dataset.id, {push: true});
         }
     });
     document.querySelector('#refresh').addEventListener('click', load);
@@ -1915,8 +2168,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const ps = document.querySelector('#provsel');
         if (ps) ps.title = tr('prov.tip');
         const fb = document.querySelector('#tree-fbtn');
-        fb.textContent = tr('filter.btn');
         fb.title = tr('filter.btn.title');
+        updateFilterBtns();
         document.querySelector('#hlbox').title = tr('hl.title');
         document.querySelector('#hllabel').textContent = tr('hl.label');
         document.querySelector('#hlwarn').title = tr('hl.warn.title');
@@ -1980,6 +2233,10 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             render();
             refreshDetail();
             updateFilterBtns();
+            if (!load.done) {
+                load.done = true;
+                applyHashSel();
+            }
         } finally {
             sp.classList.remove('busy');
         }
@@ -2041,7 +2298,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         } catch (e) { return { ok: false, error: String(e) }; }
     }
 
-    const provLabel = n => n === 'claude' ? tr('prov.claude') : n;
+    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'copilot' ? tr('prov.copilot') : n;
 
     let lastProv = null;
 
