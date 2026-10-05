@@ -43,29 +43,100 @@
             font-weight: 600
         }
 
-        header input {
-            background: #1d2026;
-            border: 1px solid var(--line);
-            color: var(--fg);
+        .fbtn {
+            background: none;
+            border: 1px solid var(--acc);
+            color: var(--acc);
             border-radius: 6px;
-            padding: 5px 10px;
-            width: 280px
+            padding: 4px 12px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px
         }
 
-        header select {
-            background: #1d2026;
-            color: var(--fg);
-            border: 1px solid var(--line);
-            border-radius: 6px;
-            padding: 5px
+        .fbtn:hover {
+            background: rgba(122, 162, 247, .12)
         }
 
-        header label {
+        .fbtn.on {
+            border-color: #f7768e;
+            color: #f7768e
+        }
+
+        .fbtn.on:hover {
+            background: rgba(247, 118, 142, .12)
+        }
+
+        .rbtn {
+            margin-left: auto;
+            background: #1d2026;
+            border: 1px solid var(--line);
+            color: var(--dim);
+            border-radius: 6px;
+            padding: 3px 0;
+            width: 34px;
+            text-align: center;
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            user-select: none
+        }
+
+        .rbtn:hover {
+            color: var(--fg);
+            border-color: var(--acc)
+        }
+
+        .rbtn.busy {
+            color: var(--acc);
+            border-color: var(--acc)
+        }
+
+        .hlbox {
+            display: flex;
+            gap: 6px;
+            align-items: center;
             color: var(--dim);
             font-size: 13px;
-            display: flex;
-            gap: 5px;
-            align-items: center
+            cursor: default
+        }
+
+        .hlbox input[type=number] {
+            background: #1d2026;
+            border: 1px solid var(--line);
+            color: var(--fg);
+            border-radius: 6px;
+            padding: 4px 7px;
+            width: 64px;
+            font: inherit;
+            font-size: 13px
+        }
+
+        .hlbox input[type=number]:focus {
+            outline: none;
+            border-color: var(--acc)
+        }
+
+        .hlbox input[type=checkbox] {
+            accent-color: var(--acc);
+            cursor: pointer
+        }
+
+        .node.hot {
+            background: rgba(247, 118, 142, .16)
+        }
+
+        .node.hot:hover {
+            background: rgba(247, 118, 142, .28)
+        }
+
+        table.calls tbody tr.hot {
+            background: rgba(247, 118, 142, .16)
+        }
+
+        table.calls tbody tr.hot:hover {
+            background: rgba(247, 118, 142, .28)
         }
 
         main {
@@ -536,6 +607,162 @@
             max-height: 40vh
         }
 
+        #fmodal {
+            position: fixed;
+            inset: 0;
+            z-index: 12;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        #fmodal[hidden] {
+            display: none
+        }
+
+        #fmodal-bg {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .55)
+        }
+
+        #fmodal-box {
+            position: relative;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            width: min(430px, 92vw);
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        #fmodal-head {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            font-size: 13px;
+            font-weight: 600
+        }
+
+        #fmodal-body {
+            padding: 6px 14px 14px;
+            overflow: auto
+        }
+
+        .xbtn {
+            cursor: pointer;
+            color: var(--dim);
+            border: none;
+            background: none;
+            font-size: 16px;
+            padding: 2px 6px;
+            font-weight: 400
+        }
+
+        .xbtn:hover {
+            color: var(--fg)
+        }
+
+        .fsect {
+            color: var(--dim);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin: 12px 0 5px
+        }
+
+        .frow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 7px 0;
+            font-size: 13px
+        }
+
+        .flbl {
+            width: 112px;
+            flex: none;
+            color: var(--dim)
+        }
+
+        .finputs {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            flex: 1
+        }
+
+        .finputs input {
+            background: #1d2026;
+            border: 1px solid var(--line);
+            color: var(--fg);
+            border-radius: 6px;
+            padding: 4px 8px;
+            width: 90px;
+            font: inherit;
+            font-size: 13px
+        }
+
+        .finputs input:focus {
+            outline: none;
+            border-color: var(--acc)
+        }
+
+        .finputs input.h {
+            width: 54px
+        }
+
+        .cklist {
+            max-height: 132px;
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 6px 9px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+        .cklist label {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+            font-size: 13px;
+            cursor: pointer
+        }
+
+        .cklist input {
+            accent-color: var(--acc)
+        }
+
+        .freset {
+            margin-top: 12px;
+            background: none;
+            border: 1px solid var(--line);
+            color: var(--dim);
+            border-radius: 6px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px
+        }
+
+        .freset:hover {
+            color: var(--fg)
+        }
+
+        .sect .fbtn {
+            margin-left: 10px;
+            padding: 1px 9px;
+            font-size: 11px;
+            border-radius: 5px;
+            vertical-align: 1px
+        }
+
         @media (max-width: 900px) {
             .cnav.prev {
                 left: 6px
@@ -565,8 +792,9 @@
 </head>
 <body>
 <header><h1>Token Tree</h1>
-    <input id="q" placeholder="Filter: title, agent, model…">
-    <label><input type="checkbox" id="live" checked> live (10s)</label>
+    <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
+    <label class="hlbox" title="rows with context above this value (in k tokens) are highlighted red"><span>ctx highlight threshold, k</span><input type="number" id="hlctx" value="100" min="0"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the red highlight."><span title="Keep in the tree only the sessions whose context exceeds the threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the red highlight.">apply threshold</span></label>
+    <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now">5</button>
     <span id="summary" class="num"></span></header>
 <main>
     <div id="tree"></div>
@@ -584,8 +812,16 @@
         <span class="cnav next" id="cnav-next" onclick="callNav(1)">›</span>
     </div>
 </div>
+<div id="fmodal" hidden>
+    <div id="fmodal-bg" onclick="fmodalClose()"></div>
+    <div id="fmodal-box">
+        <div id="fmodal-head"></div>
+        <div id="fmodal-body"></div>
+    </div>
+</div>
 <script>
-    let TREE = [], CALLS = [], sel = null, VMAX = {ctx: 0, tok: 0}, sortKey = null, sortAsc = false, ORDER = new Map();
+    let TREE = [], CALLS = [], VISIBLE = [], sel = null, VMAX = {ctx: 0, tok: 0},
+        sortKey = null, sortAsc = false, ORDER = new Map(), COLLAPSED = new Set(), EXPANDED = new Set();
 
     function computeOrder() {
         ORDER = new Map();
@@ -601,14 +837,286 @@
     const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n || 0);
     const dur = ms => ms < 0 ? '—' : ms < 6e4 ? (ms / 1e3).toFixed(0) + 's' : ms < 36e5 ? (ms / 6e4).toFixed(1) + 'm' : (ms / 36e5).toFixed(1) + 'h';
     const when = t => t ? new Date(t).toLocaleString() : '—';
-    const modelName = m => !m ? '—' : typeof m === 'object' ? (m.modelID || m.id || '—') : m;
+    // FILTER-LOGIC-START
+    // Pure filter predicates — no DOM access. test/filter.test.mjs extracts exactly
+    // this block and runs it in node, so keep it self-contained between the markers.
+    function modelName(m) {
+        return !m ? '—' : typeof m === 'object' ? (m.modelID || m.id || '—') : m;
+    }
+
+    function nodeProvider(n) {
+        return n.model && typeof n.model === 'object' ? (n.model.providerID || '(none)') : '(none)';
+    }
+
+    function inRange(v, min, max) {
+        return (min == null || v >= min) && (max == null || v <= max);
+    }
+
+    function hmsToMs(h, m, s) {
+        if ([h, m, s].every(x => x === '' || x == null)) return null;
+        const num = x => (x === '' || x == null || isNaN(Number(x))) ? 0 : Number(x);
+        return (num(h) * 3600 + num(m) * 60 + num(s)) * 1000;
+    }
+
+    function kilo(k) {
+        return k == null ? null : k * 1000;
+    }
+
+    function treeMatchesNode(n, f) {
+        if (f.text) {
+            const hay = (n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase();
+            if (!hay.includes(f.text.toLowerCase())) return false;
+        }
+        if (f.models.size && !f.models.has(modelName(n.model))) return false;
+        if (f.providers.size && !f.providers.has(nodeProvider(n))) return false;
+        if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
+        if (!inRange(n.subtree.in + n.subtree.out + n.subtree.reason, kilo(f.spentMin), kilo(f.spentMax))) return false;
+        if (!inRange(n.dur, f.durMin, f.durMax)) return false;
+        return true;
+    }
+
+    function treeVisible(n, f) {
+        return treeMatchesNode(n, f) || n.children.some(c => treeVisible(c, f));
+    }
+
+    function isHotCtx(v, thr) {
+        return thr != null && v > thr * 1000;
+    }
+
+    function treeHotVisible(n, thr) {
+        return isHotCtx(n.maxctx, thr) || n.children.some(c => treeHotVisible(c, thr));
+    }
+
+    function callDeltaAt(calls, i) {
+        return i ? calls[i].ctx - calls[i - 1].ctx : calls[i].ctx;
+    }
+
+    function callRowMatches(r, f) {
+        if (f.text && !(r.text || '').toLowerCase().includes(f.text.toLowerCase())) return false;
+        return inRange(r.n, f.numMin, f.numMax)
+            && inRange(r.ctx, f.ctxMin, f.ctxMax)
+            && inRange(r.delta, f.deltaMin, f.deltaMax)
+            && inRange(r.out, f.outMin, f.outMax)
+            && inRange(r.reason, f.reasonMin, f.reasonMax)
+            && inRange(r.in, f.inMin, f.inMax)
+            && inRange(r.cr, f.crMin, f.crMax);
+    }
+
+    function visibleCallRows(calls, f, textOf) {
+        textOf = textOf || (c => c.time ? String(c.time) : '');
+        return calls.map((c, i) => ({
+            n: i + 1, mid: c.mid, time: c.time, ctx: c.ctx, delta: callDeltaAt(calls, i),
+            out: c.out, reason: c.reason, in: c.in, cr: c.cr, text: textOf(c),
+        })).filter(r => callRowMatches(r, f));
+    }
+
+    if (typeof module !== 'undefined' && module.exports) module.exports = {
+        modelName, nodeProvider, inRange, hmsToMs, treeMatchesNode, treeVisible,
+        isHotCtx, treeHotVisible, callDeltaAt, callRowMatches, visibleCallRows
+    };
+    // FILTER-LOGIC-END
+
+    const newTreeFilter = () => ({
+        text: '', models: new Set(), providers: new Set(),
+        ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null
+    });
+    const newCallFilter = () => ({
+        text: '', numMin: null, numMax: null, ctxMin: null, ctxMax: null, deltaMin: null, deltaMax: null,
+        outMin: null, outMax: null, reasonMin: null, reasonMax: null, inMin: null, inMax: null, crMin: null, crMax: null
+    });
+    let treeFilter = newTreeFilter(), callFilter = newCallFilter();
+    let HOT = { thr: 100, apply: false };
+
+    function hotFilterActive() {
+        return HOT.apply && HOT.thr != null;
+    }
 
     function matches(s) {
-        const q = document.querySelector('#q').value.toLowerCase();
-        if (!q) return true;
-        const hit = n => (n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase().includes(q);
-        const rec = n => hit(n) || n.children.some(rec);
-        return rec(s);
+        return treeVisible(s, treeFilter);
+    }
+
+    function treeFilterActive() {
+        const f = treeFilter;
+        return !!(f.text || f.models.size || f.providers.size || f.ctxMin != null || f.ctxMax != null
+            || f.spentMin != null || f.spentMax != null || f.durMin != null || f.durMax != null);
+    }
+
+    function callFilterActive() {
+        return Object.entries(callFilter).some(([k, v]) => k === 'text' ? !!v : v != null);
+    }
+
+    function updateFilterBtns() {
+        document.querySelector('#tree-fbtn').classList.toggle('on', treeFilterActive());
+        const cb = document.querySelector('#call-fbtn');
+        if (cb) cb.classList.toggle('on', callFilterActive());
+    }
+
+    function fmodalOpen(title, bodyHtml) {
+        document.querySelector('#fmodal-head').innerHTML = `<span>${title}</span><button class="xbtn" onclick="fmodalClose()">✕</button>`;
+        document.querySelector('#fmodal-body').innerHTML = bodyHtml;
+        document.querySelector('#fmodal').hidden = false;
+    }
+
+    function fmodalClose() {
+        document.querySelector('#fmodal').hidden = true;
+    }
+
+    function numInput(id, val, ph, cls) {
+        return `<input type="number" id="${id}" value="${val ?? ''}" placeholder="${ph}" min="0"${cls ? ` class="${cls}"` : ''}>`;
+    }
+
+    function rangeRow(label, minId, maxId, f, minK, maxK) {
+        return `<div class="frow"><span class="flbl">${label}</span><span class="finputs">${numInput(minId, f[minK], 'min')} – ${numInput(maxId, f[maxK], 'max')}</span></div>`;
+    }
+
+    function msToHms(ms) {
+        if (ms == null) return ['', '', ''];
+        const t = Math.floor(ms / 1000);
+        return [String(Math.floor(t / 3600)), String(Math.floor(t % 3600 / 60)), String(t % 60)];
+    }
+
+    function durRow(label, prefix, ms) {
+        const [h, m, s] = msToHms(ms);
+        return `<div class="frow"><span class="flbl">${label}</span><span class="finputs">${numInput(prefix + 'h', h, 'h', 'h')}${numInput(prefix + 'm', m, 'm', 'h')}${numInput(prefix + 's', s, 's', 'h')}</span></div>`;
+    }
+
+    function ckList(id, values, set) {
+        if (!values.length) return `<div class="cklist" id="${id}"><span class="num">(no values yet)</span></div>`;
+        return `<div class="cklist" id="${id}">` + values.map(v =>
+            `<label><input type="checkbox" data-val="${esc(v)}"${set.has(v) ? ' checked' : ''}>${esc(v)}</label>`).join('') + '</div>';
+    }
+
+    function bindNum(id, f, key, apply) {
+        const el = document.querySelector('#' + id);
+        el.addEventListener('input', () => {
+            const n = el.value === '' ? null : Number(el.value);
+            f[key] = n != null && Number.isFinite(n) ? n : null;
+            apply();
+        });
+    }
+
+    function bindHms(prefix, f, key, apply) {
+        const g = k => document.querySelector('#' + prefix + k);
+        const h = () => {
+            f[key] = hmsToMs(g('h').value, g('m').value, g('s').value);
+            apply();
+        };
+        ['h', 'm', 's'].forEach(k => g(k).addEventListener('input', h));
+    }
+
+    function bindCk(id, set, apply) {
+        document.querySelector('#' + id).addEventListener('change', e => {
+            if (e.target.checked) set.add(e.target.dataset.val);
+            else set.delete(e.target.dataset.val);
+            apply();
+        });
+    }
+
+    function collectValues(fn) {
+        const s = new Set();
+        (function walk(ns) {
+            for (const n of ns) {
+                s.add(fn(n));
+                walk(n.children);
+            }
+        })(TREE);
+        return [...s].sort();
+    }
+
+    function applyTreeFilter() {
+        render();
+        updateFilterBtns();
+    }
+
+    function refreshCalls() {
+        const el = document.querySelector('#calls');
+        if (el) el.innerHTML = callsTable(CALLS);
+    }
+
+    document.querySelector('#hlctx').addEventListener('input', e => {
+        const v = e.target.value === '' ? null : Number(e.target.value);
+        HOT.thr = v != null && Number.isFinite(v) ? v : null;
+        render();
+        refreshCalls();
+    });
+
+    document.querySelector('#hlapply').addEventListener('change', e => {
+        HOT.apply = e.target.checked;
+        render();
+        refreshCalls();
+    });
+
+    function openTreeFilter() {
+        const f = treeFilter;
+        fmodalOpen('Session filter', `
+        <div class="fsect">Text</div>
+        <div class="frow"><span class="finputs"><input type="text" id="ft-text" value="${esc(f.text)}" placeholder="title, agent, model…" style="width:100%"></span></div>
+        <div class="fsect">Model</div>
+        ${ckList('ft-models', collectValues(n => modelName(n.model)), f.models)}
+        <div class="fsect">Provider</div>
+        ${ckList('ft-provs', collectValues(nodeProvider), f.providers)}
+        <div class="fsect">Ranges (inclusive)</div>
+        ${rangeRow('Context size (k)', 'ft-ctxmin', 'ft-ctxmax', f, 'ctxMin', 'ctxMax')}
+        ${rangeRow('Spent tokens (k)', 'ft-spentmin', 'ft-spentmax', f, 'spentMin', 'spentMax')}
+        ${durRow('Min duration', 'ft-dmin', f.durMin)}
+        ${durRow('Max duration', 'ft-dmax', f.durMax)}
+        <button class="freset" onclick="resetTreeFilter()">Reset all</button>`);
+        const apply = applyTreeFilter;
+        document.querySelector('#ft-text').addEventListener('input', e => {
+            f.text = e.target.value;
+            apply();
+        });
+        bindCk('ft-models', f.models, apply);
+        bindCk('ft-provs', f.providers, apply);
+        bindNum('ft-ctxmin', f, 'ctxMin', apply);
+        bindNum('ft-ctxmax', f, 'ctxMax', apply);
+        bindNum('ft-spentmin', f, 'spentMin', apply);
+        bindNum('ft-spentmax', f, 'spentMax', apply);
+        bindHms('ft-dmin', f, 'durMin', apply);
+        bindHms('ft-dmax', f, 'durMax', apply);
+    }
+
+    function resetTreeFilter() {
+        treeFilter = newTreeFilter();
+        applyTreeFilter();
+        openTreeFilter();
+    }
+
+    function applyCallFilter() {
+        const el = document.querySelector('#calls');
+        if (el) el.innerHTML = callsTable(CALLS);
+        updateFilterBtns();
+    }
+
+    function openCallFilter() {
+        const f = callFilter;
+        fmodalOpen('AI calls filter', `
+        <div class="fsect">Text (matches call timestamp)</div>
+        <div class="frow"><span class="finputs"><input type="text" id="fc-text" value="${esc(f.text)}" placeholder="e.g. 14: or 10/5" style="width:100%"></span></div>
+        <div class="fsect">Ranges (inclusive)</div>
+        ${rangeRow('#', 'fc-nummin', 'fc-nummax', f, 'numMin', 'numMax')}
+        ${rangeRow('in (context)', 'fc-ctxmin', 'fc-ctxmax', f, 'ctxMin', 'ctxMax')}
+        ${rangeRow('delta', 'fc-dmin', 'fc-dmax', f, 'deltaMin', 'deltaMax')}
+        ${rangeRow('out', 'fc-outmin', 'fc-outmax', f, 'outMin', 'outMax')}
+        ${rangeRow('reason', 'fc-rmin', 'fc-rmax', f, 'reasonMin', 'reasonMax')}
+        ${rangeRow('fresh', 'fc-inmin', 'fc-inmax', f, 'inMin', 'inMax')}
+        ${rangeRow('cache r', 'fc-crmin', 'fc-crmax', f, 'crMin', 'crMax')}
+        <button class="freset" onclick="resetCallFilter()">Reset all</button>`);
+        const apply = applyCallFilter;
+        document.querySelector('#fc-text').addEventListener('input', e => {
+            f.text = e.target.value;
+            apply();
+        });
+        [['fc-nummin', 'numMin'], ['fc-nummax', 'numMax'], ['fc-ctxmin', 'ctxMin'], ['fc-ctxmax', 'ctxMax'],
+         ['fc-dmin', 'deltaMin'], ['fc-dmax', 'deltaMax'], ['fc-outmin', 'outMin'], ['fc-outmax', 'outMax'],
+         ['fc-rmin', 'reasonMin'], ['fc-rmax', 'reasonMax'], ['fc-inmin', 'inMin'], ['fc-inmax', 'inMax'],
+         ['fc-crmin', 'crMin'], ['fc-crmax', 'crMax']].forEach(([id, k]) => bindNum(id, f, k, apply));
+    }
+
+    function resetCallFilter() {
+        callFilter = newCallFilter();
+        applyCallFilter();
+        openCallFilter();
     }
 
     function maxDepth(ns) {
@@ -642,7 +1150,7 @@
 
     function render() {
         let h = '';
-        const roots = sorted(TREE.filter(matches));
+        const roots = sorted(TREE.filter(s => matches(s) && (!hotFilterActive() || treeHotVisible(s, HOT.thr))));
         let mc = 0, mt = 0;
         (function scan(ns) {
             for (const x of ns) {
@@ -655,9 +1163,11 @@
         VMAX = {ctx: mc, tok: mt};
         const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')">${lbl}</span>`;
         h += `<div class="thead"><span class="hlead"></span>${th('time', '#', 'sort by session start time (newest first)')}<span class="grow"></span><span class="vals">${th('dur', 'dur', 'sort by duration')}<span class="hsp"></span>${th('ctx', 'ctx', 'sort by max context during session')}<span class="hsp"></span>${th('tok', 'spent', 'sort by tokens spent (in+out+reasoning)')}</span></div>`;
+        let groups = 0;
         for (const [dirName, sessions] of docmap(roots)) {
             const vis = sessions.filter(matches);
             if (!vis.length) continue;
+            groups++;
             const tot = vis.reduce((a, s) => {
                 const t = s.subtree;
                 return {spent: a.spent + t.in + t.out + t.reason}
@@ -666,21 +1176,23 @@
             for (const s of vis) h += node(s, 1);
             h += '</ul>';
         }
-        document.querySelector('#tree').innerHTML = h || '<div class="empty">No sessions match.</div>';
+        if (!groups) h += '<div class="empty">No sessions match the filter.</div>';
+        document.querySelector('#tree').innerHTML = h;
         const allSpent = TREE.reduce((a, s) => a + s.subtree.in + s.subtree.out + s.subtree.reason, 0);
         document.querySelector('#summary').textContent = `${TREE.length} roots · spent ${fmt(allSpent)}`;
     }
 
     function node(s, depth) {
-        const t = s.subtree, kids = sorted(s.children);
+        const t = s.subtree;
+        const kids = hotFilterActive() ? sorted(s.children).filter(k => treeHotVisible(k, HOT.thr)) : sorted(s.children);
         const hasSub = kids.length > 0;
         const spent = t.in + t.out + t.reason;
         const ctxPct = VMAX.ctx && s.maxctx ? Math.max(2, s.maxctx / VMAX.ctx * 100) : 0;
         const tokPct = VMAX.tok && spent ? Math.max(2, spent / VMAX.tok * 100) : 0;
         const subBadges = hasSub ? `<span class="badge sub">▾ ${kids.length} child${kids.length > 1 ? 'ren' : ''}</span>` : '';
-        const open = depth < 2 || hasSub && kids.length <= 6;
+        const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
-        let h = `<li><div class="node${depth === 1 ? ' root' : ''}" data-id="${s.id}">
+        let h = `<li><div class="node${depth === 1 ? ' root' : ''}${isHotCtx(s.maxctx, HOT.thr) ? ' hot' : ''}" data-id="${s.id}">
     ${caret}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
     <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
@@ -703,10 +1215,20 @@
 
     function toggle(e) {
         e.stopPropagation();
-        const ul = e.target.closest('li').querySelector(':scope > ul');
+        const li = e.target.closest('li');
+        const ul = li.querySelector(':scope > ul');
         if (!ul) return;
         ul.style.display = ul.style.display === 'none' ? '' : 'none';
-        e.target.textContent = ul.style.display === 'none' ? '+' : '−';
+        const id = li.querySelector('.node').dataset.id;
+        if (ul.style.display === 'none') {
+            COLLAPSED.add(id);
+            EXPANDED.delete(id);
+            e.target.textContent = '+';
+        } else {
+            EXPANDED.add(id);
+            COLLAPSED.delete(id);
+            e.target.textContent = '−';
+        }
     }
 
     function esc(s) {
@@ -714,24 +1236,42 @@
     }
 
     function callsTable(calls) {
-        if (!calls.length) return '<div class="empty">(no AI calls recorded)</div>';
-        const delta = i => i ? calls[i].ctx - calls[i - 1].ctx : calls[i].ctx;
-        const mx = k => calls.reduce((m, c) => Math.max(m, c[k]), 1);
-        const mCtx = mx('ctx'), mD = Math.max(1, ...calls.map((c, i) => delta(i))),
+        if (!calls.length) {
+            VISIBLE = [];
+            return '<div class="empty">(no AI calls recorded)</div>';
+        }
+        const vis = visibleCallRows(calls, callFilter, c => when(c.time));
+        VISIBLE = vis.map(r => r.n - 1);
+        if (!vis.length) return '<div class="empty">(no calls match the filter)</div>';
+        const all = calls.map((c, i) => ({
+            n: i + 1, ctx: c.ctx, delta: callDeltaAt(calls, i),
+            out: c.out, reason: c.reason, in: c.in, cr: c.cr
+        }));
+        const mx = k => vis.reduce((m, r) => Math.max(m, r[k]), 1);
+        const mCtx = mx('ctx'), mD = Math.max(1, ...vis.map(r => r.delta)),
             mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr');
         const bar = (v, m) => `<span class="vbar"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
         let rows = '';
-        calls.forEach((c, i) => {
-            rows += `<tr onclick="callPick('${esc(c.mid)}')">
-  <td class="num">${i + 1}</td>
-  <td class="num">${bar(c.ctx, mCtx)}<b class="ctxsize">${fmt(c.ctx)}</b></td>
-  <td class="num">${bar(delta(i), mD)}${fmt(delta(i))}</td>
-  <td class="num">${bar(c.out, mOut)}${fmt(c.out)}</td>
-  <td class="num">${bar(c.reason, mRn)}${fmt(c.reason)}</td>
-  <td class="num sep">${bar(c.in, mIn)}${fmt(c.in)}</td>
-  <td class="num">${bar(c.cr, mCr)}${fmt(c.cr)}</td></tr>`;
+        vis.forEach(r => {
+            rows += `<tr${isHotCtx(r.ctx, HOT.thr) ? ' class="hot"' : ''} onclick="callPick('${esc(r.mid)}')">
+  <td class="num">${r.n}</td>
+  <td class="num">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
+  <td class="num">${bar(r.delta, mD)}${fmt(r.delta)}</td>
+  <td class="num">${bar(r.out, mOut)}${fmt(r.out)}</td>
+  <td class="num">${bar(r.reason, mRn)}${fmt(r.reason)}</td>
+  <td class="num sep">${bar(r.in, mIn)}${fmt(r.in)}</td>
+  <td class="num">${bar(r.cr, mCr)}${fmt(r.cr)}</td></tr>`;
         });
-        const tot = calls.reduce((a, c) => ({ctx: a.ctx + c.ctx, in: a.in + c.in, cr: a.cr + c.cr, cw: a.cw + c.cw, out: a.out + c.out, reason: a.reason + c.reason}), {ctx: 0, in: 0, cr: 0, cw: 0, out: 0, reason: 0});
+        const sum = rs => rs.reduce((a, r) => ({ctx: a.ctx + r.ctx, in: a.in + r.in, cr: a.cr + r.cr, out: a.out + r.out, reason: a.reason + r.reason}), {ctx: 0, in: 0, cr: 0, out: 0, reason: 0});
+        const ta = sum(all), tv = sum(vis);
+        const footRow = (lbl, t, n, lastCtx) => `<tr><td>${lbl} ${n}</td><td title="sum of request sizes (counts cache re-reads every call)">${fmt(t.ctx)}</td><td title="sum of deltas = final context size">${fmt(lastCtx)}</td><td>${fmt(t.out)}</td><td>${fmt(t.reason)}</td><td>${fmt(t.in)}</td><td>${fmt(t.cr)}</td></tr>`;
+        let foot;
+        if (callFilterActive()) {
+            foot = footRow('Σ filtered', tv, vis.length, vis[vis.length - 1].ctx)
+                + footRow('Σ all', ta, calls.length, calls[calls.length - 1].ctx);
+        } else {
+            foot = footRow('Σ', ta, calls.length, calls[calls.length - 1].ctx);
+        }
         const heads = [
             ['#', 'call number in this session (chronological)', ''],
             ['in (context)', 'total input of this request = fresh + cache read + cache write — the full context window sent to the model', ''],
@@ -743,7 +1283,7 @@
         ];
         return `<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
   <tbody>${rows}</tbody>
-  <tfoot><tr><td>Σ ${calls.length}</td><td title="sum of request sizes (counts cache re-reads every call)">${fmt(tot.ctx)}</td><td title="sum of deltas = final context size">${fmt(calls[calls.length - 1].ctx)}</td><td>${fmt(tot.out)}</td><td>${fmt(tot.reason)}</td><td>${fmt(tot.in)}</td><td>${fmt(tot.cr)}</td></tr></tfoot></table>`;
+  <tfoot>${foot}</tfoot></table>`;
     }
 
     let curCall = -1;
@@ -759,14 +1299,18 @@
     }
 
     function callNav(d) {
-        const i = curCall + d;
-        if (i < 0 || i >= CALLS.length) return;
-        return showCall(i);
+        if (!VISIBLE.length) return;
+        let p = VISIBLE.indexOf(curCall);
+        if (p < 0) return showCall(d > 0 ? VISIBLE[0] : VISIBLE[VISIBLE.length - 1]);
+        const np = p + d;
+        if (np < 0 || np >= VISIBLE.length) return;
+        return showCall(VISIBLE[np]);
     }
 
     function updateNav() {
-        document.querySelector('#cnav-prev').classList.toggle('disabled', curCall <= 0);
-        document.querySelector('#cnav-next').classList.toggle('disabled', curCall >= CALLS.length - 1);
+        const p = VISIBLE.indexOf(curCall);
+        document.querySelector('#cnav-prev').classList.toggle('disabled', p === 0 || !VISIBLE.length);
+        document.querySelector('#cnav-next').classList.toggle('disabled', p === VISIBLE.length - 1 || !VISIBLE.length);
     }
 
     async function showCall(idx) {
@@ -813,6 +1357,10 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
     }
 
     window.addEventListener('keydown', e => {
+        if (!document.querySelector('#fmodal').hidden) {
+            if (e.key === 'Escape') fmodalClose();
+            return;
+        }
         if (document.querySelector('#modal').hidden) return;
         if (e.key === 'Escape') modalClose();
         else if (e.key === 'ArrowLeft') callNav(-1);
@@ -850,7 +1398,7 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
     <dt>Own tokens</dt><dd>in <span class="own">${fmt(s.in)}</span> · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
     <dt>Children (subtree − own)</dt><dd>in <span class="kids">${fmt(kidIn)}</span> · out ${fmt(t.out - s.out)} · reason ${fmt(t.reason - s.reason)} · cache r ${fmt(t.cr - s.cr)} / w ${fmt(t.cw - s.cw)}</dd>
     <dt>Subtree totals</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${s.children.length} direct child(ren)</dd></dl>
-  <div class="sect">AI calls in this session</div><div id="calls">loading…</div>
+  <div class="sect">AI calls in this session <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="filter the calls table">Filter</button></div><div id="calls">loading…</div>
   <div class="sect">Initial request sent to this agent</div><pre class="prompt" id="pp">loading…</pre>`;
         const pP = getJson('/api/prompt/' + encodeURIComponent(id), document.querySelector('#pp'));
         const pC = getJson('/api/calls/' + encodeURIComponent(id), document.querySelector('#calls'));
@@ -866,6 +1414,7 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
             document.querySelector('#calls').innerHTML = callsTable(CALLS);
             document.querySelector('#ctxnow').textContent = CALLS.length ? fmt(CALLS[CALLS.length - 1].ctx) : '—';
         }
+        updateFilterBtns();
     }
 
     function find(ns, id) {
@@ -881,19 +1430,39 @@ ${esc(p.output)}${p.cut_o ? '\n(output truncated…)' : ''}` : ''}</pre></div>`;
         const nd = e.target.closest('.node');
         if (nd && !e.target.classList.contains('caret')) pick(nd.dataset.id);
     });
-    document.querySelector('#q').addEventListener('input', render);
+    document.querySelector('#refresh').addEventListener('click', load);
+
+    let refreshLeft = 5;
+
+    function refreshLabel() {
+        const b = document.querySelector('#refresh');
+        b.textContent = refreshLeft;
+        b.title = `auto-refresh in ${refreshLeft}s · click to refresh now`;
+    }
+
+    function refreshTick() {
+        if (--refreshLeft <= 0) return load();
+        refreshLabel();
+    }
 
     async function load() {
-        const r = await fetch('/api/tree');
-        TREE = await r.json();
-        computeOrder();
-        render();
+        const sp = document.querySelector('#refresh');
+        sp.classList.add('busy');
+        refreshLeft = 5;
+        refreshLabel();
+        try {
+            const r = await fetch('/api/tree');
+            TREE = await r.json();
+            computeOrder();
+            render();
+            updateFilterBtns();
+        } finally {
+            sp.classList.remove('busy');
+        }
     }
 
     load();
-    setInterval(() => {
-        if (document.querySelector('#live').checked && !document.querySelector('#q').value) load()
-    }, 10000);
+    setInterval(refreshTick, 1000);
 
     // draggable splitter between tree and details
     (() => {
