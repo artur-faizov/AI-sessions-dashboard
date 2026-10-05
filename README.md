@@ -29,9 +29,24 @@ python3 dashboard.py
 
 Opens http://localhost:8787 in your browser.
 
-- Custom port: `PORT=9000 python3 dashboard.py`
+- Custom port: `PORT=9000 python3 dashboard.py` — if the port is busy, it
+  automatically tries the next ports (8788, 8789, …) and says so
+- Custom database: `python3 dashboard.py --db /path/to/opencode.db` (or `DB_PATH=/path/to/opencode.db python3 dashboard.py`)
 - Show version: `python3 dashboard.py --version` (also displayed in the page header)
 - Press `Ctrl+C` to stop
+
+### Database location
+
+The dashboard auto-detects the DB — in priority order: `--db` flag → `DB_PATH` env →
+`~/.local/share/opencode/opencode.db` (Linux) → `~/Library/Application Support/opencode/opencode.db`
+(macOS) → `%APPDATA%`/`%LOCALAPPDATA%\opencode\opencode.db` (Windows).
+
+If it can't be found, the dashboard **still opens** and shows a DB path dropdown
+in the top-center of the page header, highlighted with a red border: pick one of
+the autodetected candidates or choose "Custom…" and enter the path to your
+`opencode.db` (validated read-only before switching). Your choice is remembered
+in the browser and re-applied on next launch; if the remembered path goes stale,
+the dashboard silently falls back to autodetection.
 
 ### Standalone executable
 
@@ -124,8 +139,8 @@ Windows: run `src\build.bat` from the repo root (needs `python` in PATH).
 ## Requirements
 
 - Python 3.8+ (stdlib only — no dependencies)
-- OpenCode's local database at `~/.local/share/opencode/opencode.db`
-  (path is hardcoded at the top of `dashboard.py` if yours lives elsewhere)
+- OpenCode's local database — auto-detected (see "Database location" above),
+  or set the path via `--db` / `DB_PATH` or the in-page field
 
 ## Files
 

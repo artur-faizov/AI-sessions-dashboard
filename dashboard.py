@@ -12,23 +12,106 @@ import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
-DB_PATH = os.path.expanduser("~/.local/share/opencode/opencode.db")
 PORT = int(os.environ.get("PORT", "8787"))
+PORT_TRIES = 20  # on "address already in use", try PORT, PORT+1, … up to this many ports
+_main_srv = None  # the running server, for tests to shut down
 
 ACTIVE_WINDOW_MS = 15 * 60 * 1000  # a session updated within this window is "active"
 
+DB_PATH = ""        # active DB path; resolved at startup, switchable at runtime via POST /api/db
+DB_GEN = 0          # bumped on every switch; per-thread connections reconnect on mismatch
+_db_lock = threading.Lock()
 db_local = threading.local()
+
+
+def validate_db(path):
+    """(ok, error) — the path exists, opens read-only, and has the `session` table."""
+    if not path:
+        return False, "empty path"
+    if not os.path.exists(path):
+        return False, f"file not found: {path}"
+    uri = "file:" + urllib.parse.quote(path) + "?mode=ro"
+    try:
+        conn = sqlite3.connect(uri, uri=True)
+        try:
+            conn.execute("SELECT 1 FROM session LIMIT 1")
+        finally:
+            conn.close()
+    except sqlite3.Error as e:
+        return False, str(e)
+    return True, None
+
+
+def parse_db_flag(argv=None):
+    """The --db PATH / --db=PATH CLI override; None if absent."""
+    argv = sys.argv if argv is None else argv
+    for i, a in enumerate(argv):
+        if a == "--db" and i + 1 < len(argv):
+            return argv[i + 1]
+        if a.startswith("--db="):
+            return a[len("--db="):]
+    return None
+
+
+def db_candidates(cli_path=None, env_path=None):
+    """Candidate DB paths in priority order: --db flag, DB_PATH env, then platform defaults."""
+    out = []
+    if cli_path:
+        out.append(os.path.expanduser(cli_path))
+    env_path = os.environ.get("DB_PATH") if env_path is None else env_path
+    if env_path:
+        out.append(os.path.expanduser(env_path))
+    home = os.path.expanduser("~")
+    xdg = os.environ.get("XDG_DATA_HOME") or os.path.join(home, ".local", "share")
+    out.append(os.path.join(xdg, "opencode", "opencode.db"))
+    if sys.platform == "darwin":
+        out.append(os.path.join(home, "Library", "Application Support", "opencode", "opencode.db"))
+    if sys.platform == "win32":
+        for var in ("APPDATA", "LOCALAPPDATA"):
+            base = os.environ.get(var)
+            if base:
+                out.append(os.path.join(base, "opencode", "opencode.db"))
+    seen, uniq = set(), []
+    for p in out:
+        if p not in seen:
+            seen.add(p)
+            uniq.append(p)
+    return uniq
+
+
+def resolve_db(cli_path=None):
+    """First valid candidate wins; else the first candidate with found=False."""
+    cands = db_candidates(cli_path)
+    for p in cands:
+        ok, _ = validate_db(p)
+        if ok:
+            return p, True
+    return (cands[0] if cands else ""), False
+
+
+def set_db(path):
+    """Validate and switch the active DB. Returns (ok, error)."""
+    global DB_PATH, DB_GEN
+    with _db_lock:
+        ok, err = validate_db(path)
+        if ok:
+            DB_PATH = path
+            DB_GEN += 1
+        return ok, err
 
 
 def db():
     conn = getattr(db_local, "conn", None)
-    if conn is None:
+    if conn is None or getattr(db_local, "gen", None) != DB_GEN:
+        if conn is not None:
+            conn.close()
         uri = "file:" + urllib.parse.quote(DB_PATH) + "?mode=ro"
         conn = sqlite3.connect(uri, uri=True)
         conn.row_factory = sqlite3.Row
         db_local.conn = conn
+        db_local.gen = DB_GEN
     return conn
 
 
@@ -348,7 +431,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
         try:
-            if path == "/api/tree":
+            if path == "/api/db":
+                ok, err = validate_db(DB_PATH)
+                self._json({"path": DB_PATH, "found": ok, "error": err,
+                            "candidates": db_candidates(parse_db_flag())})
+            elif not validate_db(DB_PATH)[0]:
+                self._json({"error": "db_not_found", "path": DB_PATH}, 503)
+            elif path == "/api/tree":
                 self._json(build_tree())
             elif path.startswith("/api/prompt/"):
                 sid = path[len("/api/prompt/"):]
@@ -378,22 +467,48 @@ class Handler(BaseHTTPRequestHandler):
         except sqlite3.Error as e:
             self._json({"error": str(e)}, 500)
 
+    def do_POST(self):
+        if urllib.parse.urlparse(self.path).path != "/api/db":
+            self.send_error(404)
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            self._json({"ok": False, "error": "invalid JSON body"}, 400)
+            return
+        ok, err = set_db(body.get("path"))
+        out = {"ok": ok, "path": body.get("path")}
+        if err:
+            out["error"] = err
+        self._json(out, 200 if ok else 400)
+
 
 def main():
     if "--version" in sys.argv:
         print(VERSION)
         return
-    if not os.path.exists(DB_PATH):
-        print(f"DB not found: {DB_PATH}")
-        return
-    # smoke check read-only access
-    try:
-        db().execute("SELECT 1 FROM session LIMIT 1").fetchone()
-    except sqlite3.Error as e:
-        print(f"Cannot read DB: {e}")
-        return
-    url = f"http://localhost:{PORT}"
-    srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    global DB_PATH, DB_GEN
+    DB_PATH, found = resolve_db(cli_path=parse_db_flag())
+    DB_GEN += 1
+    if not found:
+        print(f"DB not found: {DB_PATH} — set the path in the page header")
+    global _main_srv
+    srv = None
+    for off in range(PORT_TRIES):
+        p = PORT + off
+        try:
+            srv = ThreadingHTTPServer(("127.0.0.1", p), Handler)
+            if off:
+                print(f"Port {PORT} already in use — using {p} instead.")
+            break
+        except OSError as e:
+            if e.errno != 98 or off == PORT_TRIES - 1:
+                print(f"Cannot start server on port {p}: {e}")
+                print(f"Try a different port:  PORT={p + 1} python3 dashboard.py")
+                return
+    url = f"http://localhost:{srv.server_address[1]}"
+    _main_srv = srv
     print(f"Token usage tree: {url}  (DB: {DB_PATH}, read-only)")
     if not os.environ.get("NO_BROWSER"):
         threading.Timer(0.5, lambda: webbrowser.open(url)).start()

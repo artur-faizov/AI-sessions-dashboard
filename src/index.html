@@ -51,6 +51,53 @@
             font-variant-numeric: tabular-nums
         }
 
+        .dbwrap {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            z-index: 6
+        }
+
+        .dblabel {
+            color: var(--dim);
+            font-size: 12px
+        }
+
+        #dbsel {
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font: inherit;
+            font-size: 12px;
+            max-width: 280px
+        }
+
+        #dbsel option {
+            background: #1d2026
+        }
+
+        .dbcustom {
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font: inherit;
+            font-size: 12px;
+            width: 300px
+        }
+
+        .dbwrap.missing #dbsel,
+        .dbwrap.missing .dbcustom {
+            border-color: #f7768e;
+            box-shadow: 0 0 0 1px #f7768e
+        }
+
         .fbtn {
             background: var(--acc);
             border: 1px solid var(--acc);
@@ -78,19 +125,25 @@
         }
 
         .rbtn {
-            margin-left: auto;
             background: #1d2026;
             border: 1px solid var(--line);
             color: var(--dim);
             border-radius: 6px;
-            padding: 3px 0;
-            width: 34px;
-            text-align: center;
+            padding: 3px 10px;
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
             cursor: pointer;
             font: inherit;
             font-size: 13px;
             font-variant-numeric: tabular-nums;
             user-select: none
+        }
+
+        .ricon {
+            width: 13px;
+            height: 13px;
+            display: block
         }
 
         .rbtn:hover {
@@ -340,6 +393,10 @@
             font-size: 12px;
             color: var(--dim);
             white-space: nowrap
+        }
+
+        #summary {
+            margin-left: auto
         }
 
         .num b {
@@ -903,6 +960,11 @@
         }
 
         @media (max-width: 900px) {
+            .dbwrap {
+                position: static;
+                transform: none
+            }
+
             .cnav.prev {
                 left: 6px
             }
@@ -934,10 +996,11 @@
     <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
     <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="hlapplylabel" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
     <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent sessions only</span></label>
-    <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now">5</button>
+    <span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button></span>
     <span id="summary" class="num"></span>
     <span id="version" class="ver" title="dashboard version">v{{VERSION}}</span>
-    <span id="langsw" class="langsw" title="Language"></span></header>
+    <span id="langsw" class="langsw" title="Language"></span>
+    <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></header>
 <main>
     <div id="tree"></div>
     <div id="splitter" title="Drag to resize · double-click to reset"></div>
@@ -1771,7 +1834,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
 
     function refreshLabel() {
         const b = document.querySelector('#refresh');
-        b.textContent = refreshLeft;
+        const n = document.querySelector('#refnum');
+        if (n) n.textContent = refreshLeft; else b.textContent = refreshLeft;
         b.title = tr('refresh.title', {n: refreshLeft});
     }
 
@@ -1808,6 +1872,13 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#reclabel').textContent = tr('recent.only.label');
         document.querySelector('#version').title = tr('version.title');
         document.querySelector('#splitter').title = tr('splitter.title');
+        const dbl = document.querySelector('#dblabel');
+        if (dbl) dbl.textContent = tr('db.label');
+        const dba = document.querySelector('#dbapply');
+        if (dba) dba.textContent = tr('db.apply');
+        const dbi = document.querySelector('#dbcustom');
+        if (dbi) dbi.placeholder = tr('db.custom.placeholder');
+        if (lastDbInfo) renderDbField(lastDbInfo);
         const de = document.querySelector('#detailempty');
         if (de) de.textContent = tr('detail.select');
         refreshLabel();
@@ -1835,7 +1906,17 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         refreshLabel();
         try {
             const r = await fetch('/api/tree');
-            TREE = await r.json();
+            const j = await r.json();
+            if (j && j.error === 'db_not_found') {
+                TREE = [];
+                computeOrder();
+                document.querySelector('#tree').innerHTML = `<div class="empty">${esc(tr('db.notfound'))}</div>`;
+                const sum = document.querySelector('#summary');
+                if (sum) sum.textContent = '';
+                await refreshDbState();
+                return;
+            }
+            TREE = j;
             computeOrder();
             render();
             refreshDetail();
@@ -1845,8 +1926,119 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         }
     }
 
+    const DB_STORE_KEY = 'db.path';
+    let lastDbInfo = null;
+
+    function lsGetDb() {
+        if (typeof localStorage === 'undefined') return null;
+        try { return localStorage.getItem(DB_STORE_KEY); } catch (e) { return null; }
+    }
+
+    function lsSetDb(v) {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            if (v === null) localStorage.removeItem(DB_STORE_KEY);
+            else localStorage.setItem(DB_STORE_KEY, v);
+        } catch (e) { }
+    }
+
+    async function fetchDbInfo() {
+        try {
+            const r = await fetch('/api/db');
+            return r.ok ? await r.json() : null;
+        } catch (e) { return null; }
+    }
+
+    async function postDbPath(path) {
+        try {
+            const r = await fetch('/api/db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path })
+            });
+            return await r.json();
+        } catch (e) { return { ok: false, error: String(e) }; }
+    }
+
+    function dbOptionsHtml(info) {
+        const cands = info.candidates || [];
+        const opts = [];
+        if (info.path && !cands.includes(info.path))
+            opts.push(`<option value="${esc(info.path)}" selected>${esc(info.path)}</option>`);
+        for (const p of cands)
+            opts.push(`<option value="${esc(p)}"${p === info.path ? ' selected' : ''}>${esc(p)}</option>`);
+        opts.push(`<option value="__custom__">${esc(tr('db.custom'))}</option>`);
+        return opts.join('');
+    }
+
+    function renderDbField(info) {
+        lastDbInfo = info;
+        const sel = document.querySelector('#dbsel');
+        if (!sel) return;
+        sel.innerHTML = dbOptionsHtml(info);
+        sel.title = info.found
+            ? tr('db.title')
+            : tr('db.missing.tip') + (info.error ? ' — ' + info.error : '');
+        const wrap = document.querySelector('#dbwrap');
+        if (wrap) {
+            if (info.found) wrap.classList.remove('missing');
+            else wrap.classList.add('missing');
+        }
+    }
+
+    async function refreshDbState() {
+        const info = await fetchDbInfo();
+        if (info) renderDbField(info);
+        return info;
+    }
+
+    function showDbCustom(show) {
+        const inp = document.querySelector('#dbcustom'), btn = document.querySelector('#dbapply');
+        if (inp) inp.hidden = !show;
+        if (btn) btn.hidden = !show;
+    }
+
+    async function applyDbPath(path) {
+        const res = await postDbPath(path);
+        if (res.ok) {
+            lsSetDb(path);
+            showDbCustom(false);
+            await refreshDbState();
+            load();
+        } else {
+            const wrap = document.querySelector('#dbwrap'), sel = document.querySelector('#dbsel');
+            if (wrap) wrap.classList.add('missing');
+            if (sel) sel.title = res.error || tr('db.missing.tip');
+        }
+    }
+
+    async function initDbField() {
+        const info = await fetchDbInfo();
+        if (info) renderDbField(info);
+        const sel = document.querySelector('#dbsel');
+        if (sel) sel.addEventListener('change', async () => {
+            if (sel.value === '__custom__') { showDbCustom(true); return; }
+            await applyDbPath(sel.value);
+        });
+        const btn = document.querySelector('#dbapply');
+        if (btn) btn.addEventListener('click', async () => {
+            const inp = document.querySelector('#dbcustom');
+            const p = ((inp && inp.value) || '').trim();
+            if (p) await applyDbPath(p);
+        });
+        // stored custom path from a previous run: re-apply it; if it no longer
+        // validates, the server keeps its autodetected DB and we drop the value
+        const stored = lsGetDb();
+        if (info && stored && stored !== info.path) {
+            const res = await postDbPath(stored);
+            if (res.ok) { await refreshDbState(); load(); }
+            else lsSetDb(null);
+        }
+    }
+
     loadSettings();
     applyLangStatic();
+    initDbField();
     load();
     setInterval(refreshTick, 1000);
 

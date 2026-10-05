@@ -5,11 +5,15 @@ import io
 import json
 import os
 import sqlite3
+import socketserver
 import sys
 import tempfile
 import threading
 import time
 import unittest
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import dashboard  # noqa: E402
@@ -274,6 +278,310 @@ class I18nTest(unittest.TestCase):
             finally:
                 sys.frozen = saved_frozen
                 sys._MEIPASS = saved_meipass
+
+
+def make_db(path, schema=SCHEMA):
+    conn = sqlite3.connect(path)
+    conn.executescript(schema)
+    conn.commit()
+    conn.close()
+
+
+class ValidateDbTest(unittest.TestCase):
+    def test_db_with_session_table_passes(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        os.unlink(path)
+        make_db(path)
+        try:
+            ok, err = dashboard.validate_db(path)
+            self.assertTrue(ok)
+            self.assertIsNone(err)
+        finally:
+            os.unlink(path)
+
+    def test_missing_file_fails(self):
+        ok, err = dashboard.validate_db(os.path.join(tempfile.gettempdir(), "no-such-opencode.db"))
+        self.assertFalse(ok)
+        self.assertTrue(err)
+
+    def test_non_sqlite_file_fails(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        with open(path, "wb") as f:
+            f.write(b"this is not a sqlite database at all")
+        try:
+            ok, err = dashboard.validate_db(path)
+            self.assertFalse(ok)
+            self.assertTrue(err)
+        finally:
+            os.unlink(path)
+
+    def test_sqlite_without_session_table_fails(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        os.unlink(path)
+        conn = sqlite3.connect(path)
+        conn.executescript("CREATE TABLE other (x integer);")
+        conn.commit()
+        conn.close()
+        try:
+            ok, err = dashboard.validate_db(path)
+            self.assertFalse(ok)
+            self.assertTrue(err)
+        finally:
+            os.unlink(path)
+
+
+class DbCandidatesTest(unittest.TestCase):
+    def test_flag_and_env_paths_come_first_in_priority_order(self):
+        cands = dashboard.db_candidates(cli_path="/flag/x.db", env_path="/env/x.db")
+        self.assertEqual(cands[:2], ["/flag/x.db", "/env/x.db"])
+
+    def test_xdg_default_present_and_env_override_respected(self):
+        saved = os.environ.get("XDG_DATA_HOME")
+        os.environ["XDG_DATA_HOME"] = "/xdg-home"
+        try:
+            cands = dashboard.db_candidates(cli_path=None, env_path=None)
+            self.assertIn(os.path.join("/xdg-home", "opencode", "opencode.db"), cands)
+            self.assertNotIn(os.path.join(os.path.expanduser("~/.local"), "share", "opencode", "opencode.db"), cands)
+        finally:
+            if saved is None:
+                del os.environ["XDG_DATA_HOME"]
+            else:
+                os.environ["XDG_DATA_HOME"] = saved
+
+    def test_candidates_have_no_duplicates(self):
+        cands = dashboard.db_candidates(cli_path="/same.db", env_path="/same.db")
+        self.assertEqual(len(cands), len(set(cands)))
+
+
+class ResolveDbTest(unittest.TestCase):
+    def test_first_valid_candidate_is_picked(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        os.unlink(path)
+        make_db(path)
+        saved = os.environ.get("DB_PATH")
+        os.environ["DB_PATH"] = path
+        try:
+            resolved, found = dashboard.resolve_db(cli_path="/nope/flag.db")
+            self.assertTrue(found)
+            self.assertEqual(resolved, path)
+        finally:
+            if saved is None:
+                del os.environ["DB_PATH"]
+            else:
+                os.environ["DB_PATH"] = saved
+            os.unlink(path)
+
+    def test_not_found_reports_first_candidate_and_found_false(self):
+        # isolate from this machine's real default DB: XDG_DATA_HOME -> empty temp dir,
+        # DB_PATH env unset, so the only candidate is the missing --db flag path
+        with tempfile.TemporaryDirectory() as td:
+            saved_xdg = os.environ.get("XDG_DATA_HOME")
+            saved_env = os.environ.get("DB_PATH")
+            os.environ["XDG_DATA_HOME"] = td
+            os.environ.pop("DB_PATH", None)
+            try:
+                resolved, found = dashboard.resolve_db(cli_path="/nope/flag.db")
+                self.assertFalse(found)
+                self.assertEqual(resolved, "/nope/flag.db")
+            finally:
+                if saved_xdg is None:
+                    os.environ.pop("XDG_DATA_HOME", None)
+                else:
+                    os.environ["XDG_DATA_HOME"] = saved_xdg
+                if saved_env is not None:
+                    os.environ["DB_PATH"] = saved_env
+
+
+class SetDbTest(unittest.TestCase):
+    def setUp(self):
+        self._old_path = dashboard.DB_PATH
+        self._old_gen = dashboard.DB_GEN
+        self._old_local = dashboard.db_local
+        dashboard.db_local = threading.local()
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        os.unlink(path)
+        make_db(path)
+        self.db_path = path
+
+    def tearDown(self):
+        dashboard.DB_PATH = self._old_path
+        dashboard.DB_GEN = self._old_gen
+        dashboard.db_local = self._old_local
+        os.unlink(self.db_path)
+
+    def test_set_db_switches_to_valid_path(self):
+        ok, err = dashboard.set_db(self.db_path)
+        self.assertTrue(ok)
+        self.assertIsNone(err)
+        self.assertEqual(dashboard.DB_PATH, self.db_path)
+        self.assertEqual(dashboard.DB_GEN, self._old_gen + 1)
+        self.assertIsNotNone(dashboard.db().execute("SELECT count(*) FROM session").fetchone())
+
+    def test_set_db_rejects_invalid_path_and_keeps_state(self):
+        ok, err = dashboard.set_db("/nope/does-not-exist.db")
+        self.assertFalse(ok)
+        self.assertTrue(err)
+        self.assertEqual(dashboard.DB_PATH, self._old_path)
+        self.assertEqual(dashboard.DB_GEN, self._old_gen)
+
+    def test_db_reconnects_after_generation_bump(self):
+        fd, path2 = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        os.unlink(path2)
+        make_db(path2)
+        try:
+            conn1 = dashboard.db()  # thread-local conn bound to old path
+            dashboard.set_db(path2)
+            conn2 = dashboard.db()
+            self.assertIsNot(conn1, conn2)
+            row = conn2.execute("SELECT count(*) AS n FROM sqlite_master").fetchone()
+            self.assertIsNotNone(row)
+        finally:
+            os.unlink(path2)
+
+
+class ApiDbHttpTest(unittest.TestCase):
+    """HTTP-level tests against a real server on an ephemeral port."""
+
+    @staticmethod
+    def http_get(url):
+        with urllib.request.urlopen(url) as r:
+            return r.status, json.loads(r.read())
+
+    @staticmethod
+    def http_post(url, body):
+        req = urllib.request.Request(url, data=json.dumps(body).encode(),
+                                    headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req) as r:
+                return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read())
+
+    def setUp(self):
+        self._old_path = dashboard.DB_PATH
+        self._old_gen = dashboard.DB_GEN
+        self._old_local = dashboard.db_local
+        dashboard.db_local = threading.local()
+        dashboard.DB_PATH = "/no-such-db/api-test.db"
+        self.srv = ThreadingHTTPServer(("127.0.0.1", 0), dashboard.Handler)
+        self.url = f"http://127.0.0.1:{self.srv.server_address[1]}"
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+
+    def tearDown(self):
+        self.srv.shutdown()
+        self.srv.server_close()
+        dashboard.DB_PATH = self._old_path
+        dashboard.DB_GEN = self._old_gen
+        dashboard.db_local = self._old_local
+
+    def test_api_db_reports_not_found_state(self):
+        status, body = self.http_get(self.url + "/api/db")
+        self.assertEqual(status, 200)
+        self.assertFalse(body["found"])
+        self.assertEqual(body["path"], "/no-such-db/api-test.db")
+        self.assertTrue(body["candidates"])
+
+    def test_tree_returns_db_not_found_error_when_no_db(self):
+        try:
+            with urllib.request.urlopen(self.url + "/api/tree") as r:
+                status, body = r.status, json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            status, body = e.code, json.loads(e.read())
+        self.assertEqual(status, 503)
+        self.assertEqual(body["error"], "db_not_found")
+
+    def test_post_db_switches_to_valid_path(self):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        os.unlink(path)
+        make_db(path)
+        try:
+            status, body = self.http_post(self.url + "/api/db", {"path": path})
+            self.assertEqual(status, 200)
+            self.assertTrue(body["ok"])
+            self.assertEqual(body["path"], path)
+            status, body = self.http_get(self.url + "/api/db")
+            self.assertTrue(body["found"])
+            self.assertEqual(body["path"], path)
+            status, body = self.http_get(self.url + "/api/tree")
+            self.assertEqual(status, 200)
+            self.assertEqual(body, [])
+        finally:
+            os.unlink(path)
+
+    def test_post_db_rejects_bad_path_with_400(self):
+        status, body = self.http_post(self.url + "/api/db", {"path": "/nope/bad.db"})
+        self.assertEqual(status, 400)
+        self.assertFalse(body["ok"])
+        self.assertTrue(body["error"])
+
+
+class MainBindTest(unittest.TestCase):
+    def test_main_reports_port_in_use_without_traceback(self):
+        # occupy the port and leave no fallback ports (PORT_TRIES=1):
+        # main() must give a clear message, not a traceback
+        with socketserver.TCPServer(("127.0.0.1", 0), socketserver.BaseRequestHandler) as blocker:
+            port = blocker.server_address[1]
+            saved_port, saved_tries = dashboard.PORT, dashboard.PORT_TRIES
+            dashboard.PORT, dashboard.PORT_TRIES = port, 1
+            buf = io.StringIO()
+            old_argv = sys.argv
+            sys.argv = ["dashboard.py"]
+            try:
+                with contextlib.redirect_stdout(buf):
+                    dashboard.main()
+            finally:
+                sys.argv = old_argv
+                dashboard.PORT, dashboard.PORT_TRIES = saved_port, saved_tries
+            self.assertNotIn("Traceback", buf.getvalue())
+            self.assertIn("Address already in use", buf.getvalue())
+            self.assertIn(str(port), buf.getvalue())
+
+    def test_main_falls_back_to_next_free_port(self):
+        # default port busy: main() must bind the next free port and say so
+        with socketserver.TCPServer(("127.0.0.1", 0), socketserver.BaseRequestHandler) as blocker:
+            port = blocker.server_address[1]
+            saved_port = dashboard.PORT
+            dashboard.PORT = port
+            buf = io.StringIO()
+            old_argv = sys.argv
+            old_nobrowser = os.environ.get("NO_BROWSER")
+            os.environ["NO_BROWSER"] = "1"
+            sys.argv = ["dashboard.py"]
+            def run():
+                with contextlib.redirect_stdout(buf):
+                    dashboard.main()
+
+            t = threading.Thread(target=run, daemon=True)
+            try:
+                t.start()
+                deadline = time.time() + 5
+                while time.time() < deadline and dashboard._main_srv is None:
+                    time.sleep(0.02)
+                srv = dashboard._main_srv
+                self.assertIsNotNone(srv, "main() must start a server even when the port is busy")
+                chosen = srv.server_address[1]
+                self.assertGreater(chosen, port, "must pick a port after the busy one")
+                self.assertIn(str(chosen), buf.getvalue())
+                self.assertIn("already in use", buf.getvalue())
+                with urllib.request.urlopen(f"http://127.0.0.1:{chosen}/api/db") as r:
+                    self.assertEqual(r.status, 200)
+            finally:
+                sys.argv = old_argv
+                os.environ.pop("NO_BROWSER", None)
+                if old_nobrowser is not None:
+                    os.environ["NO_BROWSER"] = old_nobrowser
+                if dashboard._main_srv is not None:
+                    dashboard._main_srv.shutdown()
+                    dashboard._main_srv.server_close()
+                    dashboard._main_srv = None
+                dashboard.PORT = saved_port
 
 
 if __name__ == "__main__":
