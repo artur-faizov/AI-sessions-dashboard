@@ -33,6 +33,29 @@ Opens http://localhost:8787 in your browser.
 - Show version: `python3 dashboard.py --version` (also displayed in the page header)
 - Press `Ctrl+C` to stop
 
+### Standalone executable
+
+Build a self-contained binary for **your** platform — bundles the Python
+runtime, so the file in `dist/` runs on its own, no Python needed:
+
+```bash
+make build          # Linux / macOS (needs python3 + pip only at build time)
+```
+
+Windows: run `src\build.bat` from the repo root (needs `python` in PATH).
+
+- Output: `dist/token-usage-tree-<os>-<arch>[.exe]`, e.g.
+  `token-usage-tree-darwin-arm64` or `token-usage-tree-linux-amd64`
+- Double-click it (or run from a terminal) — the dashboard opens in your
+  browser, identical to `python3 dashboard.py`
+- PyInstaller builds for the machine it runs on — no cross-compiling,
+  each user builds their own binary
+- The binary is unsigned, so first run trips the OS warning:
+  macOS Gatekeeper — right-click → Open, or
+  `xattr -d com.apple.quarantine <file>`; Windows SmartScreen —
+  "More info" → "Run anyway"
+- `make clean` removes build artifacts (`.buildvenv`, `dist/`, `build/`, spec files)
+
 ### Reading the tree
 
 - Sessions are grouped by project directory; each root session nests its subagents
@@ -100,5 +123,7 @@ Opens http://localhost:8787 in your browser.
 ## Files
 
 - `dashboard.py` — server: read-only DB access, tree building, JSON API
-- `index.html` — the UI (HTML/CSS/JS), served per request — edit it and
+- `src/index.html` — the UI (HTML/CSS/JS), served per request — edit it and
   just refresh the browser, no server restart needed
+- `src/build.bat` — one-command standalone build for Windows
+- `Makefile` — `make build` (standalone binary), `make test`, `make clean`

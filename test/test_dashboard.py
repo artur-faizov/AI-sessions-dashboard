@@ -125,5 +125,21 @@ class VersionTest(unittest.TestCase):
         self.assertIn(dashboard.VERSION, page)
 
 
+class FrozenPageTest(unittest.TestCase):
+    def test_load_page_reads_index_from_meipass_when_frozen(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
+                f.write("frozen page {{VERSION}}")
+            saved_frozen = getattr(sys, "frozen", False)
+            saved_meipass = getattr(sys, "_MEIPASS", None)
+            sys.frozen = True
+            sys._MEIPASS = d
+            try:
+                self.assertEqual(dashboard.load_page(), "frozen page " + dashboard.VERSION)
+            finally:
+                sys.frozen = saved_frozen
+                sys._MEIPASS = saved_meipass
+
+
 if __name__ == "__main__":
     unittest.main()

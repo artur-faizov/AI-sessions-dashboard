@@ -6,7 +6,7 @@ import vm from 'node:vm';
 // The pure filter logic lives inside index.html between marker comments.
 // This harness extracts that block and runs it in a sandbox, so the tests
 // always exercise the exact code shipped to the browser.
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
 const block = /\/\/\s*FILTER-LOGIC-START([\s\S]*?)\/\/\s*FILTER-LOGIC-END/.exec(html);
 assert.ok(block, 'FILTER-LOGIC block not found in index.html');
 const mod = { exports: {} };

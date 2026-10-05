@@ -277,12 +277,15 @@ def call_trigger(message_id):
     return {"case": "assistant", "time": prev["time_created"], "parts": parts}
 
 
-PAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+def page_file():
+    if getattr(sys, "frozen", False):  # PyInstaller bundle: index.html sits in _MEIPASS
+        return os.path.join(sys._MEIPASS, "index.html")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "index.html")
 
 
 def load_page():
-    # read per request: edit index.html -> refresh browser, no restart needed
-    with open(PAGE_FILE, encoding="utf-8") as f:
+    # read per request: edit src/index.html -> refresh browser, no restart needed
+    with open(page_file(), encoding="utf-8") as f:
         return f.read().replace("{{VERSION}}", VERSION)
 
 
