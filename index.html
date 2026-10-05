@@ -1,0 +1,445 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>OpenCode Token Usage</title>
+    <style>
+        :root {
+            --bg: #14161a;
+            --fg: #e6e6e6;
+            --dim: #8a8f98;
+            --line: #2a2d33;
+            --acc: #7aa2f7;
+            --user: #9ece6a;
+            --sub: #e0af68
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font: 14px/1.45 -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--fg)
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            border-bottom: 1px solid var(--line);
+            padding: 10px 18px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            z-index: 5
+        }
+
+        header h1 {
+            font-size: 15px;
+            margin: 0;
+            font-weight: 600
+        }
+
+        header input {
+            background: #1d2026;
+            border: 1px solid var(--line);
+            color: var(--fg);
+            border-radius: 6px;
+            padding: 5px 10px;
+            width: 280px
+        }
+
+        header select {
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 5px
+        }
+
+        header label {
+            color: var(--dim);
+            font-size: 13px;
+            display: flex;
+            gap: 5px;
+            align-items: center
+        }
+
+        main {
+            display: flex;
+            height: calc(100vh - 47px)
+        }
+
+        #tree {
+            flex: 1;
+            overflow: auto;
+            padding: 12px 18px
+        }
+
+        #splitter {
+            flex: 0 0 5px;
+            cursor: col-resize;
+            background: var(--line);
+            transition: background .15s
+        }
+
+        #splitter:hover, #splitter.active {
+            background: var(--acc)
+        }
+
+        #detail {
+            width: 44%;
+            min-width: 300px;
+            border-left: 1px solid var(--line);
+            overflow: auto;
+            padding: 16px 20px
+        }
+
+        ul, li {
+            list-style: none;
+            margin: 0;
+            padding: 0
+        }
+
+        li li {
+            padding-left: 22px;
+            border-left: 1px solid var(--line);
+            margin-left: 9px
+        }
+
+        .node {
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+            padding: 4px 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            flex-wrap: wrap
+        }
+
+        .node:hover {
+            background: #1d2026
+        }
+
+        .node .ttl {
+            flex: 1;
+            min-width: 180px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .node.root > .ttl {
+            font-weight: 700
+        }
+
+        .badge {
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 10px;
+            background: #232730;
+            color: var(--dim);
+            white-space: nowrap
+        }
+
+        .badge.agent {
+            color: var(--user)
+        }
+
+        .badge.sub {
+            color: var(--sub)
+        }
+
+        .num {
+            font-variant-numeric: tabular-nums;
+            font-size: 12px;
+            color: var(--dim);
+            white-space: nowrap
+        }
+
+        .num b {
+            color: var(--fg)
+        }
+
+        .tok {
+            font-size: 12px;
+            color: var(--dim);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap
+        }
+
+        .cost {
+            color: var(--acc);
+            font-size: 12px;
+            white-space: nowrap
+        }
+
+        .caret {
+            cursor: pointer;
+            color: var(--dim);
+            width: 14px;
+            display: inline-block;
+            user-select: none
+        }
+
+        .project {
+            color: var(--dim);
+            font-size: 12px;
+            padding: 10px 0 2px 6px;
+            letter-spacing: .3px
+        }
+
+        #detail h2 {
+            font-size: 15px;
+            margin: 0 0 8px
+        }
+
+        #detail .meta {
+            display: grid;
+            grid-template-columns:auto 1fr;
+            gap: 4px 14px;
+            font-size: 13px;
+            margin-bottom: 14px
+        }
+
+        #detail .meta dt {
+            color: var(--dim)
+        }
+
+        #detail .meta dd {
+            margin: 0;
+            font-variant-numeric: tabular-nums
+        }
+
+        pre.prompt {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #1a1d22;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12.5px;
+            max-height: 38vh;
+            overflow: auto
+        }
+
+        .sect {
+            color: var(--dim);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin: 14px 0 6px
+        }
+
+        .empty {
+            color: var(--dim);
+            padding: 30px;
+            text-align: center
+        }
+
+        .bar {
+            display: inline-block;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--acc), var(--sub));
+            vertical-align: middle;
+            margin-left: 8px
+        }
+
+        @media (max-width: 900px) {
+            main {
+                flex-direction: column
+            }
+
+            #splitter {
+                display: none
+            }
+
+            #detail {
+                width: 100%;
+                min-width: 0;
+                border-left: none;
+                border-top: 1px solid var(--line);
+                height: 45%
+            }
+        }
+    </style>
+</head>
+<body>
+<header><h1>Token Tree</h1>
+    <input id="q" placeholder="Filter: title, agent, model…">
+    <label><input type="checkbox" id="live" checked> live (10s)</label>
+    <span id="summary" class="num"></span></header>
+<main>
+    <div id="tree"></div>
+    <div id="splitter" title="Drag to resize · double-click to reset"></div>
+    <div id="detail">
+        <div class="empty">Select a session…</div>
+    </div>
+</main>
+<script>
+    let TREE = [], sel = null;
+    const fmt = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n || 0);
+    const dur = ms => ms < 0 ? '—' : ms < 6e4 ? (ms / 1e3).toFixed(0) + 's' : ms < 36e5 ? (ms / 6e4).toFixed(1) + 'm' : (ms / 36e5).toFixed(1) + 'h';
+    const when = t => t ? new Date(t).toLocaleString() : '—';
+    const modelOf = m => m ? (m.modelID || m.id || m) : '—';
+
+    function matches(s) {
+        const q = document.querySelector('#q').value.toLowerCase();
+        if (!q) return true;
+        const hit = n => (n.title + ' ' + n.agent + ' ' + modelOf(n.model)).toLowerCase().includes(q);
+        const rec = n => hit(n) || n.children.some(rec);
+        return rec(s);
+    }
+
+    function maxDepth(ns) {
+        let d = 0;
+        for (const x of ns) d = Math.max(d, 1 + maxDepth(x.children));
+        return d
+    }
+
+    function render() {
+        const dir = docmap();
+        let h = '';
+        const roots = TREE.filter(matches);
+        for (const [dirName, sessions] of dir) {
+            const vis = sessions.filter(matches);
+            if (!vis.length) continue;
+            const tot = vis.reduce((a, s) => {
+                const t = s.subtree;
+                return {in: a.in + t.in, out: a.out + t.out, c: a.c + t.cost}
+            }, 0);
+            h += `<div class="project">${dirName} — ${vis.length} session(s) · in ${fmt(tot.in)} · out ${fmt(tot.out)} · $${tot.c.toFixed(4)}</div><ul>`;
+            for (const s of vis) h += node(s, 1);
+            h += '</ul>';
+        }
+        document.querySelector('#tree').innerHTML = h || '<div class="empty">No sessions match.</div>';
+        const allIn = TREE.reduce((a, s) => a + s.subtree.in, 0), allOut = TREE.reduce((a, s) => a + s.subtree.out, 0),
+            allC = TREE.reduce((a, s) => a + s.subtree.cost, 0);
+        document.querySelector('#summary').textContent = `${TREE.length} roots · in ${fmt(allIn)} · out ${fmt(allOut)} · $${allC.toFixed(4)}`;
+    }
+
+    function node(s, depth) {
+        const m = modelOf(s.model), t = s.subtree, kids = s.children;
+        const hasSub = kids.length > 0;
+        const subBadges = hasSub ? `<span class="badge sub">▾ ${kids.length} child${kids.length > 1 ? 'ren' : ''}</span>` : '';
+        const bar = t.in > 0 ? `<span class="bar" style="width:${Math.min(120, t.in / 30000)}px"></span>` : '';
+        const open = depth < 2 || hasSub && kids.length <= 6;
+        const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
+        let h = `<li><div class="node${depth === 1 ? ' root' : ''}" data-id="${s.id}">
+    ${caret}
+    <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
+    <span class="badge agent">${esc(s.agent || '—')}</span>
+    <span class="badge">${esc(m)}</span>
+    <span class="tok">in <b>${fmt(t.in)}</b> · out <b>${fmt(t.out)}</b>${t.cr ? ' · cache r ' + fmt(t.cr) : ''}</span>
+    <span class="cost">$${t.cost.toFixed(4)}</span>
+    <span class="num">${dur(s.dur)}</span>${subBadges}${bar}</div>`;
+        if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1)).join('')}</ul>`;
+        return h + '</li>';
+    }
+
+    function docmap() {
+        const g = new Map();
+        for (const s of TREE) {
+            const k = s.dir || '(unknown)';
+            if (!g.has(k)) g.set(k, []);
+            g.get(k).push(s);
+        }
+        return [...g.entries()];
+    }
+
+    function toggle(e) {
+        e.stopPropagation();
+        const ul = e.target.closest('li').querySelector(':scope > ul');
+        if (!ul) return;
+        ul.style.display = ul.style.display === 'none' ? '' : 'none';
+        e.target.textContent = ul.style.display === 'none' ? '+' : '−';
+    }
+
+    function esc(s) {
+        return String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]))
+    }
+
+    async function pick(id) {
+        sel = id;
+        const s = find(TREE, id);
+        if (!s) return;
+        const d = document.querySelector('#detail');
+        const t = s.subtree, m = modelOf(s.model);
+        d.innerHTML = `<h2 title="${esc(s.title)}">${esc(s.title)}</h2>
+  <dl class="meta">
+    <dt>Session</dt><dd>${s.id}</dd>
+    <dt>Agent / Model</dt><dd>${esc(s.agent || '—')} / ${esc(m)}</dd>
+    <dt>Directory</dt><dd>${esc(s.dir)}</dd>
+    <dt>Created / Updated</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd>
+    <dt>Own tokens</dt><dd>in ${fmt(s.in)} · out ${fmt(s.out)} · reason ${fmt(s.reason)} · cache r ${fmt(s.cr)} / w ${fmt(s.cw)}</dd>
+    <dt>Subtree totals</dt><dd>in ${fmt(t.in)} · out ${fmt(t.out)} · reason ${fmt(t.reason)} · cache r ${fmt(t.cr)} / w ${fmt(t.cw)} · ${s.children.length} direct child(ren)</dd>
+    <dt>Subtree cost</dt><dd>$${t.cost.toFixed(5)} (own $${s.cost.toFixed(5)})</dd></dl>
+  <div class="sect">Initial request sent to this agent</div><pre class="prompt" id="pp">loading…</pre>`;
+        const r = await fetch('/api/prompt/' + encodeURIComponent(id));
+        const j = await r.json();
+        const pp = document.querySelector('#pp');
+        pp.textContent = (j.texts && j.texts.length) ? j.texts.join('\\n\\n—\\n\\n') : '(no recorded user prompt)';
+    }
+
+    function find(ns, id) {
+        for (const x of ns) {
+            if (x.id === id) return x;
+            const r = find(x.children, id);
+            if (r) return r
+        }
+        return null
+    }
+
+    document.querySelector('#tree').addEventListener('click', e => {
+        const nd = e.target.closest('.node');
+        if (nd && !e.target.classList.contains('caret')) pick(nd.dataset.id);
+    });
+    document.querySelector('#q').addEventListener('input', render);
+
+    async function load() {
+        const r = await fetch('/api/tree');
+        TREE = await r.json();
+        render();
+    }
+
+    load();
+    setInterval(() => {
+        if (document.querySelector('#live').checked && !document.querySelector('#q').value) load()
+    }, 10000);
+
+    // draggable splitter between tree and details
+    (() => {
+        const sp = document.querySelector('#splitter'), main = document.querySelector('main'),
+            detail = document.querySelector('#detail');
+        let drag = false;
+        sp.addEventListener('mousedown', e => {
+            drag = true;
+            sp.classList.add('active');
+            document.body.style.userSelect = 'none';
+            e.preventDefault()
+        });
+        window.addEventListener('mousemove', e => {
+            if (!drag) return;
+            const r = main.getBoundingClientRect();
+            let pct = (r.right - e.clientX) / r.width * 100;
+            pct = Math.max(20, Math.min(80, pct));
+            detail.style.width = pct + '%';
+            detail.style.minWidth = '0';
+        });
+        window.addEventListener('mouseup', () => {
+            drag = false;
+            sp.classList.remove('active');
+            document.body.style.userSelect = ''
+        });
+        sp.addEventListener('dblclick', () => {
+            detail.style.width = '44%'
+        });
+    })();
+</script>
+</body>
+</html>
