@@ -24,15 +24,17 @@ This tool answers questions like:
 ## How to use
 
 ```bash
-python3 dashboard.py
+go run .
 ```
+
+(or run a prebuilt binary from `dist/` — see "Standalone executable" below)
 
 Opens http://localhost:8787 in your browser.
 
-- Custom port: `PORT=9000 python3 dashboard.py` — if the port is busy, it
+- Custom port: `PORT=9000 go run .` — if the port is busy, it
   automatically tries the next ports (8788, 8789, …) and says so
-- Custom database: `python3 dashboard.py --db /path/to/opencode.db` (or `DB_PATH=/path/to/opencode.db python3 dashboard.py`)
-- Show version: `python3 dashboard.py --version` (also displayed in the page header)
+- Custom database: `go run . --db /path/to/opencode.db` (or `DB_PATH=/path/to/opencode.db go run .`)
+- Show version: `go run . --version` (also displayed in the page header)
 - Press `Ctrl+C` to stop
 
 ### Database location
@@ -50,27 +52,26 @@ the dashboard silently falls back to autodetection.
 
 ### Standalone executable
 
-Build a self-contained binary for **your** platform — bundles the Python
-runtime, so the file in `dist/` runs on its own, no Python needed:
+Compile a self-contained binary — pure Go, so nothing beyond the Go
+toolchain is needed at build time, and the file in `dist/` runs on its
+own, needing nothing installed:
 
 ```bash
-make build-all      # builds the target matching the current OS,
-                    # skips the other ones (needs python3 + pip only at build time)
+make build       # binary for the host platform
+make build-all   # all five targets, cross-compiled from any host OS
 ```
 
-Windows: run `src\build.bat` from the repo root (needs `python` in PATH).
-
-- Output: `dist/dashboard-lin-x64` (Linux), `dist/dashboard-mac-darwin`
-  (macOS) or `dist/dashboard.exe` (Windows)
+- Output (`build-all`): `dist/dashboard-lin-x64` (linux/amd64),
+  `dist/dashboard-lin-arm64` (linux/arm64), `dist/dashboard-mac-darwin`
+  (darwin/arm64), `dist/dashboard-mac-darwin-amd64` (darwin/amd64),
+  `dist/dashboard.exe` (windows/amd64)
 - Double-click it (or run from a terminal) — the dashboard opens in your
-  browser, identical to `python3 dashboard.py`
-- PyInstaller builds for the machine it runs on — no cross-compiling,
-  each user builds their own binary
+  browser, identical to `go run .`
 - The binary is unsigned, so first run trips the OS warning:
   macOS Gatekeeper — right-click → Open, or
   `xattr -d com.apple.quarantine <file>`; Windows SmartScreen —
   "More info" → "Run anyway"
-- `make clean` removes build artifacts (`.buildvenv`, `dist/`, `build/`, spec files)
+- `make clean` removes build artifacts (`dist/`, `build/`)
 
 ### Reading the tree
 
@@ -142,14 +143,30 @@ Windows: run `src\build.bat` from the repo root (needs `python` in PATH).
 
 ## Requirements
 
-- Python 3.8+ (stdlib only — no dependencies)
+- Go 1.26+ (only to build from source — the compiled binaries are
+  self-contained and need nothing on the target machine)
+- Node.js — for the frontend tests (`make test`)
 - OpenCode's local database — auto-detected (see "Database location" above),
   or set the path via `--db` / `DB_PATH` or the in-page field
 
 ## Files
 
-- `dashboard.py` — server: read-only DB access, tree building, JSON API
-- `src/index.html` — the UI (HTML/CSS/JS), served per request — edit it and
-  just refresh the browser, no server restart needed
-- `src/build.bat` — one-command standalone build for Windows
-- `Makefile` — `make build` (standalone binary), `make test`, `make clean`
+- `main.go` — entry point: `--version`, `--db` and `-dev` flags, port
+  fallback, Ctrl-C graceful shutdown
+- `server.go` — HTTP server: routing, JSON helpers, `/` and `/i18n.js` handlers
+- `db.go` — read-only DB access: location auto-detection, validation,
+  switchable connection pool
+- `tree.go` — session tree building: nesting via `parent_id`, subtree sums,
+  sorting
+- `calls.go` — per-AI-call usage rows and trigger extraction
+- `assets.go` — embeds `src/index.html` and `src/i18n.js` via go:embed
+- `browser.go` — opens the dashboard in the default browser
+- `go.mod` / `go.sum` — Go module (modernc.org/sqlite pure-Go SQLite
+  driver — no CGO)
+- `src/index.html` — the UI (HTML/CSS/JS), embedded into the binary via
+  go:embed; edit-and-refresh via `make dev` / `go run . -dev`, which
+  serves the assets from `src/` on disk — no server restart needed
+- `test/*.test.mjs` — frontend tests (4 files, unchanged by the port);
+  `make test` = `go test ./...` + `node --test` over them
+- `Makefile` — `make build` / `make build-all` (standalone binaries),
+  `make test`, `make dev`, `make clean`

@@ -1,8 +1,5 @@
 .idea/*
-__pycache__/
-*.pyc
 dist/
 build/
-.buildvenv/
-*.spec
 *.exe
+token-monitor
