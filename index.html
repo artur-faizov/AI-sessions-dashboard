@@ -139,6 +139,18 @@
             background: rgba(247, 118, 142, .28)
         }
 
+        table.calls tbody tr.hum {
+            background: rgba(224, 175, 104, .16)
+        }
+
+        table.calls tbody tr.hum:hover {
+            background: rgba(224, 175, 104, .28)
+        }
+
+        .human-ic {
+            margin-right: 4px
+        }
+
         main {
             display: flex;
             height: calc(100vh - 47px)
@@ -906,7 +918,7 @@
         textOf = textOf || (c => c.time ? String(c.time) : '');
         return calls.map((c, i) => ({
             n: i + 1, mid: c.mid, time: c.time, ctx: c.ctx, delta: callDeltaAt(calls, i),
-            out: c.out, reason: c.reason, in: c.in, cr: c.cr, text: textOf(c),
+            out: c.out, reason: c.reason, in: c.in, cr: c.cr, text: textOf(c), hu: !!c.hu,
         })).filter(r => callRowMatches(r, f));
     }
 
@@ -1253,8 +1265,9 @@
         const bar = (v, m) => `<span class="vbar"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
         let rows = '';
         vis.forEach(r => {
-            rows += `<tr${isHotCtx(r.ctx, HOT.thr) ? ' class="hot"' : ''} onclick="callPick('${esc(r.mid)}')">
-  <td class="num">${r.n}</td>
+            const cls = r.hu ? 'hum' : isHotCtx(r.ctx, HOT.thr) ? 'hot' : '';
+            rows += `<tr${cls ? ` class="${cls}"` : ''}${r.hu ? ' title="triggered by a human message"' : ''} onclick="callPick('${esc(r.mid)}')">
+  <td class="num">${r.hu ? '<span class="human-ic">👤</span>' : ''}${r.n}</td>
   <td class="num">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
   <td class="num">${bar(r.delta, mD)}${fmt(r.delta)}</td>
   <td class="num">${bar(r.out, mOut)}${fmt(r.out)}</td>

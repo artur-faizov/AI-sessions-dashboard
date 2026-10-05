@@ -165,38 +165,62 @@ def _clip(s):
     return s, False
 
 
+def _human_message_ids(session_id):
+    """Ids of user messages that contain real human text (not synthetic, not a system reminder)."""
+    rows = db().execute(
+        """SELECT p.message_id AS mid, p.data FROM part p
+           JOIN message m ON m.id = p.message_id
+           WHERE p.session_id = ? AND m.data LIKE '%"role":"user"%'""",
+        (session_id,),
+    ).fetchall()
+    out = set()
+    for r in rows:
+        try:
+            d = json.loads(r["data"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if d.get("type") == "text" and d.get("text") and not d.get("synthetic"):
+            t = d["text"].strip()
+            if t and not t.startswith("<system-reminder>"):
+                out.add(r["mid"])
+    return out
+
+
 def session_calls(session_id):
-    """Per-AI-call token usage: one record per assistant message that recorded usage."""
+    """Per-AI-call token usage: one record per assistant message that recorded usage.
+    `hu` marks calls whose preceding message is a user message with real human text."""
     rows = db().execute(
         """SELECT id, time_created, data FROM message
-           WHERE session_id = ? AND data LIKE '%"role":"assistant"%'
+           WHERE session_id = ?
            ORDER BY time_created, id""",
         (session_id,),
     ).fetchall()
+    human_ids = _human_message_ids(session_id)
     calls = []
+    prev = None
     for r in rows:
         try:
             d = json.loads(r["data"])
         except json.JSONDecodeError:
-            continue
-        if d.get("role") != "assistant":
-            continue
-        t = d.get("tokens") or {}
-        cache = t.get("cache") or {}
-        inp = t.get("input") or 0
-        cr = cache.get("read") or 0
-        cw = cache.get("write") or 0
-        out = t.get("output") or 0
-        reason = t.get("reasoning") or 0
-        if not (inp or cr or cw or out or reason):
-            continue
-        calls.append({
-            "mid": r["id"],
-            "time": r["time_created"],
-            "in": inp, "cr": cr, "cw": cw,
-            "out": out, "reason": reason,
-            "ctx": inp + cr + cw,
-        })
+            d = {}
+        if d.get("role") == "assistant":
+            t = d.get("tokens") or {}
+            cache = t.get("cache") or {}
+            inp = t.get("input") or 0
+            cr = cache.get("read") or 0
+            cw = cache.get("write") or 0
+            out = t.get("output") or 0
+            reason = t.get("reasoning") or 0
+            if inp or cr or cw or out or reason:
+                calls.append({
+                    "mid": r["id"],
+                    "time": r["time_created"],
+                    "in": inp, "cr": cr, "cw": cw,
+                    "out": out, "reason": reason,
+                    "ctx": inp + cr + cw,
+                    "hu": bool(prev) and prev["id"] in human_ids,
+                })
+        prev = r
     return calls
 
 
