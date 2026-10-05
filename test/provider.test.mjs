@@ -89,6 +89,7 @@ function boot({routes = {}, stored = null} = {}) {
         window: {addEventListener() {}},
         setInterval: () => 0,
         console,
+        __flipProvider: v => { active = v; },
     };
     vm.runInNewContext(script[1], ctx);
     return ctx;
@@ -172,4 +173,44 @@ test('failed switch keeps opencode active and clears the stored choice', async (
     assert.match(sel.title, /directory not found/, 'error surfaces in the dropdown tooltip');
     assert.equal(ctx.localStorage.getItem('provider.name'), null, 'stored choice dropped');
     assert.ok(sel.innerHTML.includes('value="opencode"'), 'options re-rendered');
+});
+
+test('refresh re-applies the stored provider after a server restart resets it', async () => {
+    const ctx = boot({routes: {
+        '/api/provider': provinfo({provider: 'claude'}),
+        'POST /api/provider': {ok: true},
+        '/api/tree': [sess()],
+    }, stored: 'claude'});
+    await settle();
+    assert.equal(ctx.fetchLog.filter(f => f.u === '/api/provider' && f.init.method === 'POST').length, 0,
+        'no POST while in sync');
+    ctx.__flipProvider('opencode'); // server restart resets to the startup default
+    ctx.fetchLog.length = 0;
+    await ctx.load();
+    await settle();
+    const post = ctx.fetchLog.find(f => f.u === '/api/provider' && f.init.method === 'POST');
+    assert.ok(post, 'refresh re-applies the stored provider after a restart');
+    assert.equal(JSON.parse(post.init.body).name, 'claude');
+    assert.equal(ctx.localStorage.getItem('provider.name'), 'claude', 'choice kept');
+    assert.equal(ctx.els.get('#dbwrap').hidden, true, 'db field hidden again under claude');
+});
+
+test('refresh keeps the dropdown truthful when there is no stored choice', async () => {
+    const ctx = boot({routes: {
+        '/api/provider': provinfo({provider: 'claude'}),
+        '/api/tree': [sess()],
+    }});
+    await settle();
+    assert.equal(ctx.fetchLog.filter(f => f.u === '/api/provider' && f.init.method === 'POST').length, 0,
+        'server-started provider is not overridden');
+    ctx.__flipProvider('opencode');
+    ctx.fetchLog.length = 0;
+    await ctx.load();
+    await settle();
+    assert.ok(!ctx.fetchLog.some(f => f.u === '/api/provider' && f.init.method === 'POST'),
+        'no POST without a stored choice');
+    const sel = ctx.els.get('#provsel');
+    assert.ok(sel.innerHTML.includes('value="opencode" selected'),
+        'dropdown re-rendered to the actual server provider');
+    assert.equal(ctx.els.get('#dbwrap').hidden, false, 'db field visible under opencode');
 });

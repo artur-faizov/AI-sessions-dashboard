@@ -329,13 +329,20 @@
             padding: 0
         }
 
-        li li {
-            padding-left: 22px;
-            border-left: 1px solid var(--line);
-            margin-left: 9px
+        li li > .node {
+            padding-left: 56px
+        }
+
+        li li li > .node {
+            padding-left: 112px
+        }
+
+        li li li li > .node {
+            padding-left: 168px
         }
 
         .node {
+            position: relative;
             display: flex;
             gap: 10px;
             align-items: baseline;
@@ -351,25 +358,23 @@
         }
 
         .hcol {
-            width: 1.7em;
+            width: 68px;
             text-align: center;
             flex: none
         }
 
         .ecg {
-            width: 34px;
+            width: 68px;
             height: 20px;
             flex: none;
             overflow: visible
         }
 
         .ecg.lg {
-            width: 51px;
             height: 30px
         }
 
         .ecg.xl {
-            width: 68px;
             height: 40px
         }
 
@@ -1595,8 +1600,8 @@
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
             const agentBadge = s.agent && s.agent === DEFAULT_AGENT ? '' : `<span class="badge agent">${esc(s.agent || '—')}</span>`;
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}${sel === s.id ? ' sel' : ''}" data-id="${s.id}">
-    ${caret}
     ${heart}
+    ${caret}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
     <span class="ttl" title="${esc(s.title)}">${esc(s.title)}</span>
     ${agentBadge}
@@ -1942,6 +1947,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         refreshLeft = 5;
         refreshLabel();
         try {
+            await syncProvider();
             const r = await fetch('/api/tree');
             const j = await r.json();
             if (j && j.error === 'db_not_found') {
@@ -2021,13 +2027,35 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
 
     const provLabel = n => n === 'claude' ? tr('prov.claude') : n;
 
+    let lastProv = null;
+
     function renderProvField(info) {
+        lastProv = info.provider;
         const sel = document.querySelector('#provsel');
         if (!sel) return;
         sel.innerHTML = (info.providers || []).map(p =>
             `<option value="${esc(p)}"${p === info.provider ? ' selected' : ''}>${esc(provLabel(p))}</option>`).join('');
         const dbwrap = document.querySelector('#dbwrap');
         if (dbwrap) dbwrap.hidden = info.provider !== 'opencode';
+    }
+
+    // The provider lives on the server; anything can flip it back while the
+    // page is open (a restart resets it to the startup default, another tab
+    // may switch it). Each refresh keeps the dropdown truthful and re-applies
+    // the remembered choice when the server drifted from it.
+    async function syncProvider() {
+        const info = await fetchProvInfo();
+        if (!info) return;
+        const stored = lsGetProv();
+        if (stored && stored !== info.provider) {
+            const res = await postProvider(stored);
+            if (res.ok) {
+                renderProvField(await fetchProvInfo() || info);
+                return;
+            }
+            lsSetProv(null); // no longer switchable — drop the stored choice
+        }
+        if (info.provider !== lastProv) renderProvField(info);
     }
 
     async function applyProvider(name) {
