@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,13 +10,23 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
-func apiServer(t *testing.T) *httptest.Server {
+// apiServerWith serves ps with active selected.
+func apiServerWith(t *testing.T, ps []provider.Provider, active provider.Provider) *httptest.Server {
 	t.Helper()
-	srv := httptest.NewServer(newServer(false))
+	srv := httptest.NewServer(newServer(false, ps, active))
 	t.Cleanup(srv.Close)
 	return srv
+}
+
+// apiServer serves a single lenient, switchable provider with data present.
+func apiServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	p := newLenient("alpha", "/data/alpha.db")
+	return apiServerWith(t, []provider.Provider{p}, p)
 }
 
 func httpGet(t *testing.T, url string) (int, map[string]any) {
@@ -53,14 +64,21 @@ func httpPost(t *testing.T, url string, body string) (int, map[string]any) {
 	return r.StatusCode, out
 }
 
-func setNoDB(t *testing.T) {
+// missingLenient is a switchable provider whose current path does not exist;
+// /data/good.db is the one valid switch target.
+func missingLenient() *fakeProvider {
+	p := newLenient("alpha", "/no-such-db/api-test.db")
+	p.validPaths = map[string]bool{"/data/good.db": true}
+	return p
+}
+
+func serveOne(t *testing.T, p *fakeProvider) *httptest.Server {
 	t.Helper()
-	activateDB(t, "/no-such-db/api-test.db")
+	return apiServerWith(t, []provider.Provider{p}, p)
 }
 
 func TestAPIDbReportsNotFoundState(t *testing.T) {
-	setNoDB(t)
-	srv := apiServer(t)
+	srv := serveOne(t, missingLenient())
 	status, body := httpGet(t, srv.URL+"/api/db")
 	if status != 200 {
 		t.Fatalf("status %d", status)
@@ -71,25 +89,71 @@ func TestAPIDbReportsNotFoundState(t *testing.T) {
 	if body["path"] != "/no-such-db/api-test.db" {
 		t.Fatalf("path %v", body["path"])
 	}
+	if e, _ := body["error"].(string); !strings.Contains(e, "/no-such-db/api-test.db") {
+		t.Fatalf("error must name the path: %v", body["error"])
+	}
+	if body["switchable"] != true {
+		t.Fatalf("switchable %v, want true even when data is missing", body["switchable"])
+	}
 	if cands, ok := body["candidates"].([]any); !ok || len(cands) == 0 {
 		t.Fatal("candidates missing")
 	}
 }
 
+func TestAPIDbSwitchableProviderReportsCandidates(t *testing.T) {
+	srv := serveOne(t, newLenient("alpha", "/data/alpha.db"))
+	_, body := httpGet(t, srv.URL+"/api/db")
+	if body["switchable"] != true || body["found"] != true || body["error"] != nil {
+		t.Fatalf("body %v", body)
+	}
+	if body["path"] != "/data/alpha.db" {
+		t.Fatalf("path %v", body["path"])
+	}
+	cands, _ := body["candidates"].([]any)
+	if len(cands) != 2 || cands[0] != "/data/alpha.db" || cands[1] != "/default/alpha.db" {
+		t.Fatalf("candidates %v", body["candidates"])
+	}
+}
+
+func TestAPIDbNonSwitchableProviderReportsNoCandidates(t *testing.T) {
+	for _, present := range []bool{true, false} {
+		p := newStrict("beta", "/data/beta", present)
+		p.cands = []string{"/must/not/leak"}
+		srv := serveOne(t, p)
+		r, raw := httpGetRaw(t, srv.URL+"/api/db")
+		if r.StatusCode != 200 {
+			t.Fatalf("status %d", r.StatusCode)
+		}
+		if !strings.Contains(raw, `"candidates":[]`) || !strings.Contains(raw, `"switchable":false`) {
+			t.Fatalf("present=%v: %s", present, raw)
+		}
+		if !strings.Contains(raw, `"path":"/data/beta"`) || !strings.Contains(raw, fmt.Sprintf(`"found":%v`, present)) {
+			t.Fatalf("present=%v: %s", present, raw)
+		}
+	}
+}
+
+func TestAPIDbNilCandidatesSerializeAsEmptyList(t *testing.T) {
+	p := newLenient("alpha", "/data/alpha.db")
+	p.cands = nil
+	srv := serveOne(t, p)
+	if _, raw := httpGetRaw(t, srv.URL+"/api/db"); !strings.Contains(raw, `"candidates":[]`) {
+		t.Fatalf("nil candidates must be []: %s", raw)
+	}
+}
+
 func TestTreeReturnsDBNotFoundWithoutDB(t *testing.T) {
-	setNoDB(t)
-	srv := apiServer(t)
+	srv := serveOne(t, missingLenient())
 	status, body := httpGet(t, srv.URL+"/api/tree")
 	if status != 503 {
 		t.Fatalf("status %d", status)
 	}
-	if body["error"] != "db_not_found" {
-		t.Fatalf("error %v", body["error"])
+	if body["error"] != "db_not_found" || body["path"] != "/no-such-db/api-test.db" {
+		t.Fatalf("body %v", body)
 	}
 }
 
 func TestTreeReturnsEmptyArrayWithValidDB(t *testing.T) {
-	activateDB(t, makeDB(t))
 	srv := apiServer(t)
 	r, body := httpGetRaw(t, srv.URL+"/api/tree")
 	if r.StatusCode != 200 {
@@ -101,35 +165,60 @@ func TestTreeReturnsEmptyArrayWithValidDB(t *testing.T) {
 }
 
 func TestPostDBSwitchesToValidPath(t *testing.T) {
-	setNoDB(t)
-	srv := apiServer(t)
-	path := makeDB(t)
-	status, body := httpPost(t, srv.URL+"/api/db", `{"path": "`+path+`"}`)
+	p := missingLenient()
+	srv := serveOne(t, p)
+	status, body := httpPost(t, srv.URL+"/api/db", `{"path": "/data/good.db"}`)
 	if status != 200 || body["ok"] != true {
 		t.Fatalf("status %d body %v", status, body)
 	}
-	if body["path"] != path {
+	if body["path"] != "/data/good.db" {
 		t.Fatalf("path %v", body["path"])
 	}
-	status, body = httpGet(t, srv.URL+"/api/db")
-	if body["found"] != true || body["path"] != path {
+	_, body = httpGet(t, srv.URL+"/api/db")
+	if body["found"] != true || body["path"] != "/data/good.db" {
 		t.Fatalf("found %v path %v", body["found"], body["path"])
 	}
-	status, _ = httpGet(t, srv.URL+"/api/tree")
-	if status != 200 {
+	if status, _ = httpGet(t, srv.URL+"/api/tree"); status != 200 {
 		t.Fatalf("tree status %d", status)
 	}
 }
 
 func TestPostDBRejectsBadPathWith400(t *testing.T) {
-	setNoDB(t)
-	srv := apiServer(t)
+	p := missingLenient()
+	srv := serveOne(t, p)
 	status, body := httpPost(t, srv.URL+"/api/db", `{"path": "/nope/bad.db"}`)
 	if status != 400 || body["ok"] != false {
 		t.Fatalf("status %d body %v", status, body)
 	}
-	if body["error"] == nil {
-		t.Fatal("error message missing")
+	if e, _ := body["error"].(string); !strings.Contains(e, "/nope/bad.db") {
+		t.Fatalf("error must name the path: %v", body["error"])
+	}
+	if p.DataPath() != "/no-such-db/api-test.db" {
+		t.Fatalf("previous path must stay active, got %s", p.DataPath())
+	}
+}
+
+func TestPostDBMissingPathRejected(t *testing.T) {
+	srv := serveOne(t, missingLenient())
+	status, body := httpPost(t, srv.URL+"/api/db", `{}`)
+	if status != 400 || body["ok"] != false || body["path"] != nil {
+		t.Fatalf("status %d body %v", status, body)
+	}
+}
+
+func TestPostDBRejectedForNonSwitchableProvider(t *testing.T) {
+	p := newStrict("beta", "/data/beta", true)
+	p.validPaths["/data/other"] = true
+	srv := serveOne(t, p)
+	status, body := httpPost(t, srv.URL+"/api/db", `{"path": "/data/other"}`)
+	if status != 400 || body["ok"] != false {
+		t.Fatalf("status %d body %v", status, body)
+	}
+	if body["error"] != "path switching is not supported for the active provider" {
+		t.Fatalf("error %v", body["error"])
+	}
+	if p.DataPath() != "/data/beta" {
+		t.Fatalf("path changed to %s", p.DataPath())
 	}
 }
 
@@ -192,26 +281,11 @@ func TestUnknownPath404(t *testing.T) {
 }
 
 func TestAPICallsAndPromptWithSession(t *testing.T) {
-	pool, path := fixturePool(t)
-	defer pool.Close()
-	if _, err := pool.Exec(`INSERT INTO session VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		"s1", nil, "title", "agent", nil, "/d", 1, 2, 3, 4, 5, 100, 200, nil); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := pool.Exec(`INSERT INTO message VALUES (?,?,?,?,?)`, "u1", "s1", 50, 50,
-		`{"role":"user","time":{"created":50}}`); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := pool.Exec(`INSERT INTO part VALUES (?,?,?,?,?,?)`, "p1", "u1", "s1", 60, 60,
-		`{"type":"text","text":"hello"}`); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := pool.Exec(`INSERT INTO message VALUES (?,?,?,?,?)`, "a1", "s1", 100, 100,
-		`{"role":"assistant","tokens":{"input":10,"output":5,"cache":{"read":1,"write":2},"reasoning":3}}`); err != nil {
-		t.Fatal(err)
-	}
-	activateDB(t, path)
-	srv := apiServer(t)
+	p := newLenient("alpha", "/data/alpha.db")
+	p.prompts = map[string][]string{"s1": {"hello"}}
+	p.calls = map[string][]provider.CallRec{"s1": {{Mid: "a1", Time: 100, In: 10, Cr: 1, Cw: 2, Out: 5, Reason: 3, Ctx: 13, Hu: true}}}
+	p.triggers = map[string]*provider.TriggerResp{"a1": {Case: "user", Time: int64(50), Parts: []any{}}}
+	srv := serveOne(t, p)
 
 	status, body := httpGet(t, srv.URL+"/api/prompt/s1")
 	if status != 200 {
@@ -243,6 +317,11 @@ func TestAPICallsAndPromptWithSession(t *testing.T) {
 	status, body = httpGet(t, srv.URL+"/api/trigger/nope")
 	if status != 404 || body["error"] != "message not found" {
 		t.Fatalf("trigger 404: status %d body %v", status, body)
+	}
+
+	status, body = httpGet(t, srv.URL+"/api/calls/nope")
+	if status != 500 || body["error"] == nil {
+		t.Fatalf("calls error: status %d body %v", status, body)
 	}
 }
 

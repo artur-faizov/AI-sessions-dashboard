@@ -1,4 +1,4 @@
-package dashboard
+package claude
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
 // --- normalized transcript model ---
@@ -138,7 +140,7 @@ func claudeBlockContentString(raw json.RawMessage) string {
 	}
 	var v any
 	if json.Unmarshal(raw, &v) == nil {
-		out, _ := clip(v)
+		out, _ := provider.Clip(v)
 		return out
 	}
 	return ""
@@ -282,7 +284,7 @@ func (idx *claudeIndex) all() []*claudeSession {
 
 // scanIndex walks the root dir and parses every main and subagent transcript,
 // reusing cached parses keyed by file mtime.
-func (c *claudeProvider) scanIndex() *claudeIndex {
+func (c *Provider) scanIndex() *claudeIndex {
 	idx := &claudeIndex{
 		sessions: map[string]*claudeSession{},
 		agents:   map[string]*claudeSession{},
@@ -323,7 +325,7 @@ func (c *claudeProvider) scanIndex() *claudeIndex {
 	return idx
 }
 
-func (c *claudeProvider) scanAgentDir(idx *claudeIndex, sub, slug, parentSID string) {
+func (c *Provider) scanAgentDir(idx *claudeIndex, sub, slug, parentSID string) {
 	entries, err := os.ReadDir(sub)
 	if err != nil {
 		return
@@ -366,7 +368,7 @@ func (idx *claudeIndex) resolveAgentParent(a *claudeSession) string {
 }
 
 // loadFile parses a transcript, caching by mtime.
-func (c *claudeProvider) loadFile(path string) *claudeFile {
+func (c *Provider) loadFile(path string) *claudeFile {
 	info, err := os.Stat(path)
 	if err != nil {
 		return &claudeFile{path: path, toolNames: map[string]string{}}
@@ -388,7 +390,7 @@ func (c *claudeProvider) loadFile(path string) *claudeFile {
 	return f
 }
 
-func (c *claudeProvider) findSessionFile(sid string) *claudeFile {
+func (c *Provider) findSessionFile(sid string) *claudeFile {
 	idx := c.scanIndex()
 	if s, ok := idx.sessions[sid]; ok {
 		return s.file
@@ -401,12 +403,12 @@ func (c *claudeProvider) findSessionFile(sid string) *claudeFile {
 
 // --- per-file derived data ---
 
-func (f *claudeFile) calls() []callRec {
-	calls := []callRec{}
+func (f *claudeFile) calls() []provider.CallRec {
+	calls := []provider.CallRec{}
 	var prev *claudeMsg
 	for _, m := range f.messages {
 		if m.role == "assistant" && m.hasUsage {
-			calls = append(calls, callRec{
+			calls = append(calls, provider.CallRec{
 				Mid: m.mid, Time: m.timeMS,
 				In: m.usage.in, Cr: m.usage.cr, Cw: m.usage.cw,
 				Out: m.usage.out, Reason: 0,
@@ -458,16 +460,16 @@ func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats
 
 // trigger builds the trigger response for a call mid, reporting ok=false when
 // the mid is not in this transcript.
-func (f *claudeFile) trigger(mid string) (*triggerResp, bool) {
+func (f *claudeFile) trigger(mid string) (*provider.TriggerResp, bool) {
 	for i, m := range f.messages {
 		if m.mid != mid {
 			continue
 		}
 		if i == 0 {
-			return &triggerResp{Case: "start", Time: nil, Parts: []any{}}, true
+			return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}}, true
 		}
 		prev := f.messages[i-1]
-		res := &triggerResp{Time: prev.timeMS, Parts: []any{}}
+		res := &provider.TriggerResp{Time: prev.timeMS, Parts: []any{}}
 		if prev.role == "user" {
 			res.Case = "user"
 			res.Parts = f.userParts(prev)
@@ -483,23 +485,23 @@ func (f *claudeFile) trigger(mid string) (*triggerResp, bool) {
 func (f *claudeFile) userParts(m *claudeMsg) []any {
 	parts := []any{}
 	if m.human != "" {
-		t, cut := clip(m.human)
-		parts = append(parts, triggerPartText{Kind: "text", Text: t, Cut: cut})
+		t, cut := provider.Clip(m.human)
+		parts = append(parts, provider.TriggerPartText{Kind: "text", Text: t, Cut: cut})
 	}
 	for _, tr := range m.toolResults {
 		tool := f.toolNames[tr.id]
 		if tool == "" {
 			tool = "tool"
 		}
-		out, cutO := clip(tr.content)
-		parts = append(parts, triggerPartTool{
+		out, cutO := provider.Clip(tr.content)
+		parts = append(parts, provider.TriggerPartTool{
 			Kind: "tool", Tool: tool, Status: nil,
 			Input: "", Output: out, CutO: cutO,
 		})
 	}
 	for _, tu := range m.toolUses {
-		in, cutI := clip(tu.input)
-		parts = append(parts, triggerPartTool{
+		in, cutI := provider.Clip(tu.input)
+		parts = append(parts, provider.TriggerPartTool{
 			Kind: "tool", Tool: tu.name, Status: nil,
 			Input: in, CutI: cutI, Output: "",
 		})
@@ -513,12 +515,12 @@ func (f *claudeFile) assistantParts(m *claudeMsg) []any {
 		if txt == "" {
 			continue
 		}
-		t, cut := clip(txt)
-		parts = append(parts, triggerPartText{Kind: "text", Text: t, Cut: cut})
+		t, cut := provider.Clip(txt)
+		parts = append(parts, provider.TriggerPartText{Kind: "text", Text: t, Cut: cut})
 	}
 	for _, tu := range m.toolUses {
-		in, cutI := clip(tu.input)
-		parts = append(parts, triggerPartTool{
+		in, cutI := provider.Clip(tu.input)
+		parts = append(parts, provider.TriggerPartTool{
 			Kind: "tool", Tool: tu.name, Status: nil,
 			Input: in, CutI: cutI, Output: "",
 		})
@@ -528,9 +530,9 @@ func (f *claudeFile) assistantParts(m *claudeMsg) []any {
 
 // --- tree assembly ---
 
-func (c *claudeProvider) claudeTree(nowMS int64) ([]*sessionNode, error) {
+func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 	idx := c.scanIndex()
-	nodes := map[string]*sessionNode{}
+	nodes := map[string]*provider.SessionNode{}
 	for sid, s := range idx.sessions {
 		nodes[sid] = claudeNode(s, nil, nowMS)
 	}
@@ -544,7 +546,7 @@ func (c *claudeProvider) claudeTree(nowMS int64) ([]*sessionNode, error) {
 		parent.Children = append(parent.Children, n)
 	}
 
-	var roots []*sessionNode
+	var roots []*provider.SessionNode
 	for _, n := range nodes {
 		if n.Parent == nil {
 			roots = append(roots, n)
@@ -559,9 +561,9 @@ func (c *claudeProvider) claudeTree(nowMS int64) ([]*sessionNode, error) {
 		}
 	}
 
-	var fill func(n *sessionNode) subtreeSums
-	fill = func(n *sessionNode) subtreeSums {
-		t := subtreeSums{In: n.In, Out: n.Out, Reason: n.Reason, Cr: n.Cr, Cw: n.Cw}
+	var fill func(n *provider.SessionNode) provider.SubtreeSums
+	fill = func(n *provider.SessionNode) provider.SubtreeSums {
+		t := provider.SubtreeSums{In: n.In, Out: n.Out, Reason: n.Reason, Cr: n.Cr, Cw: n.Cw}
 		for _, ch := range n.Children {
 			st := fill(ch)
 			t.In += st.In
@@ -581,19 +583,19 @@ func (c *claudeProvider) claudeTree(nowMS int64) ([]*sessionNode, error) {
 	}
 	sort.Slice(roots, func(i, j int) bool { return roots[i].Created > roots[j].Created })
 	if roots == nil {
-		roots = []*sessionNode{}
+		roots = []*provider.SessionNode{}
 	}
 	return roots, nil
 }
 
-func claudeNode(s *claudeSession, parent any, nowMS int64) *sessionNode {
+func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode {
 	in, out, cr, cw, maxctx, model, _ := s.file.stats()
 	var modelV any
 	if model != "" {
 		modelV = model
 	}
 	updated := s.file.lastMS
-	n := &sessionNode{
+	n := &provider.SessionNode{
 		ID:       s.id,
 		Parent:   parent,
 		Title:    s.file.title,
@@ -608,9 +610,9 @@ func claudeNode(s *claudeSession, parent any, nowMS int64) *sessionNode {
 		Cw:       cw,
 		Created:  s.file.firstMS,
 		Updated:  updated,
-		Active:   updated > 0 && nowMS-updated < activeWindowMS,
+		Active:   updated > 0 && nowMS-updated < provider.ActiveWindowMS,
 		Beats:    []int64{},
-		Children: []*sessionNode{},
+		Children: []*provider.SessionNode{},
 		Source:   "claude",
 	}
 	if n.Dur = updated - n.Created; n.Dur < 0 {

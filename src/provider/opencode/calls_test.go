@@ -1,8 +1,10 @@
-package dashboard
+package opencode
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
 func TestSessionPromptExtractsRealUserTexts(t *testing.T) {
@@ -38,8 +40,8 @@ func TestSessionPromptExtractsRealUserTexts(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	activateDB(t, path)
-	_, poolRO := poolFor()
+	p := activateDB(t, path)
+	_, poolRO := p.poolFor()
 	texts, err := sessionPrompt(poolRO, "s1")
 	if err != nil {
 		t.Fatal(err)
@@ -84,8 +86,8 @@ func TestCallTriggerCasesAndClipping(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	activateDB(t, path)
-	_, poolRO := poolFor()
+	p := activateDB(t, path)
+	_, poolRO := p.poolFor()
 
 	// a1 is preceded by the user message u1
 	res, err := callTrigger(poolRO, "a1")
@@ -95,8 +97,8 @@ func TestCallTriggerCasesAndClipping(t *testing.T) {
 	if res.Case != "user" {
 		t.Fatalf("case %q", res.Case)
 	}
-	first := res.Parts[0].(triggerPartText)
-	if !first.Cut || len([]rune(first.Text)) != triggerMax {
+	first := res.Parts[0].(provider.TriggerPartText)
+	if !first.Cut || len([]rune(first.Text)) != provider.TriggerMax {
 		t.Fatalf("long text not clipped: cut=%v len=%d", first.Cut, len(first.Text))
 	}
 
@@ -129,8 +131,8 @@ func TestCallTriggerStartCase(t *testing.T) {
 		`{"role":"assistant","tokens":{"input":10,"output":5,"cache":{"read":0,"write":0},"reasoning":0}}`); err != nil {
 		t.Fatal(err)
 	}
-	activateDB(t, path)
-	_, poolRO := poolFor()
+	p := activateDB(t, path)
+	_, poolRO := p.poolFor()
 	res, err := callTrigger(poolRO, "a1")
 	if err != nil {
 		t.Fatal(err)
@@ -155,8 +157,8 @@ func TestCallTriggerNonStringRenderedAsIndentedJSON(t *testing.T) {
 		`{"type":"tool","tool":"bash","state":{"status":"ok","input":{"cmd":"ls"},"output":"files"}}`); err != nil {
 		t.Fatal(err)
 	}
-	activateDB(t, path)
-	_, poolRO := poolFor()
+	p := activateDB(t, path)
+	_, poolRO := p.poolFor()
 	res, err := callTrigger(poolRO, "a1")
 	if err != nil {
 		t.Fatal(err)
@@ -164,7 +166,7 @@ func TestCallTriggerNonStringRenderedAsIndentedJSON(t *testing.T) {
 	if res.Case != "user" {
 		t.Fatalf("case %q", res.Case)
 	}
-	tool := res.Parts[0].(triggerPartTool)
+	tool := res.Parts[0].(provider.TriggerPartTool)
 	if tool.Kind != "tool" || tool.Tool != "bash" || tool.Status != "ok" {
 		t.Fatalf("tool part wrong: %+v", tool)
 	}

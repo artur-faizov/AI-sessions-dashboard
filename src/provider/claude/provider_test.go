@@ -1,4 +1,4 @@
-package dashboard
+package claude
 
 import (
 	"encoding/json"
@@ -8,20 +8,22 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
 // --- fixture helpers ---
 
 // claudeFixture creates a provider rooted at a temp dir; slug is one project
 // slug dir, e.g. "-home-x-proj".
-func claudeFixture(t *testing.T, slug string) (*claudeProvider, string) {
+func claudeFixture(t *testing.T, slug string) (*Provider, string) {
 	t.Helper()
 	root := t.TempDir()
 	dir := filepath.Join(root, slug)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	return &claudeProvider{root: root}, dir
+	return &Provider{root: root}, dir
 }
 
 func writeLines(t *testing.T, path string, lines ...any) {
@@ -69,7 +71,7 @@ func mustJSON(v any) string {
 	return string(b)
 }
 
-func findNode(nodes []*sessionNode, id string) *sessionNode {
+func findNode(nodes []*provider.SessionNode, id string) *provider.SessionNode {
 	for _, n := range nodes {
 		if n.ID == id {
 			return n
@@ -91,7 +93,7 @@ func TestClaudeMalformedLineSkipped(t *testing.T) {
 		`{"type":"assistant","uuid":"a1","timestamp":"2026-09-03T13:28:28.000Z","cwd":"/home/x/proj","sessionId":"s1","message":{"role":"assistant","model":"m1","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":10,"output_tokens":5}}}`,
 		`{"type":"unknown-thing","uuid":"z"}`,
 	)
-	roots, err := p.buildTree(0)
+	roots, err := p.BuildTree(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +117,7 @@ func TestClaudeDedupAndZeroUsageExcluded(t *testing.T) {
 		assistantLine("a3", "2026-09-03T13:28:30.000Z", "<synthetic>", 7, 0, 0, 0, textBlock), // synthetic
 		assistantLine("a4", "2026-09-03T13:28:31.000Z", "m1", 100, 20, 30, 40, textBlock),
 	)
-	roots, err := p.buildTree(0)
+	roots, err := p.BuildTree(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +131,7 @@ func TestClaudeDedupAndZeroUsageExcluded(t *testing.T) {
 	if n.MaxCtx != 170 {
 		t.Fatalf("maxctx %d, want 170", n.MaxCtx)
 	}
-	calls, err := p.sessionCalls("s1")
+	calls, err := p.SessionCalls("s1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +160,7 @@ func TestClaudeSubagentParenting(t *testing.T) {
 		assistantLine("a8", "2026-09-03T13:28:31.000Z", "m1", 7, 2, 0, 0, textBlock),
 	)
 
-	roots, err := p.buildTree(0)
+	roots, err := p.BuildTree(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +204,7 @@ func TestClaudeCallsHuFlag(t *testing.T) {
 		userToolResultLine("u2", "2026-09-03T13:28:29.000Z", "call_1", "file contents"),
 		assistantLine("a2", "2026-09-03T13:28:30.000Z", "m1", 20, 6, 0, 0, textBlock),
 	)
-	calls, err := p.sessionCalls("s1")
+	calls, err := p.SessionCalls("s1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +236,7 @@ func TestClaudeTriggerCases(t *testing.T) {
 		assistantLine("a4", "2026-09-03T13:28:32.000Z", "m1", 5, 1, 0, 0, textBlock),
 	)
 
-	res, err := p.callTrigger("a1")
+	res, err := p.CallTrigger("a1")
 	if err != nil || res == nil {
 		t.Fatalf("a1: %v %v", res, err)
 	}
@@ -242,7 +244,7 @@ func TestClaudeTriggerCases(t *testing.T) {
 		t.Fatalf("start case wrong: %s", jdump(res))
 	}
 
-	res, err = p.callTrigger("a2")
+	res, err = p.CallTrigger("a2")
 	if err != nil || res == nil {
 		t.Fatalf("a2: %v %v", res, err)
 	}
@@ -252,24 +254,24 @@ func TestClaudeTriggerCases(t *testing.T) {
 	if len(res.Parts) != 1 {
 		t.Fatalf("user parts: %s", jdump(res))
 	}
-	tp, ok := res.Parts[0].(triggerPartText)
+	tp, ok := res.Parts[0].(provider.TriggerPartText)
 	if !ok || tp.Text != "go fix it" || tp.Kind != "text" {
 		t.Fatalf("user part wrong: %s", jdump(res.Parts))
 	}
 
-	res, err = p.callTrigger("a4")
+	res, err = p.CallTrigger("a4")
 	if err != nil || res == nil {
 		t.Fatalf("a4: %v %v", res, err)
 	}
 	if res.Case != "assistant" || len(res.Parts) != 1 {
 		t.Fatalf("assistant case wrong: %s", jdump(res))
 	}
-	tp2, ok := res.Parts[0].(triggerPartTool)
+	tp2, ok := res.Parts[0].(provider.TriggerPartTool)
 	if !ok || tp2.Tool != "Read" || tp2.Input == "" || tp2.Output != "" {
 		t.Fatalf("assistant tool part wrong: %s", jdump(res.Parts))
 	}
 
-	res, err = p.callTrigger("nope")
+	res, err = p.CallTrigger("nope")
 	if err != nil || res != nil {
 		t.Fatalf("not-found must return nil,nil, got %v %v", res, err)
 	}
@@ -283,14 +285,14 @@ func TestClaudeTriggerUserToolResultPart(t *testing.T) {
 		userToolResultLine("u1", "2026-09-03T13:28:28.000Z", "call_1", "file contents here"),
 		assistantLine("a1", "2026-09-03T13:28:29.000Z", "m1", 10, 5, 0, 0, textBlock),
 	)
-	res, err := p.callTrigger("a1")
+	res, err := p.CallTrigger("a1")
 	if err != nil || res == nil {
 		t.Fatalf("a1: %v %v", res, err)
 	}
 	if res.Case != "user" || len(res.Parts) != 1 {
 		t.Fatalf("tool_result trigger wrong: %s", jdump(res))
 	}
-	tp, ok := res.Parts[0].(triggerPartTool)
+	tp, ok := res.Parts[0].(provider.TriggerPartTool)
 	if !ok || tp.Tool != "Read" || tp.Output != "file contents here" || tp.Input != "" {
 		t.Fatalf("tool part wrong: %s", jdump(res.Parts))
 	}
@@ -306,7 +308,7 @@ func TestClaudePromptSkipsNoise(t *testing.T) {
 		userToolResultLine("u5", "2026-09-03T13:28:30.000Z", "call_1", "res"),
 		userLine("u6", "2026-09-03T13:28:31.000Z", "second real text"),
 	)
-	texts, err := p.sessionPrompt("s1")
+	texts, err := p.SessionPrompt("s1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,7 +320,7 @@ func TestClaudePromptSkipsNoise(t *testing.T) {
 func TestClaudeEmptySessionStillServed(t *testing.T) {
 	p, dir := claudeFixture(t, "-home-x-proj")
 	writeLines(t, filepath.Join(dir, "s1.jsonl"), "garbage line")
-	roots, err := p.buildTree(0)
+	roots, err := p.BuildTree(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -335,7 +337,7 @@ func TestClaudeEmptySessionStillServed(t *testing.T) {
 	if n.Beats == nil || n.Children == nil {
 		t.Fatal("beats and children must be non-nil")
 	}
-	calls, err := p.sessionCalls("s1")
+	calls, err := p.SessionCalls("s1")
 	if err != nil || len(calls) != 0 {
 		t.Fatalf("calls for empty session: %v %v", calls, err)
 	}
@@ -348,7 +350,7 @@ func TestClaudeMtimeCacheRescan(t *testing.T) {
 		userLine("u1", "2026-09-03T13:28:27.679Z", "hi"),
 		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, textBlock),
 	)
-	roots, err := p.buildTree(0)
+	roots, err := p.BuildTree(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +367,7 @@ func TestClaudeMtimeCacheRescan(t *testing.T) {
 	if err := os.Chtimes(path, future, future); err != nil {
 		t.Fatal(err)
 	}
-	roots, err = p.buildTree(0)
+	roots, err = p.BuildTree(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -388,7 +390,7 @@ func TestClaudeSubagentCallsServed(t *testing.T) {
 	)
 	writeLines(t, filepath.Join(dir, "main", "subagents", "agent-x.meta.json"),
 		`{"agentType":"Explore","toolUseId":"call_1"}`)
-	calls, err := p.sessionCalls("agent-x")
+	calls, err := p.SessionCalls("agent-x")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -396,7 +398,7 @@ func TestClaudeSubagentCallsServed(t *testing.T) {
 		t.Fatalf("subagent calls: %s", jdump(calls))
 	}
 	// trigger for a subagent mid must be found
-	res, err := p.callTrigger("a9")
+	res, err := p.CallTrigger("a9")
 	if err != nil || res == nil || res.Case != "user" {
 		t.Fatalf("subagent trigger: %v %v", res, err)
 	}
@@ -404,10 +406,10 @@ func TestClaudeSubagentCallsServed(t *testing.T) {
 
 func TestClaudeSessionCallsNotFound(t *testing.T) {
 	p, _ := claudeFixture(t, "-home-x-proj")
-	if _, err := p.sessionCalls("nope"); err == nil {
+	if _, err := p.SessionCalls("nope"); err == nil {
 		t.Fatal("unknown session must error")
 	}
-	if _, err := p.sessionPrompt("nope"); err == nil {
+	if _, err := p.SessionPrompt("nope"); err == nil {
 		t.Fatal("unknown session prompt must error")
 	}
 }
@@ -420,7 +422,7 @@ func TestClaudeActiveBeatsAndDur(t *testing.T) {
 		userLine("u1", "2026-09-03T13:28:27.679Z", "hi"),
 		assistantLine("a1", ts, "m1", 10, 5, 0, 0, textBlock),
 	)
-	roots, err := p.buildTree(now)
+	roots, err := p.BuildTree(now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,5 +438,57 @@ func TestClaudeActiveBeatsAndDur(t *testing.T) {
 	}
 	if n.Dur <= 0 {
 		t.Fatalf("dur %d", n.Dur)
+	}
+}
+
+func jdump(o any) string {
+	b, _ := json.Marshal(o)
+	return string(b)
+}
+
+func TestClaudeProviderRootFromEnv(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "claude-projects")
+	t.Setenv("CLAUDE_PROJECTS_DIR", root)
+	p := New()
+	if p.DataPath() != root {
+		t.Fatalf("root %s, want %s", p.DataPath(), root)
+	}
+	if !p.FatalWhenMissing() {
+		t.Fatal("claude must exit when its data dir is missing")
+	}
+	err := p.Available()
+	if err == nil || !strings.Contains(err.Error(), root) {
+		t.Fatalf("Available() must name %s, got %v", root, err)
+	}
+}
+
+func TestClaudeProviderDefaultRoot(t *testing.T) {
+	t.Setenv("CLAUDE_PROJECTS_DIR", "")
+	p := New()
+	if !strings.HasSuffix(p.DataPath(), filepath.Join(".claude", "projects")) {
+		t.Fatalf("default root %s, want ~/.claude/projects", p.DataPath())
+	}
+}
+
+func TestClaudeProviderAvailableOnExistingDir(t *testing.T) {
+	t.Setenv("CLAUDE_PROJECTS_DIR", t.TempDir())
+	if err := New().Available(); err != nil {
+		t.Fatalf("existing dir must be available, got %v", err)
+	}
+}
+
+func TestClaudeProviderNotPathSwitchable(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("CLAUDE_PROJECTS_DIR", root)
+	p := New()
+	if p.Name() != "claude" || p.PathSwitchable() || p.Candidates() != nil {
+		t.Fatalf("name=%s switchable=%v candidates=%v", p.Name(), p.PathSwitchable(), p.Candidates())
+	}
+	err := p.SetDataPath(t.TempDir())
+	if err == nil || !strings.Contains(err.Error(), "not supported") {
+		t.Fatalf("SetDataPath must be unsupported, got %v", err)
+	}
+	if p.DataPath() != root {
+		t.Fatalf("data path changed to %s", p.DataPath())
 	}
 }

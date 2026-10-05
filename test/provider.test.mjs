@@ -71,6 +71,11 @@ function boot({routes = {}, stored = null} = {}) {
         }
         if (u === '/api/provider')
             return {ok: true, json: async () => ({provider: active, providers: ['claude', 'opencode']})};
+        if (u === '/api/db' && (init.method || 'GET') === 'GET') {
+            // the server reports the active provider's capability; only opencode switches paths
+            const base = rmap.get('/api/db') || dbinfo();
+            return {ok: true, json: async () => ({switchable: active === 'opencode', ...base})};
+        }
         const body = rmap.get(u);
         return body ? {ok: true, json: async () => body}
                     : {ok: false, status: 404, json: async () => ({ok: false, error: 'not found'})};
@@ -110,10 +115,12 @@ const sess = (o = {}) => ({
     active: false, beats: [], children: [], subtree: {in: 10, out: 20, reason: 5, cr: 7, cw: 8}, ...o,
 });
 
-const dbinfo = (o = {}) => ({
-    path: '/home/u/.local/share/opencode/opencode.db',
-    found: true, error: null, candidates: [], ...o,
-});
+function dbinfo(o = {}) {
+    return {
+        path: '/home/u/.local/share/opencode/opencode.db',
+        found: true, error: null, candidates: [], ...o,
+    };
+}
 
 test('provider dropdown lists registry names and marks the active one', async () => {
     const ctx = boot({routes: {'/api/provider': provinfo(), '/api/tree': [sess()]}});
@@ -213,4 +220,24 @@ test('refresh keeps the dropdown truthful when there is no stored choice', async
     assert.ok(sel.innerHTML.includes('value="opencode" selected'),
         'dropdown re-rendered to the actual server provider');
     assert.equal(ctx.els.get('#dbwrap').hidden, false, 'db field visible under opencode');
+});
+
+test('db field visibility follows the switchable flag, not the provider name', async () => {
+    const ctx = boot({routes: {
+        '/api/provider': provinfo(),
+        '/api/db': dbinfo({switchable: false}),
+        '/api/tree': [sess()],
+    }});
+    await settle();
+    assert.equal(ctx.els.get('#dbwrap').hidden, true, 'non-switchable hides the picker even for opencode');
+});
+
+test('db field stays visible for a switchable provider when its data is missing', async () => {
+    const ctx = boot({routes: {
+        '/api/provider': provinfo(),
+        '/api/db': dbinfo({found: false, error: 'file not found: /x.db', switchable: true}),
+        '/api/tree': {error: 'db_not_found'},
+    }});
+    await settle();
+    assert.equal(ctx.els.get('#dbwrap').hidden, false, 'picker visible so the user can fix the path');
 });

@@ -1,4 +1,4 @@
-package dashboard
+package opencode
 
 import (
 	"database/sql"
@@ -8,93 +8,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 
 	_ "modernc.org/sqlite"
 )
 
 var errDBNotOpen = errors.New("db_not_found")
-
-// dbx is the switchable read-only connection pool (one *sql.DB per generation).
-var dbx = newDBState()
-
-type dbState struct {
-	mu   sync.RWMutex
-	path string
-	gen  int
-	pool *sql.DB
-}
-
-func newDBState() *dbState { return &dbState{} }
-
-// reset swaps the active database; validPath non-empty opens the pool.
-func (d *dbState) reset(path, validPath string) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.path = path
-	d.gen++
-	old := d.pool
-	d.pool = nil
-	if old != nil {
-		old.Close()
-	}
-	if validPath != "" {
-		pool, _ := sql.Open("sqlite", roDSN(validPath))
-		d.pool = pool
-	}
-}
-
-func (d *dbState) set(path string) (bool, string) {
-	ok, errStr := validateDB(path)
-	if !ok {
-		return false, errStr
-	}
-	d.mu.Lock()
-	old := d.pool
-	pool, err := sql.Open("sqlite", roDSN(path))
-	if err != nil {
-		d.mu.Unlock()
-		return false, err.Error()
-	}
-	d.path = path
-	d.gen++
-	d.pool = pool
-	d.mu.Unlock()
-	if old != nil {
-		old.Close()
-	}
-	return true, ""
-}
-
-func (d *dbState) current() (string, *sql.DB, int) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.path, d.pool, d.gen
-}
-
-// poolFor returns the current pool for a valid path, or nil.
-func poolFor() (string, *sql.DB) {
-	p, pool, _ := dbx.current()
-	if p == "" {
-		return p, nil
-	}
-	if pool == nil {
-		var err error
-		pool, err = sql.Open("sqlite", roDSN(p))
-		if err != nil {
-			return p, nil
-		}
-		dbx.mu.Lock()
-		if dbx.pool == nil {
-			dbx.pool = pool
-		} else {
-			pool.Close()
-			pool = dbx.pool
-		}
-		dbx.mu.Unlock()
-	}
-	return p, pool
-}
 
 // quotePath percent-encodes a filesystem path for a sqlite file: URI,
 // mirroring urllib.parse.quote (safe chars kept: alnum, "-._~/" and ":").
@@ -148,32 +68,32 @@ func validateDB(path string) (bool, string) {
 	return true, ""
 }
 
-// parseDBFlag extracts the --db PATH / --db=PATH CLI override.
-func parseDBFlag(argv []string) (string, bool) {
+// ParseDBFlag extracts the --db PATH / --db=PATH CLI override ("" when absent).
+func ParseDBFlag(argv []string) string {
 	for i, a := range argv {
 		if a == "--db" || a == "-db" {
 			if i+1 < len(argv) {
-				return argv[i+1], true
+				return argv[i+1]
 			}
 		}
 		if strings.HasPrefix(a, "--db=") {
-			return strings.TrimPrefix(a, "--db="), true
+			return strings.TrimPrefix(a, "--db=")
 		}
 		if strings.HasPrefix(a, "-db=") {
-			return strings.TrimPrefix(a, "-db="), true
+			return strings.TrimPrefix(a, "-db=")
 		}
 	}
-	return "", false
+	return ""
 }
 
 // dbCandidates returns candidate DB paths in priority order (cli, env, platform defaults), deduplicated.
 func dbCandidates(cliPath, envPath string) []string {
 	var out []string
 	if cliPath != "" {
-		out = append(out, expandUser(cliPath))
+		out = append(out, provider.ExpandUser(cliPath))
 	}
 	if envPath != "" {
-		out = append(out, expandUser(envPath))
+		out = append(out, provider.ExpandUser(envPath))
 	}
 	home, _ := os.UserHomeDir()
 	xdg := os.Getenv("XDG_DATA_HOME")
@@ -214,13 +134,4 @@ func resolveDB(cliPath string) (string, bool) {
 		return "", false
 	}
 	return cands[0], false
-}
-
-func expandUser(p string) string {
-	if p == "~" || strings.HasPrefix(p, "~/") {
-		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, strings.TrimPrefix(strings.TrimPrefix(p, "~"), "/"))
-		}
-	}
-	return p
 }

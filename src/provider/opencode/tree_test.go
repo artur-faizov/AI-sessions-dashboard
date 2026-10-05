@@ -1,9 +1,11 @@
-package dashboard
+package opencode
 
 import (
 	"database/sql"
 	"testing"
 	"time"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
 func nowMS() int64 { return time.Now().UnixMilli() }
@@ -37,10 +39,10 @@ func seedMsg(t *testing.T, pool *sql.DB, mid, sid string, tc int64, role string,
 	}
 }
 
-func flatten(roots []*sessionNode) map[string]*sessionNode {
-	out := map[string]*sessionNode{}
-	var walk func([]*sessionNode)
-	walk = func(ns []*sessionNode) {
+func flatten(roots []*provider.SessionNode) map[string]*provider.SessionNode {
+	out := map[string]*provider.SessionNode{}
+	var walk func([]*provider.SessionNode)
+	walk = func(ns []*provider.SessionNode) {
 		for _, n := range ns {
 			out[n.ID] = n
 			walk(n.Children)
@@ -56,8 +58,8 @@ func TestActiveMarksSessionsUpdatedWithin15Min(t *testing.T) {
 	now := nowMS()
 	seedSession(t, pool, "fresh", now-5*60*1000, nil, nil, nil, 1)
 	seedSession(t, pool, "stale", now-20*60*1000, nil, nil, nil, 1)
-	activateDB(t, path)
-	nodes := flatten(mustTree(t))
+	p := activateDB(t, path)
+	nodes := flatten(mustTree(t, p))
 	if len(nodes) != 2 {
 		t.Fatalf("want 2 nodes, got %d", len(nodes))
 	}
@@ -72,8 +74,8 @@ func TestActiveBoundaryStrictlyInside15Min(t *testing.T) {
 	now := nowMS()
 	seedSession(t, pool, "edge", now-15*60*1000, nil, nil, nil, 1)
 	seedSession(t, pool, "inside", now-14*60*1000, nil, nil, nil, 1)
-	activateDB(t, path)
-	nodes := flatten(mustTree(t))
+	p := activateDB(t, path)
+	nodes := flatten(mustTree(t, p))
 	if nodes["edge"].Active {
 		t.Fatal("edge must be inactive")
 	}
@@ -89,8 +91,8 @@ func TestArchivedAndDirlessStayOutOfTree(t *testing.T) {
 	seedSession(t, pool, "kept", now, nil, nil, nil, 1)
 	seedSession(t, pool, "archived", now, nil, nil, now, 1)
 	seedSession(t, pool, "nodir", now, nil, "", nil, 1)
-	activateDB(t, path)
-	nodes := flatten(mustTree(t))
+	p := activateDB(t, path)
+	nodes := flatten(mustTree(t, p))
 	if len(nodes) != 1 || nodes["kept"] == nil {
 		t.Fatalf("want only kept, got %v", keys(nodes))
 	}
@@ -106,8 +108,8 @@ func TestBeatsListAICallTimesInsideWindow(t *testing.T) {
 	seedMsg(t, pool, "m3", "fresh", now-30*60*1000, "assistant", true)
 	seedMsg(t, pool, "m4", "fresh", now-60*1000, "user", true)
 	seedMsg(t, pool, "m5", "fresh", now-70*1000, "assistant", false)
-	activateDB(t, path)
-	n := flatten(mustTree(t))["fresh"]
+	p := activateDB(t, path)
+	n := flatten(mustTree(t, p))["fresh"]
 	want := []int64{now - 10*60*1000, now - 2*60*1000}
 	if len(n.Beats) != 2 || n.Beats[0] != want[0] || n.Beats[1] != want[1] {
 		t.Fatalf("beats %v, want %v (sorted)", n.Beats, want)
@@ -123,8 +125,8 @@ func TestBeatsEmptyForInactiveSessions(t *testing.T) {
 	now := nowMS()
 	seedSession(t, pool, "stale", now-20*60*1000, nil, nil, nil, 1)
 	seedMsg(t, pool, "m6", "stale", now-3*60*1000, "assistant", true)
-	activateDB(t, path)
-	n := flatten(mustTree(t))["stale"]
+	p := activateDB(t, path)
+	n := flatten(mustTree(t, p))["stale"]
 	if len(n.Beats) != 0 {
 		t.Fatalf("beats %v, want empty", n.Beats)
 	}
@@ -147,16 +149,16 @@ func TestSubtreeSumsOverDescendants(t *testing.T) {
 		tokens_reasoning=0, tokens_cache_read=500, tokens_cache_write=0 WHERE id='child'`); err != nil {
 		t.Fatal(err)
 	}
-	activateDB(t, path)
-	roots := mustTree(t)
+	p := activateDB(t, path)
+	roots := mustTree(t, p)
 	if len(roots) != 1 || roots[0].ID != "parent" {
 		t.Fatalf("parent must be sole root, got %v", keys(flatten(roots)))
 	}
-	p := roots[0]
-	if len(p.Children) != 1 || p.Children[0].ID != "child" {
+	root := roots[0]
+	if len(root.Children) != 1 || root.Children[0].ID != "child" {
 		t.Fatal("child not nested")
 	}
-	st := p.Subtree
+	st := root.Subtree
 	if st.In != 150 || st.Out != 15 || st.Reason != 1 || st.Cr != 1500 || st.Cw != 200 {
 		t.Fatalf("subtree sums wrong: %+v", st)
 	}
@@ -202,8 +204,8 @@ func TestHuFlagsCallsTriggeredByHumanInput(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	activateDB(t, path)
-	_, pool2 := poolFor()
+	p := activateDB(t, path)
+	_, pool2 := p.poolFor()
 	calls, err := sessionCalls(pool2, "s1")
 	if err != nil {
 		t.Fatal(err)
@@ -234,8 +236,8 @@ func TestCallsKeepTokenFields(t *testing.T) {
 	defer pool.Close()
 	seedMsg(t, pool, "u1", "s1", 1000, "user", true)
 	seedMsg(t, pool, "a1", "s1", 2000, "assistant", true)
-	activateDB(t, path)
-	_, pool2 := poolFor()
+	p := activateDB(t, path)
+	_, pool2 := p.poolFor()
 	calls, err := sessionCalls(pool2, "s1")
 	if err != nil {
 		t.Fatal(err)
@@ -257,16 +259,16 @@ func fixturePool(t *testing.T) (*sql.DB, string) {
 	return openRW(t, path), path
 }
 
-func mustTree(t *testing.T) []*sessionNode {
+func mustTree(t *testing.T, p *Provider) []*provider.SessionNode {
 	t.Helper()
-	nodes, err := buildTree(nowMS())
+	nodes, err := p.BuildTree(nowMS())
 	if err != nil {
 		t.Fatal(err)
 	}
 	return nodes
 }
 
-func keys(m map[string]*sessionNode) []string {
+func keys(m map[string]*provider.SessionNode) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
 		out = append(out, k)

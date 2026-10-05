@@ -1,41 +1,12 @@
-package dashboard
+package opencode
 
 import (
 	"database/sql"
 	"encoding/json"
 	"sort"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
-
-type sessionNode struct {
-	ID       string         `json:"id"`
-	Parent   any            `json:"parent"`
-	Title    string         `json:"title"`
-	Agent    any            `json:"agent"`
-	Model    any            `json:"model"`
-	Dir      string         `json:"dir"`
-	MaxCtx   int64          `json:"maxctx"`
-	In       int64          `json:"in"`
-	Out      int64          `json:"out"`
-	Reason   int64          `json:"reason"`
-	Cr       int64          `json:"cr"`
-	Cw       int64          `json:"cw"`
-	Created  int64          `json:"created"`
-	Updated  int64          `json:"updated"`
-	Active   bool           `json:"active"`
-	Dur      int64          `json:"dur"`
-	Beats    []int64        `json:"beats"`
-	Children []*sessionNode `json:"children"`
-	Subtree  *subtreeSums   `json:"subtree"`
-	Source   string         `json:"source"`
-}
-
-type subtreeSums struct {
-	In     int64 `json:"in"`
-	Out    int64 `json:"out"`
-	Reason int64 `json:"reason"`
-	Cr     int64 `json:"cr"`
-	Cw     int64 `json:"cw"`
-}
 
 type nullable = sql.NullString
 
@@ -149,11 +120,7 @@ func sessionBeats(pool *sql.DB, sessionID string, sinceMs int64) ([]int64, error
 	return beats, nil
 }
 
-func buildTree(nowMS int64) ([]*sessionNode, error) {
-	_, pool := poolFor()
-	if pool == nil {
-		return nil, errDBNotOpen
-	}
+func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 	maxctx, err := sessionMaxContexts(pool)
 	if err != nil {
 		return nil, err
@@ -168,7 +135,7 @@ func buildTree(nowMS int64) ([]*sessionNode, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	nodes := map[string]*sessionNode{}
+	nodes := map[string]*provider.SessionNode{}
 	for rows.Next() {
 		var (
 			id, dir                                   string
@@ -188,7 +155,7 @@ func buildTree(nowMS int64) ([]*sessionNode, error) {
 			}
 		}
 		upd := updated
-		nodes[id] = &sessionNode{
+		nodes[id] = &provider.SessionNode{
 			ID:       id,
 			Parent:   ns(parent),
 			Title:    titleString(title),
@@ -203,10 +170,10 @@ func buildTree(nowMS int64) ([]*sessionNode, error) {
 			Cw:       cw,
 			Created:  created,
 			Updated:  upd,
-			Active:   upd > 0 && nowMS-upd < activeWindowMS,
+			Active:   upd > 0 && nowMS-upd < provider.ActiveWindowMS,
 			Dur:      upd - created,
 			Beats:    []int64{},
-			Children: []*sessionNode{},
+			Children: []*provider.SessionNode{},
 			Source:   "opencode",
 		}
 		if n := nodes[id]; n.Dur < 0 {
@@ -217,7 +184,7 @@ func buildTree(nowMS int64) ([]*sessionNode, error) {
 		return nil, err
 	}
 
-	var roots []*sessionNode
+	var roots []*provider.SessionNode
 	for _, n := range nodes {
 		if p, ok := n.Parent.(string); ok {
 			if parent, exists := nodes[p]; exists {
@@ -230,7 +197,7 @@ func buildTree(nowMS int64) ([]*sessionNode, error) {
 
 	for _, n := range nodes {
 		if n.Active {
-			beats, err := sessionBeats(pool, n.ID, nowMS-activeWindowMS)
+			beats, err := sessionBeats(pool, n.ID, nowMS-provider.ActiveWindowMS)
 			if err != nil {
 				return nil, err
 			}
@@ -241,9 +208,9 @@ func buildTree(nowMS int64) ([]*sessionNode, error) {
 		}
 	}
 
-	var fill func(n *sessionNode) subtreeSums
-	fill = func(n *sessionNode) subtreeSums {
-		t := subtreeSums{In: n.In, Out: n.Out, Reason: n.Reason, Cr: n.Cr, Cw: n.Cw}
+	var fill func(n *provider.SessionNode) provider.SubtreeSums
+	fill = func(n *provider.SessionNode) provider.SubtreeSums {
+		t := provider.SubtreeSums{In: n.In, Out: n.Out, Reason: n.Reason, Cr: n.Cr, Cw: n.Cw}
 		for _, c := range n.Children {
 			st := fill(c)
 			t.In += st.In
@@ -263,7 +230,7 @@ func buildTree(nowMS int64) ([]*sessionNode, error) {
 	}
 	sort.Slice(roots, func(i, j int) bool { return roots[i].Created > roots[j].Created })
 	if roots == nil {
-		roots = []*sessionNode{}
+		roots = []*provider.SessionNode{}
 	}
 	return roots, nil
 }

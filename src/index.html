@@ -2051,8 +2051,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (!sel) return;
         sel.innerHTML = (info.providers || []).map(p =>
             `<option value="${esc(p)}"${p === info.provider ? ' selected' : ''}>${esc(provLabel(p))}</option>`).join('');
-        const dbwrap = document.querySelector('#dbwrap');
-        if (dbwrap) dbwrap.hidden = info.provider !== 'opencode';
+        refreshDbState(); // picker visibility follows the new provider's `switchable`
     }
 
     // The provider lives on the server; anything can flip it back while the
@@ -2142,6 +2141,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             : tr('db.missing.tip') + (info.error ? ' — ' + info.error : '');
         const wrap = document.querySelector('#dbwrap');
         if (wrap) {
+            wrap.hidden = !info.switchable;
             if (info.found) wrap.classList.remove('missing');
             else wrap.classList.add('missing');
         }

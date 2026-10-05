@@ -135,6 +135,24 @@ make build-all   # all five targets, cross-compiled from any host OS
   new trigger text (that is roughly the `delta` column)
 - Only rows with an expandable `+` and a `▾ N children` badge contain subagents
 
+## Data providers
+
+Each data source lives in its own package under `src/provider/<name>` and implements
+`provider.Provider` (`src/provider/provider.go`). The dashboard shell (`src/dashboard`)
+never imports a provider package and never branches on a provider's name — anything
+provider-specific is a capability on the interface, e.g. `PathSwitchable()` drives the
+`switchable` flag of `GET /api/db`, which in turn shows or hides the DB picker in the UI.
+
+Select a provider with `--provider NAME` or `PROVIDER=NAME`; without one, the first
+provider registered in `main.go` is used (no automatic fallback when its data is missing).
+
+To add a provider:
+
+1. Create `src/provider/<name>/` with a `New()` constructor returning a type that
+   implements `provider.Provider` (import only `src/provider`, never another provider
+   or `src/dashboard`); keep its tests in that package.
+2. Add one entry to the provider list in `cmd/dashboard/main.go`.
+
 ## Safety
 
 - Opens the DB strictly **read-only** (`sqlite3` URI `mode=ro`) — safe to run while
@@ -151,15 +169,18 @@ make build-all   # all five targets, cross-compiled from any host OS
 
 ## Files
 
-- `cmd/dashboard/main.go` — entrypoint: thin `main` that calls `dashboard.Run`
-- `src/dashboard/run.go` — startup: `--version`, `--db` and `-dev` flags, port
-  fallback, Ctrl-C graceful shutdown
-- `src/dashboard/server.go` — HTTP server: routing, JSON helpers, `/` and `/i18n.js` handlers
-- `src/dashboard/db.go` — read-only DB access: location auto-detection, validation,
-  switchable connection pool
-- `src/dashboard/tree.go` — session tree building: nesting via `parent_id`, subtree sums,
-  sorting
-- `src/dashboard/calls.go` — per-AI-call usage rows and trigger extraction
+- `cmd/dashboard/main.go` — entrypoint: builds the ordered provider list
+  (`opencode.New(...)`, `claude.New()`; the first is the default) and calls `dashboard.Run`
+- `src/dashboard/run.go` — startup: `--version`, `--provider` and `-dev` flags, provider
+  selection, port fallback, Ctrl-C graceful shutdown
+- `src/dashboard/server.go` — HTTP server: routing, JSON helpers, `/` and `/i18n.js` handlers;
+  talks to the active data source only through the `provider.Provider` interface
+- `src/provider/` — the provider contract (`Provider` interface), shared payload types
+  (`SessionNode`, `CallRec`, `TriggerResp`; JSON shape pinned by golden tests) and helpers
+- `src/provider/opencode/` — opencode sqlite provider: DB auto-detection, `--db` parsing,
+  validation, runtime-switchable read-only pool, session tree, per-call usage, triggers
+- `src/provider/claude/` — Claude Code provider: parses `~/.claude/projects` JSONL
+  transcripts (incl. subagents) into the same payloads
 - `src/dashboard/assets.go` — serves the frontend: `{{VERSION}}` substitution
   and dev-mode disk reads for `src/index.html` / `src/i18n.js`
 - `src/dashboard/browser.go` — opens the dashboard in the default browser
@@ -169,7 +190,7 @@ make build-all   # all five targets, cross-compiled from any host OS
 - `src/index.html` — the UI (HTML/CSS/JS), embedded into the binary via
   go:embed; edit-and-refresh via `make dev` / `go run ./cmd/dashboard -dev`, which
   serves the assets from `src/` on disk — no server restart needed
-- `test/*.test.mjs` — frontend tests (4 files, unchanged by the port);
+- `test/*.test.mjs` — frontend tests;
   `make test` = `go test ./...` + `node --test` over them
 - `Makefile` — `make build` / `make build-all` (standalone binaries),
   `make test`, `make dev`, `make clean`

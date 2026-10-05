@@ -1,47 +1,11 @@
-package dashboard
+package opencode
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/json"
 	"strings"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
-
-const triggerMax = 60000
-
-type callRec struct {
-	Mid    string `json:"mid"`
-	Time   int64  `json:"time"`
-	In     int64  `json:"in"`
-	Cr     int64  `json:"cr"`
-	Cw     int64  `json:"cw"`
-	Out    int64  `json:"out"`
-	Reason int64  `json:"reason"`
-	Ctx    int64  `json:"ctx"`
-	Hu     bool   `json:"hu"`
-}
-
-type triggerPartText struct {
-	Kind string `json:"kind"`
-	Text string `json:"text"`
-	Cut  bool   `json:"cut"`
-}
-
-type triggerPartTool struct {
-	Kind   string `json:"kind"`
-	Tool   any    `json:"tool"`
-	Status any    `json:"status"`
-	Input  string `json:"input"`
-	CutI   bool   `json:"cut_i"`
-	Output string `json:"output"`
-	CutO   bool   `json:"cut_o"`
-}
-
-type triggerResp struct {
-	Case  string `json:"case"`
-	Time  any    `json:"time"`
-	Parts []any  `json:"parts"`
-}
 
 // realUserText reports whether a parsed text-part JSON carries real human text.
 func realUserText(d map[string]any) (string, bool) {
@@ -124,7 +88,7 @@ type msgRow struct {
 }
 
 // sessionCalls returns one record per assistant message that recorded token usage.
-func sessionCalls(pool *sql.DB, sessionID string) ([]callRec, error) {
+func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 	rows, err := pool.Query(
 		`SELECT id, time_created, data FROM message
 		 WHERE session_id = ? ORDER BY time_created, id`, sessionID)
@@ -147,7 +111,7 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]callRec, error) {
 	if err != nil {
 		return nil, err
 	}
-	calls := []callRec{}
+	calls := []provider.CallRec{}
 	var prev *msgRow
 	for _, m := range msgs {
 		d := decodeData(m.data)
@@ -160,7 +124,7 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]callRec, error) {
 			out := num(t["output"])
 			reason := num(t["reasoning"])
 			if in != 0 || cr != 0 || cw != 0 || out != 0 || reason != 0 {
-				calls = append(calls, callRec{
+				calls = append(calls, provider.CallRec{
 					Mid: m.id, Time: m.created, In: in, Cr: cr, Cw: cw,
 					Out: out, Reason: reason, Ctx: in + cr + cw,
 					Hu: prev != nil && human[prev.id],
@@ -173,32 +137,8 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]callRec, error) {
 	return calls, nil
 }
 
-// clip truncates a trigger part value at triggerMax characters; non-string
-// values are rendered as indented JSON (unicode kept raw).
-func clip(v any) (string, bool) {
-	if v == nil {
-		return "", false
-	}
-	s, ok := v.(string)
-	if !ok {
-		var buf bytes.Buffer
-		enc := json.NewEncoder(&buf)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", " ")
-		if err := enc.Encode(v); err != nil {
-			return "", false
-		}
-		s = strings.TrimRight(buf.String(), "\n")
-	}
-	r := []rune(s)
-	if len(r) > triggerMax {
-		return string(r[:triggerMax]), true
-	}
-	return s, false
-}
-
 // callTrigger returns the message content preceding the given assistant message.
-func callTrigger(pool *sql.DB, messageID string) (*triggerResp, error) {
+func callTrigger(pool *sql.DB, messageID string) (*provider.TriggerResp, error) {
 	var sessionID string
 	var created int64
 	var data string
@@ -221,7 +161,7 @@ func callTrigger(pool *sql.DB, messageID string) (*triggerResp, error) {
 		 ORDER BY time_created DESC, id DESC LIMIT 1`,
 		sessionID, created, created, messageID).Scan(&prev.id, &prev.created, &prev.data)
 	if err == sql.ErrNoRows {
-		return &triggerResp{Case: "start", Time: nil, Parts: []any{}}, nil
+		return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -248,18 +188,18 @@ func callTrigger(pool *sql.DB, messageID string) (*triggerResp, error) {
 		switch pj["type"] {
 		case "text":
 			if txt, _ := pj["text"].(string); txt != "" {
-				t, cut := clip(txt)
-				parts = append(parts, triggerPartText{Kind: "text", Text: t, Cut: cut})
+				t, cut := provider.Clip(txt)
+				parts = append(parts, provider.TriggerPartText{Kind: "text", Text: t, Cut: cut})
 			}
 		case "tool":
 			st := sub(pj, "state")
-			inS, cutI := clip(st["input"])
-			outS, cutO := clip(st["output"])
+			inS, cutI := provider.Clip(st["input"])
+			outS, cutO := provider.Clip(st["output"])
 			var status any
 			if v, ok := st["status"]; ok {
 				status = v
 			}
-			parts = append(parts, triggerPartTool{
+			parts = append(parts, provider.TriggerPartTool{
 				Kind: "tool", Tool: pj["tool"], Status: status,
 				Input: inS, CutI: cutI, Output: outS, CutO: cutO,
 			})
@@ -271,7 +211,7 @@ func callTrigger(pool *sql.DB, messageID string) (*triggerResp, error) {
 	if parts == nil {
 		parts = []any{}
 	}
-	res := &triggerResp{Time: prev.created, Parts: parts}
+	res := &provider.TriggerResp{Time: prev.created, Parts: parts}
 	if pd["role"] == "user" {
 		res.Case = "user"
 	} else {

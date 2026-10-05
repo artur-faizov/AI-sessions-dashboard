@@ -98,7 +98,7 @@ const settle = async () => {
 
 const dbinfo = (o = {}) => ({
     path: '/home/u/.local/share/opencode/opencode.db',
-    found: true, error: null,
+    found: true, error: null, switchable: true,
     candidates: ['/home/u/.local/share/opencode/opencode.db', '/other/opencode.db'],
     ...o,
 });

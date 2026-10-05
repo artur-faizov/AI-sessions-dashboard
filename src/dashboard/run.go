@@ -8,23 +8,31 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
+
+	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
 const Version = "3.0.0"
 
 const defaultPort = 8787
 
-var mainSrv *http.Server // the running server, for tests to shut down
-var mainLn *net.Listener // its listener, for tests to read the bound port
+var (
+	mainMu  sync.Mutex
+	mainSrv *http.Server // the running server, for tests to shut down
+	mainLn  net.Listener // its listener, for tests to read the bound port
+)
 
 var portTries = 20 // ports tried on "address already in use": PORT, PORT+1, …
 
-const activeWindowMS = 15 * 60 * 1000 // a session updated within this window is "active"
-
-// cliDBFlag is the --db CLI override captured at startup (used by /api/db candidates).
-var cliDBFlag string
+// runningServer returns the server started by Run and its listener (nil until serving).
+func runningServer() (*http.Server, net.Listener) {
+	mainMu.Lock()
+	defer mainMu.Unlock()
+	return mainSrv, mainLn
+}
 
 func sliceContains(xs []string, s string) bool {
 	for _, x := range xs {
@@ -35,42 +43,26 @@ func sliceContains(xs []string, s string) bool {
 	return false
 }
 
-// Run starts the dashboard with the given CLI args and returns the exit code.
-func Run(args []string) int {
+// Run starts the dashboard serving the given providers and returns the exit
+// code. The first provider is the default; PROVIDER / --provider override it.
+func Run(providers []provider.Provider, args []string) int {
 	if sliceContains(args, "--version") || sliceContains(args, "-version") {
 		fmt.Println(Version)
 		return 0
 	}
 	dev := sliceContains(args, "--dev") || sliceContains(args, "-dev") || sliceContains(args, "-dev=true") || sliceContains(args, "--dev=true")
 
-	provName := "opencode"
-	if v := os.Getenv("PROVIDER"); v != "" {
-		provName = v
-	}
-	if v, ok := parseProviderFlag(args); ok {
-		provName = v
-	}
-	p := selectProvider(provName)
-	if p == nil {
-		fmt.Fprintf(os.Stderr, "unknown provider %q (available: opencode, claude)\n", provName)
+	active, err := pickProvider(providers, args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	activeProvider = p
-
-	cliPath, _ := parseDBFlag(args)
-	cliDBFlag = cliPath
-	path, found := resolveDB(cliPath)
-	valid := ""
-	if found {
-		valid = path
-	}
-	dbx.reset(path, valid)
-	if err := activeProvider.available(); err != nil {
-		if activeProvider.fatalWhenMissing() {
-			fmt.Fprintf(os.Stderr, "Claude data not found: %v\n", err)
+	if err := active.Available(); err != nil {
+		if active.FatalWhenMissing() {
+			fmt.Fprintf(os.Stderr, "%s data not found: %v\n", active.Name(), err)
 			return 1
 		}
-		fmt.Printf("DB not found: %s — set the path in the page header\n", dbx.path)
+		fmt.Printf("%s data not found: %s — pick a data source in the page header\n", active.Name(), active.DataPath())
 	}
 
 	port := defaultPort
@@ -100,19 +92,16 @@ func Run(args []string) int {
 	port = ln.Addr().(*net.TCPAddr).Port
 
 	url := fmt.Sprintf("http://localhost:%d", port)
-	if activeProvider.name() == "opencode" {
-		fmt.Printf("Token usage tree: %s  (DB: %s, read-only)\n", url, dbx.path)
-	} else {
-		fmt.Printf("Token usage tree: %s  (source: %s, read-only)\n", url, activeProvider.dataPath())
-	}
+	fmt.Printf("Token usage tree: %s  (%s: %s, read-only)\n", url, active.Name(), active.DataPath())
 
 	if os.Getenv("NO_BROWSER") == "" {
 		time.AfterFunc(500*time.Millisecond, func() { openBrowser(url) })
 	}
 
-	srv := &http.Server{Handler: newServer(dev)}
-	mainSrv = srv
-	mainLn = &ln
+	srv := &http.Server{Handler: newServer(dev, providers, active)}
+	mainMu.Lock()
+	mainSrv, mainLn = srv, ln
+	mainMu.Unlock()
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 	go func() {
