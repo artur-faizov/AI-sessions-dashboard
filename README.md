@@ -57,7 +57,7 @@ Opens http://localhost:8787 in your browser.
     and `cache r` (~10x cheaper cached input). The Σ footer reconciles with
     the session's own-token counters; Σ delta = final context size
   - rows triggered by a **human message** (your typed input — not tool
-    results or synthetic context) are highlighted orange with a 👤 icon
+    results or synthetic context) are highlighted green with a 👤 icon
   - **click a call row** → popup with the message that triggered that call:
     the user prompt (if it was the first call of a turn) or the previous
     call's tool command + result. Long parts are truncated at 60k chars.

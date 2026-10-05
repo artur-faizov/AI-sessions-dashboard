@@ -133,19 +133,27 @@ test('treeVisible: root shown if it or any descendant matches', () => {
     assert.equal(L.treeVisible(root, tf({ text: 'nothing' })), false);
 });
 
-test('isHotCtx: strictly above kilo threshold, null threshold = off', () => {
-    assert.equal(L.isHotCtx(100001, 100), true);
-    assert.equal(L.isHotCtx(100000, 100), false);
-    assert.equal(L.isHotCtx(999999, null), false);
-    assert.equal(L.isHotCtx(500, 0.3), true);
-    assert.equal(L.isHotCtx(300, 0.3), false);
+test('hotLevel: strictly above kilo thresholds, null = off, crit wins over warn', () => {
+    assert.equal(L.hotLevel(120001, 100, 120), 'crit');
+    assert.equal(L.hotLevel(120000, 100, 120), 'warn');
+    assert.equal(L.hotLevel(100001, 100, 120), 'warn');
+    assert.equal(L.hotLevel(100000, 100, 120), '');
+    assert.equal(L.hotLevel(999999, null, null), '');
+    assert.equal(L.hotLevel(150000, null, 120), 'crit');
+    assert.equal(L.hotLevel(150000, 100, null), 'warn');
+    assert.equal(L.hotLevel(110000, null, 120), '');
+    assert.equal(L.hotLevel(500, 0.3, 0.4), 'crit');
+    assert.equal(L.hotLevel(350, 0.3, 0.4), 'warn');
+    assert.equal(L.hotLevel(300, 0.3, 0.4), '');
 });
 
-test('treeHotVisible: node or any descendant above threshold', () => {
+test('treeHotVisible: node or any descendant above warn or crit', () => {
     const root = node({ maxctx: 50000, children: [node({ maxctx: 150000 })] });
-    assert.equal(L.treeHotVisible(root, 100), true);
-    assert.equal(L.treeHotVisible(node({ maxctx: 50000 }), 100), false);
-    assert.equal(L.treeHotVisible(node({ maxctx: 150000 }), 100), true);
+    assert.equal(L.treeHotVisible(root, 100, 120), true);
+    assert.equal(L.treeHotVisible(node({ maxctx: 50000 }), 100, 120), false);
+    assert.equal(L.treeHotVisible(node({ maxctx: 110000 }), 100, 120), true);
+    assert.equal(L.treeHotVisible(node({ maxctx: 150000 }), 100, 120), true);
+    assert.equal(L.treeHotVisible(node({ maxctx: 999999 }), null, null), false);
 });
 
 test('callDeltaAt: first call delta = its ctx, later = growth vs previous', () => {
