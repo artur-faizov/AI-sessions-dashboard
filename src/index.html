@@ -225,6 +225,86 @@
             font-weight: 600
         }
 
+        .gearwrap {
+            position: relative;
+            display: inline-flex
+        }
+
+        .gearmenu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 12px 12px;
+            min-width: 252px;
+            z-index: 20;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, .35);
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .gearmenu[hidden] {
+            display: none
+        }
+
+        .gearmenu .grow {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px
+        }
+
+        .gearmenu .grow.cost {
+            gap: 8px
+        }
+
+        .gearmenu .grow.cost label {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+            cursor: pointer
+        }
+
+        .gearmenu input[type=number] {
+            background: #1d2026;
+            border: 1px solid var(--line);
+            color: var(--fg);
+            border-radius: 6px;
+            padding: 4px 7px;
+            width: 78px;
+            font: inherit;
+            font-size: 13px
+        }
+
+        .gearmenu input[type=number]:focus {
+            outline: none;
+            border-color: var(--acc)
+        }
+
+        .gearmenu input[type=checkbox] {
+            accent-color: var(--acc);
+            cursor: pointer
+        }
+
+        .gearmenu .sect {
+            margin: 2px 0 0
+        }
+
+        .gearmenu .ver {
+            border-left: none;
+            padding-left: 0
+        }
+
+        .gearmenu .freset {
+            margin-top: 6px;
+            align-self: flex-start
+        }
+
         .hlbox {
             display: flex;
             gap: 6px;
@@ -499,6 +579,10 @@
             width: 5.5ch
         }
 
+        .v-money {
+            width: 6ch
+        }
+
         .vbar {
             display: inline-block;
             width: 20px;
@@ -519,6 +603,10 @@
 
         .vbar.amber span {
             background: var(--sub)
+        }
+
+        .vbar.green span {
+            background: var(--user)
         }
 
         .thead {
@@ -1129,8 +1217,17 @@
     <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="hlapplylabel" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
     <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent sessions only</span></label>
     <span id="summary" class="num"></span></div>
-    <div class="hgrp right" id="grp-meta"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span>
-    <span id="langsw" class="langsw" title="Language"></span>
+    <div class="hgrp right" id="grp-meta"><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
+        <div class="grow"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></div>
+        <div class="grow"><span id="langsw" class="langsw" title="Language"></span></div>
+        <div class="sect" id="gearcost">cost formula</div>
+        <div class="grow cost"><input type="checkbox" id="ck-in" checked><label for="ck-in" id="lbl-in">fresh input</label><input type="number" id="pr-in" step="0.01" min="0" value="4" title="$/1M"></div>
+        <div class="grow cost"><input type="checkbox" id="ck-out" checked><label for="ck-out" id="lbl-out">output</label><input type="number" id="pr-out" step="0.01" min="0" value="20" title="$/1M"></div>
+        <div class="grow cost"><input type="checkbox" id="ck-reason" checked><label for="ck-reason" id="lbl-reason">reasoning</label><input type="number" id="pr-reason" step="0.01" min="0" value="20" title="$/1M"></div>
+        <div class="grow cost"><input type="checkbox" id="ck-cw" checked><label for="ck-cw" id="lbl-cw">cache write</label><input type="number" id="pr-cw" step="0.01" min="0" value="5" title="$/1M"></div>
+        <div class="grow cost"><input type="checkbox" id="ck-cr" checked><label for="ck-cr" id="lbl-cr">cache read</label><input type="number" id="pr-cr" step="0.01" min="0" value="0.2" title="$/1M"></div>
+        <button class="freset" id="gearreset">reset to default</button>
+    </div></span>
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></div></header>
 <main>
     <div id="tree"></div>
@@ -1157,7 +1254,7 @@
 </div>
 <script src="/i18n.js"></script>
 <script>
-    let TREE = [], CALLS = [], VISIBLE = [], sel = null, VMAX = {ctx: 0, tok: 0},
+    let TREE = [], CALLS = [], VISIBLE = [], sel = null, VMAX = {ctx: 0, tok: 0, money: 0},
         sortKey = null, sortAsc = false, ORDER = new Map(), COLLAPSED = new Set(), EXPANDED = new Set();
     const tr = I18N.tr;
 
@@ -1182,11 +1279,41 @@
         const a = Math.abs(n || 0), s = n < 0 ? '-' : '';
         return a >= 1e6 ? s + (a / 1e6).toFixed(1) + 'M' : a >= 1e3 ? s + (a / 1e3).toFixed(1) + 'k' : s + a;
     };
+    const fmtMoney = n => {
+        const a = Math.abs(n || 0), s = n < 0 ? '-' : '';
+        if (!a) return '$0';
+        if (a < 0.01) return '$' + s + a.toFixed(4);
+        if (a < 1e4) return '$' + s + a.toFixed(2);
+        return a >= 1e6 ? '$' + s + (a / 1e6).toFixed(1) + 'M' : '$' + s + (a / 1e3).toFixed(1) + 'k';
+    };
     const dur = ms => ms < 0 ? '—' : ms < 6e4 ? (ms / 1e3).toFixed(0) + 's' : ms < 36e5 ? (ms / 6e4).toFixed(1) + 'm' : (ms / 36e5).toFixed(1) + 'h';
     const when = t => t ? new Date(t).toLocaleString(I18N.locale()) : '—';
     // FILTER-LOGIC-START
     // Pure filter predicates — no DOM access. test/filter.test.mjs extracts exactly
     // this block and runs it in node, so keep it self-contained between the markers.
+    const COST_DEF = {in: {on: true, price: 4}, out: {on: true, price: 20}, reason: {on: true, price: 20}, cw: {on: true, price: 5}, cr: {on: true, price: 0.2}};
+    let COST = JSON.parse(JSON.stringify(COST_DEF));
+
+    // t = {in, out, reason, cr, cw} token counts; returns dollars
+    function costOf(t) {
+        return (COST.in.on ? t.in / 1e6 * COST.in.price : 0) + (COST.out.on ? t.out / 1e6 * COST.out.price : 0)
+            + (COST.reason.on ? t.reason / 1e6 * COST.reason.price : 0) + (COST.cw.on ? t.cw / 1e6 * COST.cw.price : 0)
+            + (COST.cr.on ? t.cr / 1e6 * COST.cr.price : 0);
+    }
+
+    // money-weighted token count, normalized to fresh-input equivalents
+    function tokEqOf(t) {
+        const p = COST.in.price || 1;
+        return (COST.in.on ? t.in : 0) + (COST.out.on ? t.out * COST.out.price / p : 0)
+            + (COST.reason.on ? t.reason * COST.reason.price / p : 0) + (COST.cw.on ? t.cw * COST.cw.price / p : 0)
+            + (COST.cr.on ? t.cr * COST.cr.price / p : 0);
+    }
+
+    function resetCost() {
+        Object.keys(COST).forEach(k => delete COST[k]);
+        Object.assign(COST, JSON.parse(JSON.stringify(COST_DEF)));
+    }
+
     function modelName(m) {
         return !m ? '—' : typeof m === 'object' ? (m.modelID || m.id || '—') : m;
     }
@@ -1244,7 +1371,7 @@
         if (!inRange(n.order || 0, f.numMin, f.numMax)) return false;
         if (!inRange(n.created || 0, f.dateMin, f.dateMax)) return false;
         if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
-        if (!inRange(n.subtree.in + n.subtree.out + n.subtree.reason, kilo(f.spentMin), kilo(f.spentMax))) return false;
+        if (!inRange(costOf(n.subtree), f.spentMin, f.spentMax)) return false;
         if (!inRange(n.dur, f.durMin, f.durMax)) return false;
         return true;
     }
@@ -1319,7 +1446,7 @@
         textOf = textOf || (c => c.time ? String(c.time) : '');
         return calls.map((c, i) => ({
             n: i + 1, mid: c.mid, time: c.time, ctx: c.ctx, delta: callDeltaAt(calls, i),
-            out: c.out, reason: c.reason, in: c.in, cr: c.cr, text: textOf(c), hu: c.hu || '',
+            out: c.out, reason: c.reason, in: c.in, cr: c.cr, cw: c.cw || 0, text: textOf(c), hu: c.hu || '',
         })).filter(r => callRowMatches(r, f));
     }
 
@@ -1358,9 +1485,14 @@
     if (typeof module !== 'undefined' && module.exports) module.exports = {
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
         treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, heartSizes, ecgPoints,
-        callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel
+        callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel,
+        COST_DEF, COST, costOf, tokEqOf, resetCost
     };
     // FILTER-LOGIC-END
+
+    const COST_FIELDS = ['in', 'out', 'reason', 'cw', 'cr'];
+    const costKey = k => 'cost.' + k;
+    const pricesTip = () => COST_FIELDS.map(k => `${tr(costKey(k))}: $${COST[k].price}/1M${COST[k].on ? '' : ' ✕'}`).join(' · ');
 
     const newTreeFilter = () => ({
         text: '', models: new Set(), providers: new Set(),
@@ -1384,21 +1516,33 @@
             const tree = Object.assign({}, treeFilter, {
                 models: [...treeFilter.models], providers: [...treeFilter.providers]
             });
-            localStorage.setItem(SET_KEY, JSON.stringify({v: 1, tree, call: callFilter, hot: HOT, rec: REC}));
+            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC, cost: COST}));
         } catch (e) { /* storage unavailable — ignore */ }
+    }
+
+    function mergeCost(saved) {
+        const c = JSON.parse(JSON.stringify(COST_DEF));
+        for (const k of COST_FIELDS) {
+            const f = saved && saved[k];
+            if (f && typeof f.on === 'boolean' && typeof f.price === 'number' && Number.isFinite(f.price)) {
+                c[k] = {on: f.on, price: f.price};
+            }
+        }
+        return c;
     }
 
     function loadSettings() {
         if (typeof localStorage === 'undefined') return;
         let s;
         try { s = JSON.parse(localStorage.getItem(SET_KEY)); } catch (e) { return; }
-        if (!s || s.v !== 1) return;
+        if (!s || (s.v !== 1 && s.v !== 2)) return;
         try {
             if (s.tree) treeFilter = Object.assign(newTreeFilter(), s.tree,
                 {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || [])});
             if (s.call) callFilter = Object.assign(newCallFilter(), s.call);
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
             if (s.rec) REC = Object.assign({only: false}, s.rec);
+            if (s.cost) Object.assign(COST, mergeCost(s.cost));
             document.querySelector('#hlwarn').value = HOT.warn ?? '';
             document.querySelector('#hlcrit').value = HOT.crit ?? '';
             document.querySelector('#hlapply').checked = !!HOT.apply;
@@ -1575,6 +1719,50 @@
         saveSettings();
     });
 
+    function syncGearInputs() {
+        COST_FIELDS.forEach(k => {
+            document.querySelector('#ck-' + k).checked = COST[k].on;
+            document.querySelector('#pr-' + k).value = COST[k].price;
+        });
+    }
+
+    function gearToggle() {
+        const m = document.querySelector('#gearmenu');
+        if (m.hidden) {
+            syncGearInputs();
+            m.hidden = false;
+        } else m.hidden = true;
+    }
+
+    function applyCost() {
+        render();
+        refreshCalls();
+        saveSettings();
+    }
+
+    document.querySelector('#gearbtn').addEventListener('click', gearToggle);
+    COST_FIELDS.forEach(k => {
+        document.querySelector('#ck-' + k).addEventListener('change', e => {
+            COST[k].on = e.target.checked;
+            applyCost();
+        });
+        document.querySelector('#pr-' + k).addEventListener('input', e => {
+            const n = e.target.value === '' ? null : Number(e.target.value);
+            COST[k].price = n != null && Number.isFinite(n) ? n : 0;
+            applyCost();
+        });
+    });
+    document.querySelector('#gearreset').addEventListener('click', () => {
+        resetCost();
+        syncGearInputs();
+        applyCost();
+    });
+    document.addEventListener('click', e => {
+        const m = document.querySelector('#gearmenu');
+        if (m.hidden || e.target.closest('.gearwrap')) return;
+        m.hidden = true;
+    });
+
     function openTreeFilter() {
         const f = treeFilter;
         fmodalKind = 'tree';
@@ -1705,7 +1893,8 @@
     function sortVal(s) {
         return sortKey === 'dur' ? s.dur : sortKey === 'ctx' ? (s.maxctx || 0)
             : sortKey === 'time' ? (s.created || 0)
-            : s.subtree.in + s.subtree.out + s.subtree.reason;
+            : sortKey === 'money' ? costOf(s.subtree)
+            : tokEqOf(s.subtree);
     }
 
     function sorted(ns) {
@@ -1718,19 +1907,20 @@
             && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
             && (!REC.only || treeActiveVisible(s))));
         const HEARTS = heartSizes(roots);
-        let mc = 0, mt = 0;
+        let mc = 0, mt = 0, mm = 0;
         (function scan(ns) {
             for (const x of ns) {
                 if (x.maxctx > mc) mc = x.maxctx;
-                const sp = x.subtree.in + x.subtree.out + x.subtree.reason;
-                if (sp > mt) mt = sp;
+                const te = tokEqOf(x.subtree), mo = costOf(x.subtree);
+                if (te > mt) mt = te;
+                if (mo > mm) mm = mo;
                 scan(x.children);
             }
         })(roots);
-        VMAX = {ctx: mc, tok: mt};
-        const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')"><span class="thl">${lbl}</span></span>`;
+        VMAX = {ctx: mc, tok: mt, money: mm};
+        const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : k === 'money' ? ' v-money' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')"><span class="thl">${lbl}</span></span>`;
         const thc = (cls, lbl, tip) => `<span class="thc ${cls}" title="${esc(tip)}">${lbl}</span>`;
-        h += `<div class="thead">${thc('hcol', tr('tree.th.ekg'), tr('tree.th.ekg.tip'))}<span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}${thc('grow', tr('tree.th.session'), tr('tree.th.session.tip'))}${thc('', tr('tree.th.model'), tr('tree.th.model.tip'))}<span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}</span></div>`;
+        h += `<div class="thead">${thc('hcol', tr('tree.th.ekg'), tr('tree.th.ekg.tip'))}<span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}${thc('grow', tr('tree.th.session'), tr('tree.th.session.tip'))}${thc('', tr('tree.th.model'), tr('tree.th.model.tip'))}<span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}<span class="hsp"></span>${th('money', tr('tree.th.money'), tr('tree.th.money.tip'))}</span></div>`;
         let groups = 0;
         SHOWN = {roots: 0, total: TREE.length};
         for (const [dirName, sessions] of docmap(roots)) {
@@ -1740,16 +1930,17 @@
             SHOWN.roots += vis.length;
             const tot = vis.reduce((a, s) => {
                 const t = s.subtree;
-                return {spent: a.spent + t.in + t.out + t.reason}
-            }, {spent: 0});
-            h += `<div class="project">${dirName} — ${tr('tree.sessions', {n: vis.length})} · ${tr('tree.project.spent', {spent: fmt(tot.spent)})}</div><ul>`;
+                return {tok: a.tok + tokEqOf(t), money: a.money + costOf(t)}
+            }, {tok: 0, money: 0});
+            h += `<div class="project">${dirName} — ${tr('tree.sessions', {n: vis.length})} · ${tr('tree.project.spent', {spent: fmt(tot.tok), money: fmtMoney(tot.money)})}</div><ul>`;
             for (const s of vis) h += node(s, 1, HEARTS);
             h += '</ul>';
         }
         if (!groups) h += `<div class="empty">${tr('tree.empty')}</div>`;
         document.querySelector('#tree').innerHTML = h;
-        const allSpent = TREE.reduce((a, s) => a + s.subtree.in + s.subtree.out + s.subtree.reason, 0);
-        document.querySelector('#summary').textContent = tr('summary', {n: TREE.length, spent: fmt(allSpent)});
+        const allTok = TREE.reduce((a, s) => a + tokEqOf(s.subtree), 0);
+        const allMoney = TREE.reduce((a, s) => a + costOf(s.subtree), 0);
+        document.querySelector('#summary').textContent = tr('summary', {n: TREE.length, spent: fmt(allTok), money: fmtMoney(allMoney)});
         updateFilterCount();
     }
 
@@ -1760,9 +1951,13 @@
         const kids = sorted(s.children).filter(k =>
             (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit)) && (!REC.only || treeActiveVisible(k)));
         const hasSub = kids.length > 0;
-        const spent = t.in + t.out + t.reason;
+        const spent = tokEqOf(t);
+        const money = costOf(t);
         const ctxPct = VMAX.ctx && s.maxctx ? Math.max(2, s.maxctx / VMAX.ctx * 100) : 0;
         const tokPct = VMAX.tok && spent ? Math.max(2, spent / VMAX.tok * 100) : 0;
+        const monPct = VMAX.money && money ? Math.max(2, money / VMAX.money * 100) : 0;
+        const spentTip = tr('node.spent.tip') + ' · ' + pricesTip();
+        const moneyTip = tr('node.money.tip') + ' · ' + pricesTip();
         const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
@@ -1778,7 +1973,7 @@
     <span class="ttl" title="${esc(s.title)}">${esc(agentBadge ? displayTitle(s.title, s.agent) : s.title)}</span>
     ${agentBadge}${subBadges}
     <span class="badge">${esc(modelName(s.model))}</span>
-    <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="${tr('node.spent.tip')}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${tr('node.spent.tip')}"><b>${fmt(spent)}</b></span></span></div>`;
+    <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b></span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b></span></span></div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS)).join('')}</ul>`;
         return h + '</li>';
     }
@@ -1840,12 +2035,16 @@
         if (!vis.length) return `<div class="empty">${tr('calls.empty_filtered')}</div>`;
         const all = calls.map((c, i) => ({
             n: i + 1, ctx: c.ctx, delta: callDeltaAt(calls, i),
-            out: c.out, reason: c.reason, in: c.in, cr: c.cr
+            out: c.out, reason: c.reason, in: c.in, cr: c.cr, cw: c.cw || 0
         }));
+        vis.forEach(r => {
+            r.tokeq = tokEqOf(r);
+            r.money = costOf(r);
+        });
         const mx = k => vis.reduce((m, r) => Math.max(m, r[k]), 1);
         const mCtx = mx('ctx'), mD = Math.max(1, ...vis.map(r => r.delta)),
-            mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr');
-        const bar = (v, m) => `<span class="vbar"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
+            mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr'), mTq = mx('tokeq'), mMon = mx('money');
+        const bar = (v, m, cls) => `<span class="vbar${cls ? ' ' + cls : ''}"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
         let rows = '';
         vis.forEach(r => {
             const cls = r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
@@ -1856,11 +2055,13 @@
   <td class="num">${bar(r.out, mOut)}${fmt(r.out)}</td>
   <td class="num">${bar(r.reason, mRn)}${fmt(r.reason)}</td>
   <td class="num sep">${bar(r.in, mIn)}${fmt(r.in)}</td>
-  <td class="num">${bar(r.cr, mCr)}${fmt(r.cr)}</td></tr>`;
+  <td class="num">${bar(r.cr, mCr)}${fmt(r.cr)}</td>
+  <td class="num sep">${bar(r.tokeq, mTq, 'amber')}${fmt(r.tokeq)}</td>
+  <td class="num">${bar(r.money, mMon, 'green')}${fmtMoney(r.money)}</td></tr>`;
         });
-        const sum = rs => rs.reduce((a, r) => ({ctx: a.ctx + r.ctx, in: a.in + r.in, cr: a.cr + r.cr, out: a.out + r.out, reason: a.reason + r.reason}), {ctx: 0, in: 0, cr: 0, out: 0, reason: 0});
+        const sum = rs => rs.reduce((a, r) => ({ctx: a.ctx + r.ctx, in: a.in + r.in, cr: a.cr + r.cr, out: a.out + r.out, reason: a.reason + r.reason, cw: a.cw + r.cw}), {ctx: 0, in: 0, cr: 0, out: 0, reason: 0, cw: 0});
         const ta = sum(all), tv = sum(vis);
-        const footRow = (lbl, t, lastCtx) => `<tr><td>${lbl}</td><td title="${tr('calls.foot.sum.tip')}">${fmt(t.ctx)}</td><td title="${tr('calls.foot.delta.tip')}">${fmt(lastCtx)}</td><td>${fmt(t.out)}</td><td>${fmt(t.reason)}</td><td>${fmt(t.in)}</td><td>${fmt(t.cr)}</td></tr>`;
+        const footRow = (lbl, t, lastCtx) => `<tr><td>${lbl}</td><td title="${tr('calls.foot.sum.tip')}">${fmt(t.ctx)}</td><td title="${tr('calls.foot.delta.tip')}">${fmt(lastCtx)}</td><td>${fmt(t.out)}</td><td>${fmt(t.reason)}</td><td>${fmt(t.in)}</td><td>${fmt(t.cr)}</td><td class="sep">${fmt(tokEqOf(t))}</td><td>${fmtMoney(costOf(t))}</td></tr>`;
         let foot;
         if (callFilterActive()) {
             foot = footRow(tr('calls.foot.filtered', {n: vis.length}), tv, vis[vis.length - 1].ctx)
@@ -1875,7 +2076,9 @@
             [tr('calls.th.out'), tr('calls.th.out.tip'), ''],
             [tr('calls.th.reason'), tr('calls.th.reason.tip'), ''],
             [tr('calls.th.in'), tr('calls.th.in.tip'), 'sep'],
-            [tr('calls.th.cr'), tr('calls.th.cr.tip'), '']
+            [tr('calls.th.cr'), tr('calls.th.cr.tip'), ''],
+            [tr('calls.th.tokeq'), tr('calls.th.tokeq.tip'), 'sep'],
+            [tr('calls.th.money'), tr('calls.th.money.tip'), '']
         ];
         return `<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
   <tbody>${rows}</tbody>
@@ -1957,6 +2160,10 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             if (e.key === 'Escape') fmodalClose();
             return;
         }
+        if (e.key === 'Escape' && !document.querySelector('#gearmenu').hidden) {
+            document.querySelector('#gearmenu').hidden = true;
+            return;
+        }
         if (document.querySelector('#modal').hidden) return treeKey(e);
         if (e.key === 'Escape') modalClose();
         else if (e.key === 'ArrowLeft') callNav(-1);
@@ -1980,14 +2187,14 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const mName = modelName(s.model);
         const mFull = mObj ? `${mObj.providerID || '—'} / ${mName}${mObj.variant ? ' · ' + mObj.variant : ''}` : mName;
         const kids = {in: t.in - s.in, out: t.out - s.out, reason: t.reason - s.reason, cr: t.cr - s.cr, cw: t.cw - s.cw};
-        const row = (lbl, v, cls, tip) => `<tr${cls ? ` class="${cls}"` : ''}><th title="${esc(tip)}">${lbl}</th><td>${fmt(v.in)}</td><td>${fmt(v.out)}</td><td>${fmt(v.reason)}</td><td class="sep">${fmt(v.cr)}</td><td>${fmt(v.cw)}</td></tr>`;
+        const row = (lbl, v, cls, tip) => `<tr${cls ? ` class="${cls}"` : ''}><th title="${esc(tip)}">${lbl}</th><td>${fmt(v.in)}</td><td>${fmt(v.out)}</td><td>${fmt(v.reason)}</td><td class="sep">${fmt(v.cr)}</td><td>${fmt(v.cw)}</td><td class="sep">${fmt(tokEqOf(v))}</td><td>${fmtMoney(costOf(v))}</td></tr>`;
         const hasKids = s.children.length > 0;
         return `<dl><dt>${tr('detail.ctx_now')}</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
     <dt>${tr('detail.ctx_max')}</dt><dd>${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</dd>
     <dt>${tr('detail.agent_model')}</dt><dd>${esc(s.agent || '—')} / ${esc(mFull)}</dd>
     <dt>${tr('detail.dir')}</dt><dd>${esc(s.dir)}</dd>
     <dt>${tr('detail.created_updated')}</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd></dl>
-    <table class="tokgrid"><thead><tr><th></th><th>${tr('detail.tok.in')}</th><th>${tr('detail.tok.out')}</th><th>${tr('detail.tok.reason')}</th><th class="sep">${tr('detail.tok.cr')}</th><th>${tr('detail.tok.cw')}</th></tr></thead>
+    <table class="tokgrid"><thead><tr><th></th><th>${tr('detail.tok.in')}</th><th>${tr('detail.tok.out')}</th><th>${tr('detail.tok.reason')}</th><th class="sep">${tr('detail.tok.cr')}</th><th>${tr('detail.tok.cw')}</th><th class="sep">${tr('detail.tok.tokeq')}</th><th>${tr('detail.tok.money')}</th></tr></thead>
     <tbody>${row(tr('detail.tok.own'), s, 'own', tr('detail.own'))}${hasKids ? row(tr('detail.tok.kids', {n: s.children.length}), kids, 'kids', tr('detail.kids')) + row(tr('detail.tok.subtree'), t, 'total', tr('detail.subtree')) : ''}</tbody></table>`;
     }
 
@@ -2204,6 +2411,11 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#reclabel').title = tr('recent.only.title');
         document.querySelector('#reclabel').textContent = tr('recent.only.label');
         document.querySelector('#version').title = tr('version.title');
+        document.querySelector('#gearbtn').title = tr('gear.title');
+        document.querySelector('#gearcost').textContent = tr('gear.cost');
+        COST_FIELDS.forEach(k => document.querySelector('#lbl-' + k).textContent = tr(costKey(k)));
+        COST_FIELDS.forEach(k => document.querySelector('#pr-' + k).title = tr('gear.price.ph'));
+        document.querySelector('#gearreset').textContent = tr('gear.reset');
         document.querySelector('#splitter').title = tr('splitter.title');
         const dbl = document.querySelector('#dblabel');
         if (dbl) dbl.textContent = tr('db.label');

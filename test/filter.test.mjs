@@ -92,12 +92,37 @@ test('tree ctx filter: min/max in KILO tokens, inclusive (500 = 500k)', () => {
     assert.equal(L.treeMatchesNode(n, tf({ ctxMax: 499 })), false);
 });
 
-test('tree spent filter: min/max in KILO tokens, inclusive (1750 = 1750k)', () => {
-    const n = node({ subtree: { in: 1000000, out: 500000, reason: 250000, cr: 0, cw: 0 } });
-    assert.equal(L.treeMatchesNode(n, tf({ spentMin: 1750 })), true);
-    assert.equal(L.treeMatchesNode(n, tf({ spentMin: 1751 })), false);
-    assert.equal(L.treeMatchesNode(n, tf({ spentMax: 1750 })), true);
-    assert.equal(L.treeMatchesNode(n, tf({ spentMax: 1749 })), false);
+test('tree spent filter: min/max in DOLLARS, inclusive (in=1M at $4/1M = $4)', () => {
+    L.resetCost();
+    const n = node({ subtree: { in: 1000000, out: 0, reason: 0, cr: 0, cw: 0 } });
+    assert.equal(L.treeMatchesNode(n, tf({ spentMin: 4 })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ spentMin: 4.01 })), false);
+    assert.equal(L.treeMatchesNode(n, tf({ spentMax: 4 })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ spentMax: 3.99 })), false);
+});
+
+test('costOf: sums enabled token fields at their $/1M prices', () => {
+    L.resetCost();
+    assert.equal(L.costOf({in: 1000000, out: 0, reason: 0, cr: 0, cw: 0}), 4);
+    assert.equal(L.costOf({in: 0, out: 1000000, reason: 0, cr: 0, cw: 0}), 20);
+    assert.equal(L.costOf({in: 0, out: 0, reason: 0, cr: 5000000, cw: 0}), 1);
+    assert.equal(L.costOf({in: 1000000, out: 1000000, reason: 1000000, cr: 5000000, cw: 1000000}), 50);
+    L.COST.in.on = false;
+    assert.equal(L.costOf({in: 1000000, out: 0, reason: 0, cr: 0, cw: 0}), 0);
+    assert.equal(L.costOf({in: 1000000, out: 1000000, reason: 0, cr: 0, cw: 0}), 20);
+});
+
+test('tokEqOf: money-weighted tokens normalized to fresh input', () => {
+    L.resetCost();
+    assert.equal(L.tokEqOf({in: 1000, out: 0, reason: 0, cr: 0, cw: 0}), 1000);
+    assert.equal(L.tokEqOf({in: 1000, out: 1000, reason: 0, cr: 0, cw: 0}), 1000 + 1000 * 20 / 4);
+    assert.equal(L.tokEqOf({in: 0, out: 0, reason: 1000, cr: 0, cw: 1000}), 1000 * 20 / 4 + 1000 * 5 / 4);
+    assert.ok(Math.abs(L.tokEqOf({in: 0, out: 0, reason: 0, cr: 1000000, cw: 0}) - 1000000 * 0.2 / 4) < 1e-6);
+    L.COST.out.on = false;
+    assert.equal(L.tokEqOf({in: 1000, out: 1000, reason: 0, cr: 0, cw: 0}), 1000);
+    L.resetCost();
+    L.COST.in.price = 0;
+    assert.equal(L.tokEqOf({in: 1000, out: 2000, reason: 0, cr: 0, cw: 0}), 1000 + 2000 * 20);
 });
 
 test('tree kilo interpretation: 600 filters at 600000', () => {
@@ -114,11 +139,12 @@ test('tree duration filter: min/max on node dur (ms)', () => {
 });
 
 test('tree node must satisfy ALL active criteria (AND)', () => {
+    L.resetCost();
     const n = node({
         title: 'fix bug', model: { providerID: 'openai', modelID: 'gpt-5' },
         maxctx: 10000, subtree: { in: 100, out: 100, reason: 100, cr: 0, cw: 0 },
     });
-    const f = tf({ text: 'bug', models: new Set(['gpt-5']), ctxMin: 5, spentMax: 0.3 });
+    const f = tf({ text: 'bug', models: new Set(['gpt-5']), ctxMin: 5, spentMax: 0.005 });
     assert.equal(L.treeMatchesNode(n, f), true);
     assert.equal(L.treeMatchesNode(n, tf({ ...f, models: new Set(['other']) })), false);
     assert.equal(L.treeMatchesNode(n, tf({ ...f, ctxMin: 20 })), false);
