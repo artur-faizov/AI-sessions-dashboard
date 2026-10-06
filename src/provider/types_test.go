@@ -62,8 +62,8 @@ func TestGoldenSourceIsLastField(t *testing.T) {
 
 func TestGoldenCalls(t *testing.T) {
 	calls := []CallRec{
-		{Mid: "a1", Time: 1100, In: 10, Cr: 100, Cw: 7, Out: 5, Reason: 2, Ctx: 117, Hu: true},
-		{Mid: "a2", Time: 1200, In: 20, Cr: 300, Cw: 0, Out: 6, Reason: 0, Ctx: 320, Hu: false},
+		{Mid: "a1", Time: 1100, In: 10, Cr: 100, Cw: 7, Out: 5, Reason: 2, Ctx: 117, Hu: TrigText},
+		{Mid: "a2", Time: 1200, In: 20, Cr: 300, Cw: 0, Out: 6, Reason: 0, Ctx: 320, Hu: TrigNone},
 	}
 	assertGolden(t, "calls.golden.json", map[string]any{"calls": calls})
 }

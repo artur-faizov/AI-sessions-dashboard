@@ -223,10 +223,10 @@ func TestHuFlagsCallsTriggeredByHumanInput(t *testing.T) {
 			t.Fatalf("mids %v, want %v", mids, wantMids)
 		}
 	}
-	wantHu := []bool{true, false, false, true, false}
+	wantHu := []provider.Trig{provider.TrigText, provider.TrigNone, provider.TrigNone, provider.TrigText, provider.TrigNone}
 	for i, c := range calls {
 		if c.Hu != wantHu[i] {
-			t.Fatalf("call %s hu=%v, want %v", c.Mid, c.Hu, wantHu[i])
+			t.Fatalf("call %s hu=%q, want %q", c.Mid, c.Hu, wantHu[i])
 		}
 	}
 }

@@ -56,12 +56,19 @@ func userToolResultLine(uuid, ts, toolUseID, content string) string {
 		uuid, ts, toolUseID, mustJSON(content))
 }
 
+func userBlocksLine(uuid, ts, blocks string) string {
+	return fmt.Sprintf(`{"type":"user","uuid":%q,"timestamp":%q,"cwd":"/home/x/proj","sessionId":"s1","message":{"role":"user","content":[%s]}}`,
+		uuid, ts, blocks)
+}
+
 func assistantLine(uuid, ts, model string, in, out, cr, cw int64, blocks string) string {
 	return fmt.Sprintf(`{"type":"assistant","uuid":%q,"timestamp":%q,"cwd":"/home/x/proj","sessionId":"s1","message":{"role":"assistant","model":%q,"content":[%s],"usage":{"input_tokens":%d,"cache_creation_input_tokens":%d,"cache_read_input_tokens":%d,"output_tokens":%d}}}`,
 		uuid, ts, model, blocks, in, cw, cr, out)
 }
 
 const textBlock = `{"type":"text","text":"hello there"}`
+
+const imageBlock = `{"type":"image","source":{"type":"base64","media_type":"image/png","data":"aW1n"}}`
 
 func mustJSON(v any) string {
 	b, err := json.Marshal(v)
@@ -211,17 +218,68 @@ func TestClaudeCallsHuFlag(t *testing.T) {
 	if len(calls) != 3 {
 		t.Fatalf("want 3 calls, got %s", jdump(calls))
 	}
-	if !calls[0].Hu {
-		t.Fatal("first call follows real user text: hu must be true")
+	if calls[0].Hu != provider.TrigText {
+		t.Fatal("first call follows real user text: hu must be text")
 	}
-	if calls[1].Hu {
-		t.Fatal("call after assistant: hu must be false")
+	if calls[1].Hu != provider.TrigNone {
+		t.Fatal("call after assistant: hu must be none")
 	}
-	if calls[2].Hu {
-		t.Fatal("call after tool_result user message: hu must be false")
+	if calls[2].Hu != provider.TrigNone {
+		t.Fatal("call after tool_result user message: hu must be none")
 	}
 	if calls[0].Ctx != 10 {
 		t.Fatalf("ctx %d", calls[0].Ctx)
+	}
+}
+
+func TestClaudeCallsTriggerKinds(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "typed message"),
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, textBlock),
+		assistantLine("q1", "2026-09-03T13:28:29.000Z", "m1", 0, 0, 0, 0,
+			`{"type":"tool_use","id":"call_q","name":"AskUserQuestion","input":{"question":"which?"}}`),
+		userToolResultLine("u2", "2026-09-03T13:28:30.000Z", "call_q", "User answered: yes"),
+		assistantLine("a2", "2026-09-03T13:28:31.000Z", "m1", 20, 6, 0, 0, textBlock),
+		assistantLine("p1", "2026-09-03T13:28:32.000Z", "m1", 0, 0, 0, 0,
+			`{"type":"tool_use","id":"call_p","name":"ExitPlanMode","input":{"plan":"do it"}}`),
+		userToolResultLine("u3", "2026-09-03T13:28:33.000Z", "call_p", "plan approved"),
+		assistantLine("a3", "2026-09-03T13:28:34.000Z", "m1", 15, 3, 0, 0, textBlock),
+		assistantLine("b1", "2026-09-03T13:28:35.000Z", "m1", 0, 0, 0, 0,
+			`{"type":"tool_use","id":"call_b","name":"Bash","input":{"command":"ls"}}`),
+		userToolResultLine("u4", "2026-09-03T13:28:36.000Z", "call_b", "file list"),
+		assistantLine("a4", "2026-09-03T13:28:37.000Z", "m1", 12, 2, 0, 0, textBlock),
+		`{"type":"user","uuid":"u5","isMeta":true,"timestamp":"2026-09-03T13:28:38.000Z","message":{"role":"user","content":"meta noise"}}`,
+		assistantLine("a5", "2026-09-03T13:28:39.000Z", "m1", 8, 1, 0, 0, textBlock),
+		userBlocksLine("u6", "2026-09-03T13:28:40.000Z", imageBlock),
+		assistantLine("a6", "2026-09-03T13:28:41.000Z", "m1", 9, 2, 0, 0, textBlock),
+		userBlocksLine("u7", "2026-09-03T13:28:42.000Z", textBlock+","+imageBlock),
+		assistantLine("a7", "2026-09-03T13:28:43.000Z", "m1", 7, 1, 0, 0, textBlock),
+	)
+	calls, err := p.SessionCalls("s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantMids := []string{"a1", "a2", "a3", "a4", "a5", "a6", "a7"}
+	if len(calls) != len(wantMids) {
+		t.Fatalf("calls %s", jdump(calls))
+	}
+	wantHu := []provider.Trig{
+		provider.TrigText,     // a1 after plain-string user text
+		provider.TrigQuestion, // a2 after AskUserQuestion tool_result
+		provider.TrigApproval, // a3 after ExitPlanMode tool_result
+		provider.TrigNone,     // a4 after Bash tool_result
+		provider.TrigNone,     // a5 after isMeta line
+		provider.TrigImage,    // a6 after image-only content array
+		provider.TrigNone,     // a7 after text+image array (has a human text block)
+	}
+	for i, c := range calls {
+		if c.Mid != wantMids[i] {
+			t.Fatalf("call %d mid %s, want %s", i, c.Mid, wantMids[i])
+		}
+		if c.Hu != wantHu[i] {
+			t.Fatalf("call %s hu=%q, want %q", c.Mid, c.Hu, wantHu[i])
+		}
 	}
 }
 
@@ -394,7 +452,7 @@ func TestClaudeSubagentCallsServed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) != 1 || calls[0].Mid != "a9" || !calls[0].Hu {
+	if len(calls) != 1 || calls[0].Mid != "a9" || calls[0].Hu != provider.TrigText {
 		t.Fatalf("subagent calls: %s", jdump(calls))
 	}
 	// trigger for a subagent mid must be found

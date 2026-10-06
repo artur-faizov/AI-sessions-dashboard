@@ -59,26 +59,61 @@ func sessionPrompt(pool *sql.DB, sessionID string) ([]string, error) {
 	return texts, nil
 }
 
-func humanMessageIDs(pool *sql.DB, sessionID string) (map[string]bool, error) {
+// humanTriggers maps message id -> the kind of human input a message carries:
+// user text parts (text), user file parts (image), and completed question
+// tool parts on assistant messages (question).
+func humanTriggers(pool *sql.DB, sessionID string) (map[string]provider.Trig, error) {
 	rows, err := pool.Query(
-		`SELECT p.message_id AS mid, p.data FROM part p
+		`SELECT p.message_id AS mid, m.data AS mdata, p.data AS pdata FROM part p
 		 JOIN message m ON m.id = p.message_id
-		 WHERE p.session_id = ? AND m.data LIKE '%"role":"user"%'`, sessionID)
+		 WHERE p.session_id = ?`, sessionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := map[string]bool{}
+	textMsgs := map[string]bool{}
+	fileMsgs := map[string]bool{}
+	questionMsgs := map[string]bool{}
 	for rows.Next() {
-		var mid, data string
-		if err := rows.Scan(&mid, &data); err != nil {
+		var mid, mdata, pdata string
+		if err := rows.Scan(&mid, &mdata, &pdata); err != nil {
 			return nil, err
 		}
-		if _, ok := realUserText(decodeData(data)); ok {
-			out[mid] = true
+		md, pd := decodeData(mdata), decodeData(pdata)
+		if md == nil || pd == nil {
+			continue
+		}
+		switch md["role"] {
+		case "user":
+			if _, ok := realUserText(pd); ok {
+				textMsgs[mid] = true
+			}
+			if pd["type"] == "file" {
+				fileMsgs[mid] = true
+			}
+		case "assistant":
+			if tool, _ := pd["tool"].(string); pd["type"] == "tool" && tool == "question" &&
+				sub(pd, "state")["status"] == "completed" {
+				questionMsgs[mid] = true
+			}
 		}
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	out := map[string]provider.Trig{}
+	for mid := range textMsgs {
+		out[mid] = provider.TrigText
+	}
+	for mid := range questionMsgs {
+		out[mid] = provider.TrigQuestion
+	}
+	for mid := range fileMsgs {
+		if out[mid] == "" {
+			out[mid] = provider.TrigImage
+		}
+	}
+	return out, nil
 }
 
 type msgRow struct {
@@ -107,7 +142,7 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	human, err := humanMessageIDs(pool, sessionID)
+	human, err := humanTriggers(pool, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -124,10 +159,14 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 			out := num(t["output"])
 			reason := num(t["reasoning"])
 			if in != 0 || cr != 0 || cw != 0 || out != 0 || reason != 0 {
+				var hu provider.Trig
+				if prev != nil {
+					hu = human[prev.id]
+				}
 				calls = append(calls, provider.CallRec{
 					Mid: m.id, Time: m.created, In: in, Cr: cr, Cw: cw,
 					Out: out, Reason: reason, Ctx: in + cr + cw,
-					Hu: prev != nil && human[prev.id],
+					Hu: hu,
 				})
 			}
 		}

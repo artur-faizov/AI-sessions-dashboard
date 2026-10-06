@@ -379,10 +379,10 @@ test('visibleCallRows: all active criteria AND together', () => {
     assert.deepEqual(vis.map(r => r.n), [2]);
 });
 
-test('visibleCallRows: propagates hu (human-triggered) flag as boolean', () => {
-    const calls = [call({ hu: true, ctx: 100 }), call({ ctx: 150 }), call({ hu: 1, ctx: 120 })];
+test('visibleCallRows: propagates hu (human-trigger kind) as string', () => {
+    const calls = [call({hu: 'text', ctx: 100}), call({ctx: 150}), call({hu: 'image', ctx: 120})];
     const vis = L.visibleCallRows(calls, cf());
-    assert.deepEqual(vis.map(r => r.hu), [true, false, true]);
+    assert.deepEqual(vis.map(r => r.hu), ['text', '', 'image']);
 });
 
 test('displayTitle: drops the "(@agent subagent)" suffix only for the same agent', () => {

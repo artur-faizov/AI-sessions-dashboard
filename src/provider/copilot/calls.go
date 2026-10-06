@@ -10,8 +10,11 @@ import (
 // combined length passes this many characters.
 const promptCap = 20000
 
-func (st *stream) humanBefore(i int) bool {
-	return i > 0 && st.items[i-1].kind == kindUser && st.items[i-1].human
+func (st *stream) humanBefore(i int) provider.Trig {
+	if i > 0 && st.items[i-1].kind == kindUser && st.items[i-1].human {
+		return provider.TrigText
+	}
+	return provider.TrigNone
 }
 
 // calls returns one record per assistant API call of a node, in time order,

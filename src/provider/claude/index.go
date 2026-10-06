@@ -38,6 +38,9 @@ type claudeMsg struct {
 	model       string
 	hasUsage    bool
 	human       string // real human text on user lines
+	meta        bool   // isMeta noise line
+	txtBlk      bool   // user content array carries a real human text block
+	imgBlk      bool   // user content array carries an image block
 	texts       []string
 	toolUses    []claudeToolUse
 	toolResults []claudeToolResult
@@ -189,6 +192,9 @@ func parseClaudeFile(path string) *claudeFile {
 			}
 		}
 		m := &claudeMsg{mid: raw.UUID, role: raw.Type, timeMS: ts}
+		if raw.Type == "user" {
+			m.meta = raw.IsMeta
+		}
 		if raw.Cwd != "" && f.cwd == "" {
 			f.cwd = raw.Cwd
 		}
@@ -228,6 +234,13 @@ func parseClaudeFile(path string) *claudeFile {
 					switch b.Type {
 					case "text":
 						m.texts = append(m.texts, b.Text)
+						if raw.Type == "user" && claudeHumanText(b.Text) != "" {
+							m.txtBlk = true
+						}
+					case "image":
+						if raw.Type == "user" {
+							m.imgBlk = true
+						}
 					case "tool_use":
 						m.toolUses = append(m.toolUses, claudeToolUse{id: b.ID, name: b.Name, input: b.Input})
 						if b.ID != "" && b.Name != "" {
@@ -403,6 +416,31 @@ func (c *Provider) findSessionFile(sid string) *claudeFile {
 
 // --- per-file derived data ---
 
+// humanTrig classifies the human input a user line carries: plain-string text
+// (text), an AskUserQuestion tool result (question), an ExitPlanMode tool
+// result (approval), or an image-only content array (image). Assistant
+// messages, tool outputs and isMeta noise lines are never human triggers.
+func (f *claudeFile) humanTrig(m *claudeMsg) provider.Trig {
+	if m == nil || m.role != "user" || m.meta {
+		return provider.TrigNone
+	}
+	if m.human != "" {
+		return provider.TrigText
+	}
+	for _, tr := range m.toolResults {
+		switch f.toolNames[tr.id] {
+		case "AskUserQuestion":
+			return provider.TrigQuestion
+		case "ExitPlanMode":
+			return provider.TrigApproval
+		}
+	}
+	if m.imgBlk && !m.txtBlk {
+		return provider.TrigImage
+	}
+	return provider.TrigNone
+}
+
 func (f *claudeFile) calls() []provider.CallRec {
 	calls := []provider.CallRec{}
 	var prev *claudeMsg
@@ -413,7 +451,7 @@ func (f *claudeFile) calls() []provider.CallRec {
 				In: m.usage.in, Cr: m.usage.cr, Cw: m.usage.cw,
 				Out: m.usage.out, Reason: 0,
 				Ctx: m.usage.in + m.usage.cr + m.usage.cw,
-				Hu:  prev != nil && prev.role == "user" && prev.human != "",
+				Hu:  f.humanTrig(prev),
 			})
 		}
 		prev = m

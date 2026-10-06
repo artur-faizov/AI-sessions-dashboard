@@ -283,7 +283,7 @@ func TestUnknownPath404(t *testing.T) {
 func TestAPICallsAndPromptWithSession(t *testing.T) {
 	p := newLenient("alpha", "/data/alpha.db")
 	p.prompts = map[string][]string{"s1": {"hello"}}
-	p.calls = map[string][]provider.CallRec{"s1": {{Mid: "a1", Time: 100, In: 10, Cr: 1, Cw: 2, Out: 5, Reason: 3, Ctx: 13, Hu: true}}}
+	p.calls = map[string][]provider.CallRec{"s1": {{Mid: "a1", Time: 100, In: 10, Cr: 1, Cw: 2, Out: 5, Reason: 3, Ctx: 13, Hu: provider.TrigText}}}
 	p.triggers = map[string]*provider.TriggerResp{"a1": {Case: "user", Time: int64(50), Parts: []any{}}}
 	srv := serveOne(t, p)
 
@@ -305,7 +305,7 @@ func TestAPICallsAndPromptWithSession(t *testing.T) {
 		t.Fatalf("calls %v", calls)
 	}
 	c := calls[0].(map[string]any)
-	if c["ctx"].(float64) != 13 || c["hu"] != true {
+	if c["ctx"].(float64) != 13 || c["hu"] != "text" {
 		t.Fatalf("call %v", c)
 	}
 

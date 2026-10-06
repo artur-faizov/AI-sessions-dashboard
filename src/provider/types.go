@@ -34,6 +34,19 @@ type SubtreeSums struct {
 	Cw     int64 `json:"cw"`
 }
 
+// Trig is the kind of human input that triggered an AI call: typed text, an
+// answered question tool, a plan approval, or an attached image. The zero
+// value means the call was not triggered by human input.
+type Trig string
+
+const (
+	TrigNone     Trig = ""
+	TrigText     Trig = "text"
+	TrigQuestion Trig = "question"
+	TrigApproval Trig = "approval"
+	TrigImage    Trig = "image"
+)
+
 // CallRec is one AI call in the /api/calls payload.
 type CallRec struct {
 	Mid    string `json:"mid"`
@@ -44,7 +57,7 @@ type CallRec struct {
 	Out    int64  `json:"out"`
 	Reason int64  `json:"reason"`
 	Ctx    int64  `json:"ctx"`
-	Hu     bool   `json:"hu"`
+	Hu     Trig   `json:"hu"`
 }
 
 // TriggerPartText is a text part of a /api/trigger payload.
