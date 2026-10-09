@@ -399,7 +399,7 @@ test('callDeltaAt: first call delta = its ctx, later = growth vs previous', () =
 });
 
 test('callRowMatches: min/max on every column', () => {
-    const row = { n: 3, ctx: 1000, delta: 200, out: 50, reason: 30, in: 120, cr: 800, text: '10/5/2026, 3:24:15 PM' };
+    const row = { n: 3, ctx: 1000000, delta: 200000, out: 50000, reason: 30000, in: 120000, cr: 800000, text: '10/5/2026, 3:24:15 PM' };
     assert.equal(L.callRowMatches(row, cf()), true);
     assert.equal(L.callRowMatches(row, cf({ numMin: 3, numMax: 3 })), true);
     assert.equal(L.callRowMatches(row, cf({ numMin: 4 })), false);
@@ -426,17 +426,17 @@ test('callRowMatches: text on row text, case-insensitive, empty = off', () => {
 });
 
 test('visibleCallRows: delta computed against the full list, then filtered', () => {
-    const calls = [call({ ctx: 100 }), call({ ctx: 150 }), call({ ctx: 120 }), call({ ctx: 400 })];
+    const calls = [call({ ctx: 100000 }), call({ ctx: 150000 }), call({ ctx: 120000 }), call({ ctx: 400000 })];
     const vis = L.visibleCallRows(calls, cf({ deltaMin: 60 }));
     assert.deepEqual(vis.map(r => r.n), [1, 4]);
-    assert.equal(vis[1].delta, 280);
+    assert.equal(vis[1].delta, 280000);
     const vis2 = L.visibleCallRows(calls, cf());
     assert.equal(vis2.length, 4);
-    assert.deepEqual(vis2.map(r => r.delta), [100, 50, -30, 280]);
+    assert.deepEqual(vis2.map(r => r.delta), [100000, 50000, -30000, 280000]);
 });
 
 test('visibleCallRows: all active criteria AND together', () => {
-    const calls = [call({ ctx: 100, out: 10 }), call({ ctx: 900, out: 90 })];
+    const calls = [call({ ctx: 100000, out: 10000 }), call({ ctx: 900000, out: 90000 })];
     const vis = L.visibleCallRows(calls, cf({ ctxMin: 500, outMin: 50 }));
     assert.deepEqual(vis.map(r => r.n), [2]);
 });
