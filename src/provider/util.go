@@ -47,3 +47,27 @@ func ExpandUser(p string) string {
 	}
 	return p
 }
+
+// ByModelAdd accumulates the sums s into m under model, copying s.
+func ByModelAdd(m map[string]*SubtreeSums, model string, s *SubtreeSums) {
+	if model == "" || s == nil {
+		return
+	}
+	if cur, ok := m[model]; ok {
+		cur.In += s.In
+		cur.Out += s.Out
+		cur.Reason += s.Reason
+		cur.Cr += s.Cr
+		cur.Cw += s.Cw
+		return
+	}
+	c := *s
+	m[model] = &c
+}
+
+// ByModelMerge merges every entry of src into dst.
+func ByModelMerge(dst, src map[string]*SubtreeSums) {
+	for k, v := range src {
+		ByModelAdd(dst, k, v)
+	}
+}

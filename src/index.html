@@ -231,19 +231,35 @@
         }
 
         .gearmenu {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
+            position: fixed;
+            left: 18px;
+            right: 18px;
+            top: 64px;
             background: var(--bg);
             border: 1px solid var(--line);
             border-radius: 8px;
             padding: 10px 12px 12px;
-            min-width: 252px;
             z-index: 20;
             box-shadow: 0 4px 8px rgba(0, 0, 0, .35);
             display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            align-content: flex-start;
+            gap: 14px;
+            max-height: calc(100vh - 90px);
+            overflow-y: auto
+        }
+
+        .gearmenu .mcol {
+            display: flex;
             flex-direction: column;
-            gap: 8px
+            gap: 8px;
+            min-width: 240px
+        }
+
+        .gearmenu .mcol.wide {
+            flex: 1 1 320px
         }
 
         .gearmenu[hidden] {
@@ -315,6 +331,45 @@
         .gearmenu .freset {
             margin-top: 6px;
             align-self: flex-start
+        }
+
+        .gearmenu .mrow {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 6px
+        }
+
+        .gearmenu .mcard {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            border: 1px solid var(--dim, #555);
+            border-radius: 4px;
+            padding: 5px 7px;
+            min-width: 130px
+        }
+
+        .gearmenu .mcard .mname {
+            font-size: 12px;
+            font-weight: bold;
+            word-break: break-all
+        }
+
+        .gearmenu .mcard .mrow2 {
+            display: flex;
+            align-items: center;
+            gap: 4px
+        }
+
+        .gearmenu .mcard label {
+            flex: none;
+            width: auto
+        }
+
+        .gearmenu .mcard .mtot {
+            color: var(--dim);
+            font-size: 11px
         }
 
         .hlbox {
@@ -1242,10 +1297,13 @@
     <label class="hlbox" id="chkbox" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><input type="checkbox" id="chkonly" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chklabel" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this.">check-mark</span></label>
     <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
     <div class="hgrp right" id="grp-meta"><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
+        <div class="mcol">
         <div class="grow"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></div>
         <div class="grow"><span id="langsw" class="langsw" title="Language"></span></div>
         <div class="sect" id="gearstats">statistics</div>
         <div class="grow" id="statrows"></div>
+        </div>
+        <div class="mcol">
         <div class="sect" id="gearcost">cost formula</div>
         <div class="grow cost"><input type="checkbox" id="ck-in" checked><label for="ck-in" id="lbl-in">fresh input</label><span class="cur">$</span><input type="number" id="pr-in" step="0.01" min="0" value="4" title="$/1M"></div>
         <div class="grow cost"><input type="checkbox" id="ck-out" checked><label for="ck-out" id="lbl-out">output</label><span class="cur">$</span><input type="number" id="pr-out" step="0.01" min="0" value="20" title="$/1M"></div>
@@ -1254,6 +1312,11 @@
         <div class="grow cost"><input type="checkbox" id="ck-cr" checked><label for="ck-cr" id="lbl-cr">cache read</label><span class="cur">$</span><input type="number" id="pr-cr" step="0.01" min="0" value="0.2" title="$/1M"></div>
         <div class="gformula" id="gearformula"></div>
         <button class="freset" id="gearreset">reset to default</button>
+        </div>
+        <div class="mcol wide">
+        <div class="sect" id="gearmodels-sect">per-model prices</div>
+        <div class="mrow" id="gearmodels" title=""></div>
+        </div>
     </div></span>
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></div></header>
 <main>
@@ -1339,6 +1402,31 @@
     function resetCost() {
         Object.keys(COST).forEach(k => delete COST[k]);
         Object.assign(COST, JSON.parse(JSON.stringify(COST_DEF)));
+        MCOST = {};
+    }
+
+    // Per-model price overrides: model -> {in: price, ...}; a missing field
+    // falls back to the global COST price.
+    let MCOST = {};
+
+    // t = {in, out, reason, cr, cw} token counts, model = string or undefined;
+    // returns dollars using per-model overrides where set.
+    function costT(t, model) {
+        const o = model ? MCOST[model] : null;
+        const p = k => (o && o[k] != null) ? +o[k] : COST[k].price;
+        return (COST.in.on ? (t.in || 0) / 1e6 * p('in') : 0) + (COST.out.on ? (t.out || 0) / 1e6 * p('out') : 0)
+            + (COST.reason.on ? (t.reason || 0) / 1e6 * p('reason') : 0) + (COST.cw.on ? (t.cw || 0) / 1e6 * p('cw') : 0)
+            + (COST.cr.on ? (t.cr || 0) / 1e6 * p('cr') : 0);
+    }
+
+    // Node cost: per-model subtree sums when present, else global subtree cost.
+    function costNode(n) {
+        if (n && n.bymodel) {
+            let s = 0, any = false;
+            for (const m of Object.keys(n.bymodel)) { s += costT(n.bymodel[m], m); any = true; }
+            if (any) return s;
+        }
+        return costT((n && n.subtree) || {});
     }
 
     function modelName(m) {
@@ -1403,7 +1491,7 @@
         if (!inRange(n.order || 0, f.numMin, f.numMax)) return false;
         if (!inRange(n.created || 0, f.dateMin, f.dateMax)) return false;
         if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
-        if (!inRange(costOf(n.subtree), f.spentMin, f.spentMax)) return false;
+        if (!inRange(costNode(n), f.spentMin, f.spentMax)) return false;
         if (!inRange(n.dur, f.durMin, f.durMax)) return false;
         return true;
     }
@@ -1524,7 +1612,7 @@
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
         treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeCheckedVisible, nodeDir, heartSizes, ecgPoints,
         callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel,
-        COST_DEF, COST, costOf, tokEqOf, resetCost
+        COST_DEF, COST, MCOST, costOf, costT, costNode, tokEqOf, resetCost
     };
     // FILTER-LOGIC-END
 
@@ -1556,7 +1644,7 @@
                 models: [...treeFilter.models], providers: [...treeFilter.providers], dirs: [...treeFilter.dirs]
             });
             localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC,
-                chk: {only: CHK.only, marked: [...CHK.marked]}, cost: COST}));
+                chk: {only: CHK.only, marked: [...CHK.marked]}, cost: COST, mcost: MCOST}));
         } catch (e) { /* storage unavailable — ignore */ }
     }
 
@@ -1569,6 +1657,21 @@
             }
         }
         return c;
+    }
+
+    function mergeMCost(saved) {
+        const out = {};
+        if (!saved || typeof saved !== 'object') return out;
+        for (const m of Object.keys(saved)) {
+            const f = saved[m];
+            if (!f || typeof f !== 'object') continue;
+            const clean = {};
+            for (const k of COST_FIELDS) {
+                if (typeof f[k] === 'number' && Number.isFinite(f[k])) clean[k] = f[k];
+            }
+            if (Object.keys(clean).length) out[m] = clean;
+        }
+        return out;
     }
 
     function loadSettings() {
@@ -1584,6 +1687,7 @@
             if (s.rec) REC = Object.assign({only: false}, s.rec);
             if (s.chk) CHK = Object.assign({only: false, marked: new Set(s.chk.marked || [])}, {only: !!s.chk.only});
             if (s.cost) Object.assign(COST, mergeCost(s.cost));
+            MCOST = mergeMCost(s.mcost);
             document.querySelector('#hlwarn').value = HOT.warn ?? '';
             document.querySelector('#hlcrit').value = HOT.crit ?? '';
             document.querySelector('#hlapply').checked = !!HOT.apply;
@@ -1802,11 +1906,59 @@
         syncGearFormula();
     }
 
+    // Aggregates per-model token totals across the whole tree from bymodel maps.
+    function modelTotals() {
+        const totals = new Map();
+        (function walk(ns) {
+            for (const n of ns) {
+                if (n.bymodel) for (const m of Object.keys(n.bymodel)) {
+                    const t = n.bymodel[m];
+                    let a = totals.get(m);
+                    if (!a) { a = {in: 0, out: 0, reason: 0, cw: 0, cr: 0}; totals.set(m, a); }
+                    a.in += t.in || 0; a.out += t.out || 0; a.reason += t.reason || 0;
+                    a.cw += t.cw || 0; a.cr += t.cr || 0;
+                }
+                walk(n.children);
+            }
+        })(TREE);
+        return totals;
+    }
+
+    function buildGearModels() {
+        const wrap = document.querySelector('#gearmodels');
+        const totals = modelTotals();
+        const models = [...totals.keys()].sort();
+        if (!models.length) { wrap.innerHTML = `<div class="mtot">${tr('gear.models.none')}</div>`; return; }
+        wrap.innerHTML = models.map(m => {
+            const t = totals.get(m);
+            const fields = COST_FIELDS.filter(k => t[k] > 0);
+            const rows = fields.map(k => {
+                const ov = MCOST[m] && MCOST[m][k] != null ? MCOST[m][k] : COST[k].price;
+                return `<span class="mrow2"><label for="mp-${esc(m)}-${k}" title="${esc(tr(costKey(k)))}">${esc(tr(costKey(k)))}</label><span class="cur">$</span><input type="number" step="0.01" min="0" data-m="${esc(m)}" data-k="${k}" id="mp-${esc(m)}-${k}" value="${ov}" title="$/1M"></span>`;
+            }).join('');
+            return `<div class="mcard"><span class="mname" title="${esc(m)}">${esc(m)}</span>${rows}<span class="mtot">${tr('gear.models.tok', {n: fmt(t.in + t.out + t.reason + t.cw + t.cr)})}</span></div>`;
+        }).join('');
+    }
+
+    document.querySelector('#gearmodels').addEventListener('input', e => {
+        const m = e.target.getAttribute('data-m'), k = e.target.getAttribute('data-k');
+        if (!m || !k) return;
+        if (!MCOST[m]) MCOST[m] = {};
+        if (e.target.value === '') delete MCOST[m][k];
+        else {
+            const n = Number(e.target.value);
+            MCOST[m][k] = Number.isFinite(n) ? n : 0;
+        }
+        if (!Object.keys(MCOST[m]).length) delete MCOST[m];
+        applyCost();
+    });
+
     function gearToggle() {
         const m = document.querySelector('#gearmenu');
         if (m.hidden) {
             syncGearInputs();
             syncGearStats();
+            buildGearModels();
             m.hidden = false;
         } else m.hidden = true;
     }
@@ -1833,6 +1985,7 @@
     document.querySelector('#gearreset').addEventListener('click', () => {
         resetCost();
         syncGearInputs();
+        buildGearModels();
         applyCost();
     });
     document.addEventListener('click', e => {
@@ -1975,7 +2128,7 @@
     function sortVal(s) {
         return sortKey === 'dur' ? s.dur : sortKey === 'ctx' ? (s.maxctx || 0)
             : sortKey === 'time' ? (s.created || 0)
-            : sortKey === 'money' ? costOf(s.subtree)
+            : sortKey === 'money' ? costNode(s)
             : tokEqOf(s.subtree);
     }
 
@@ -2000,7 +2153,7 @@
         (function scan(ns) {
             for (const x of ns) {
                 if (x.maxctx > mc) mc = x.maxctx;
-                const te = tokEqOf(x.subtree), mo = costOf(x.subtree);
+                const te = tokEqOf(x.subtree), mo = costNode(x);
                 if (te > mt) mt = te;
                 if (mo > mm) mm = mo;
                 scan(x.children);
@@ -2018,8 +2171,7 @@
             groups++;
             SHOWN.roots += vis.length;
             const tot = vis.reduce((a, s) => {
-                const t = s.subtree;
-                return {tok: a.tok + tokEqOf(t), money: a.money + costOf(t)}
+                return {tok: a.tok + tokEqOf(s.subtree), money: a.money + costNode(s)}
             }, {tok: 0, money: 0});
             h += `<div class="project">${dirName} — ${tr('tree.sessions', {n: vis.length})} · ${tr('tree.project.spent', {spent: fmt(tot.tok), money: fmtMoney(tot.money)})}</div><ul>`;
             for (const s of vis) h += node(s, 1, HEARTS);
@@ -2035,7 +2187,7 @@
         const el = document.querySelector('#statrows');
         if (!el) return;
         const allTok = TREE.reduce((a, s) => a + tokEqOf(s.subtree), 0);
-        const allMoney = TREE.reduce((a, s) => a + costOf(s.subtree), 0);
+        const allMoney = TREE.reduce((a, s) => a + costNode(s), 0);
         el.textContent = tr('stats.rows', {n: TREE.length, spent: fmt(allTok), money: fmtMoney(allMoney)});
     }
 
@@ -2049,7 +2201,7 @@
             && (!CHK.only || treeCheckedVisible(k, CHK.marked)));
         const hasSub = kids.length > 0;
         const spent = tokEqOf(t);
-        const money = costOf(t);
+        const money = costNode(s);
         const ctxPct = VMAX.ctx && s.maxctx ? Math.max(2, s.maxctx / VMAX.ctx * 100) : 0;
         const tokPct = VMAX.tok && spent ? Math.max(2, spent / VMAX.tok * 100) : 0;
         const monPct = VMAX.money && money ? Math.max(2, money / VMAX.money * 100) : 0;
@@ -2138,7 +2290,7 @@
         }));
         vis.forEach(r => {
             r.tokeq = tokEqOf(r);
-            r.money = costOf(r);
+            r.money = costT(r, r.model);
         });
         const mx = k => vis.reduce((m, r) => Math.max(m, r[k]), 1);
         const mCtx = mx('ctx'), mD = Math.max(1, ...vis.map(r => r.delta)),
@@ -2517,6 +2669,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#gearstats').textContent = tr('gear.stats');
         syncGearStats();
         document.querySelector('#gearcost').textContent = tr('gear.cost');
+        document.querySelector('#gearmodels-sect').textContent = tr('gear.models');
+        document.querySelector('#gearmodels').title = tr('gear.models.tip');
         COST_FIELDS.forEach(k => document.querySelector('#lbl-' + k).textContent = tr(costKey(k)));
         COST_FIELDS.forEach(k => document.querySelector('#pr-' + k).title = tr('gear.price.ph'));
         document.querySelector('#gearreset').textContent = tr('gear.reset');

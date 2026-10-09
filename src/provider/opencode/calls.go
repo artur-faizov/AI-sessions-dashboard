@@ -163,10 +163,11 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 				if prev != nil {
 					hu = human[prev.id]
 				}
+				mdl, _ := d["modelID"].(string)
 				calls = append(calls, provider.CallRec{
 					Mid: m.id, Time: m.created, In: in, Cr: cr, Cw: cw,
 					Out: out, Reason: reason, Ctx: in + cr + cw,
-					Hu: hu,
+					Hu: hu, Model: mdl,
 				})
 			}
 		}

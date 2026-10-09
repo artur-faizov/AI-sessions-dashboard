@@ -155,7 +155,7 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 			}
 		}
 		upd := updated
-		nodes[id] = &provider.SessionNode{
+		n := &provider.SessionNode{
 			ID:       id,
 			Parent:   ns(parent),
 			Title:    titleString(title),
@@ -176,6 +176,10 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 			Children: []*provider.SessionNode{},
 			Source:   "opencode",
 		}
+		if k := modelKey(model); k != "" {
+			n.ByModel = map[string]*provider.SubtreeSums{k: {In: in, Out: out, Reason: reason, Cr: cr, Cw: cw}}
+		}
+		nodes[id] = n
 		if n := nodes[id]; n.Dur < 0 {
 			n.Dur = 0
 		}
@@ -218,6 +222,10 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 			t.Reason += st.Reason
 			t.Cr += st.Cr
 			t.Cw += st.Cw
+			if n.ByModel == nil {
+				n.ByModel = map[string]*provider.SubtreeSums{}
+			}
+			provider.ByModelMerge(n.ByModel, c.ByModel)
 		}
 		n.Subtree = &t
 		sort.Slice(n.Children, func(i, j int) bool {
@@ -240,4 +248,23 @@ func titleString(t sql.NullString) string {
 		return t.String
 	}
 	return "(untitled)"
+}
+
+// modelKey extracts a stable per-model key from the raw session model column:
+// the modelID of a JSON object, else the raw string.
+func modelKey(v sql.NullString) string {
+	if !v.Valid || v.String == "" {
+		return ""
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(v.String), &parsed); err == nil {
+		if s, ok := parsed["modelID"].(string); ok && s != "" {
+			return s
+		}
+		if s, ok := parsed["id"].(string); ok && s != "" {
+			return s
+		}
+		return ""
+	}
+	return v.String
 }
