@@ -673,6 +673,52 @@
             white-space: nowrap
         }
 
+        .node .ttl {
+            display: flex;
+            align-items: center
+        }
+
+        .tname {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .rnmark {
+            flex: none;
+            margin-right: 4px;
+            font-size: 11px;
+            font-weight: 400
+        }
+
+        .rnbtn {
+            visibility: hidden;
+            flex: none;
+            padding: 0 6px;
+            color: var(--dim);
+            cursor: pointer;
+            font-weight: 400
+        }
+
+        .node:hover .rnbtn {
+            visibility: visible
+        }
+
+        .rninput {
+            flex: 1;
+            min-width: 0;
+            font: inherit;
+            color: var(--fg);
+            background: #14161a;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 0 4px
+        }
+
+        .rnbtn:hover {
+            color: var(--fg)
+        }
+
         .node.root > .ttl {
             font-weight: 700
         }
@@ -1702,7 +1748,7 @@
 
     function treeMatchesNode(n, f) {
         if (f.text) {
-            const hay = (n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase();
+            const hay = ((SNAME[n.id] || '') + ' ' + n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase();
             if (!hay.includes(f.text.toLowerCase())) return false;
         }
         if (f.models.size && !f.models.has(modelName(n.model))) return false;
@@ -1854,6 +1900,7 @@
     let HOT = { warn: 100, crit: 120, apply: false };
     let REC = { only: false };
     let CHK = { only: false, marked: new Set() };
+    let SNAME = {}; // local session names: id -> text (replaces the title in the UI)
 
     const SET_KEY = 'ttree-settings';
 
@@ -1864,7 +1911,7 @@
                 models: [...treeFilter.models], providers: [...treeFilter.providers], dirs: [...treeFilter.dirs]
             });
             localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC,
-                chk: {only: CHK.only, marked: [...CHK.marked]}, cost: COST, mcost: MCOST}));
+                chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST}));
         } catch (e) { /* storage unavailable — ignore */ }
     }
 
@@ -1906,6 +1953,10 @@
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
             if (s.rec) REC = Object.assign({only: false}, s.rec);
             if (s.chk) CHK = Object.assign({only: false, marked: new Set(s.chk.marked || [])}, {only: !!s.chk.only});
+            if (s.names && typeof s.names === 'object') {
+                SNAME = {};
+                for (const k of Object.keys(s.names)) if (typeof s.names[k] === 'string' && s.names[k]) SNAME[k] = s.names[k];
+            }
             if (s.cost) Object.assign(COST, mergeCost(s.cost));
             MCOST = mergeMCost(s.mcost);
             document.querySelector('#hlwarn').value = HOT.warn ?? '';
@@ -2179,6 +2230,42 @@
         }
     });
 
+    function renameSession(e) {
+        e.stopPropagation();
+        const id = e.target.dataset.id;
+        const s = find(TREE, id);
+        const ttl = e.target.closest('.ttl');
+        if (!s || !ttl || ttl.querySelector('.rninput')) return;
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'rninput';
+        inp.value = SNAME[id] || '';
+        inp.placeholder = s.title;
+        let done = false;
+        const finish = save => {
+            if (done) return;
+            done = true;
+            if (save) {
+                const t = inp.value.trim();
+                if (t) SNAME[id] = t; else delete SNAME[id];
+                saveSettings();
+            }
+            inp.remove();
+            render();
+            if (save && id === sel) refreshDetail();
+        };
+        inp.addEventListener('keydown', ev => {
+            ev.stopPropagation();
+            if (ev.key === 'Enter') finish(true);
+            else if (ev.key === 'Escape') finish(false);
+        });
+        inp.addEventListener('blur', () => finish(true));
+        for (const t of ['click', 'dblclick', 'mousedown']) inp.addEventListener(t, ev => ev.stopPropagation());
+        ttl.textContent = '';
+        ttl.appendChild(inp);
+        inp.focus();
+    }
+
     function chkToggle(e) {
         e.stopPropagation();
         const id = e.target.dataset.id;
@@ -2447,6 +2534,7 @@
     let NOW = 0;
 
     function render() {
+        if (document.querySelector('#tree .rninput')) return; // keep an in-progress rename alive across auto-refresh
         NOW = Date.now();
         let h = '';
         const roots = sorted(TREE.filter(s => matches(s)
@@ -2528,7 +2616,7 @@
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}${sel === s.id ? ' sel' : ''}" data-id="${s.id}">
     ${depth === 1 ? `<span class="star${CHK.marked.has(s.id) ? ' on' : ''}" data-id="${esc(s.id)}" onclick="chkToggle(event)" title="${esc(tr('favourites.title'))}">${CHK.marked.has(s.id) ? '★' : '☆'}</span>` : '<span class="chkcol"></span>'}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
-    <span class="ttl" title="${esc(ttlTip)}">${heart}${esc(hasAgent ? displayTitle(s.title, s.agent) : s.title)}</span>
+    <span class="ttl" title="${esc(ttlTip)}">${heart}${SNAME[s.id] ? `<span class="rnmark" title="${esc(tr('rename.mark'))}">📝</span>` : ''}<span class="tname">${esc(SNAME[s.id] || (hasAgent ? displayTitle(s.title, s.agent) : s.title))}</span><span class="rnbtn" data-id="${esc(s.id)}" onclick="renameSession(event)" title="${esc(tr('rename.title'))}">✎</span></span>
     ${subBadges}
     ${s.model ? `<span class="badge">${esc(modelName(s.model))}</span>` : ''}
     <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${s.dur < 0 ? '' : dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : ''}</span></span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b>${hasKids ? `<span class="own-part">(${fmt(own)})</span>` : ''}</span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b>${hasKids ? `<span class="own-part">(${fmtMoney(ownMoney)})</span>` : ''}</span></span></div>`;
@@ -2735,7 +2823,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         sel = id;
         const s = find(TREE, id);
         if (!s) return;
-        document.querySelector('#detail').innerHTML = `<div class="sect callshead"><span class="callstitle">${tr('detail.calls')} - <span id="dtitle" class="sesname" title="${esc(s.title)}">${esc(s.title)}</span></span> <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div>
+        document.querySelector('#detail').innerHTML = `<div class="sect callshead"><span class="callstitle">${tr('detail.calls')} - <span id="dtitle" class="sesname" title="${esc(s.title)}">${esc(SNAME[s.id] || s.title)}</span></span> <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div>
   <div id="dscroll"><div id="calls">${tr('loading')}</div>
   <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre></div>`;
         await fillDetail(id);
@@ -2748,7 +2836,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (!s) return;
         const h2 = document.querySelector('#dtitle');
         if (h2) {
-            h2.textContent = s.title;
+            h2.textContent = SNAME[s.id] || s.title;
             h2.title = s.title;
         }
         await fillDetail(id);
@@ -2895,7 +2983,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
     });
     document.querySelector('#tree').addEventListener('dblclick', e => {
         const nd = e.target.closest('.node');
-        if (!nd || e.target.closest('.star')) return;
+        if (!nd || e.target.closest('.star, .rnbtn')) return;
         const sel = window.getSelection();
         if (sel) sel.removeAllRanges();
         toggleNode(nd);
