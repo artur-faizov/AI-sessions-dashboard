@@ -92,9 +92,9 @@
 
         .headcol {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
-            align-items: flex-start;
+            flex-direction: row;
+            gap: 12px;
+            align-items: center;
             flex: none
         }
         .dbwrap {
@@ -390,6 +390,18 @@
             width: 64px;
             font: inherit;
             font-size: 13px
+        }
+
+        .hlsq {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex: none;
+            background: rgb(230, 200, 80)
+        }
+
+        .hlsq.crit {
+            background: rgb(247, 118, 142)
         }
 
         .hlbox input[type=number]:focus {
@@ -1284,6 +1296,7 @@
     <symbol id="hum-image" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><rect x="11.25" y="12.6" width="8.1" height="5.85" rx="1.05" fill="none" stroke="#12290f" stroke-width="1.4"/><circle cx="13.2" cy="14.4" r="0.75" fill="#12290f"/><path d="M12 17.85l2.25-2.4 1.5 1.8 1.2-1.35 2.55 3z" fill="#12290f"/></symbol>
 </defs></svg>
 <header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button></span></div>
+    <div class="hgrp center" id="grp-hl"><label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">highlight context size</span><i class="hlsq warn"></i><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><i class="hlsq crit"></i><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"></label></div>
     <div class="hgrp right" id="grp-meta"><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
         <div class="mcol">
         <div class="grow"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></div>
@@ -1311,7 +1324,7 @@
     <div id="treepane">
         <div class="treehead"><div class="ptitle" id="treetitle"></div>
         <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
-        <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">threshold</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."></label>
+        <label class="hlbox" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
         <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
         <label class="hlbox" id="chkbox" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><input type="checkbox" id="chkonly" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chklabel" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this.">check-mark</span></label>
         <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
@@ -2624,6 +2637,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#hlwarn').title = tr('hl.warn.title');
         document.querySelector('#hlcrit').title = tr('hl.crit.title');
         document.querySelector('#hlapply').title = tr('hl.apply.title');
+        document.querySelector('#ctxbox').title = tr('hl.apply.title');
+        document.querySelector('#ctxlabel').textContent = tr('filter.ctxsize');
         document.querySelector('#recbox').title = tr('recent.only.title');
         document.querySelector('#reconly').title = tr('recent.only.title');
         document.querySelector('#reclabel').title = tr('recent.only.title');
