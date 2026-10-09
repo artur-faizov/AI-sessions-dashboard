@@ -7,6 +7,7 @@ import (
 	"github.com/artur-faizov/token-monitor/src/provider"
 	"github.com/artur-faizov/token-monitor/src/provider/claude"
 	"github.com/artur-faizov/token-monitor/src/provider/copilot"
+	"github.com/artur-faizov/token-monitor/src/provider/folder"
 	"github.com/artur-faizov/token-monitor/src/provider/opencode"
 )
 
@@ -17,6 +18,7 @@ func main() {
 		opencode.New(opencode.ParseDBFlag(args)),
 		claude.New(),
 		copilot.New(),
+		folder.New(),
 	}
 	os.Exit(dashboard.Run(providers, args))
 }

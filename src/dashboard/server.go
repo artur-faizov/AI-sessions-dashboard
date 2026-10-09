@@ -69,6 +69,10 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if path == "/api/browse" {
+		s.getBrowse(w, r)
+		return
+	}
 	if path == "/api/db" {
 		found := true
 		var errV any
@@ -154,6 +158,10 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 func (s *server) handlePost(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/api/provider" {
 		s.postProvider(w, r)
+		return
+	}
+	if r.URL.Path == "/api/export" {
+		s.postExport(w, r)
 		return
 	}
 	if r.URL.Path != "/api/db" {

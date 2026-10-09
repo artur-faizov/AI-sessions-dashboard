@@ -476,3 +476,22 @@ test('parseHashSel: reads the session id from the url hash', () => {
     assert.equal(L.parseHashSel('#x=1&session=a%2Fb'), 'a/b');
     assert.equal(L.parseHashSel('#session=%E0%A4%A'), null);
 });
+
+test('exportCandidates: favourites plus top-level sessions updated within the last hour, newest first', () => {
+    const now = 10 * 3600e3;
+    const tree = [
+        node({ id: 'old', updated: now - 3 * 3600e3 }),
+        node({ id: 'fav', updated: now - 5 * 3600e3 }),
+        node({ id: 'recent', updated: now - 600e3 }),
+        node({ id: 'edge', updated: now - 3600e3 }),
+        node({ id: 'newest', updated: now - 1000 }),
+    ];
+    const ids = L.exportCandidates(tree, new Set(['fav']), now).map(n => n.id);
+    assert.deepEqual(ids, ['newest', 'recent', 'edge', 'fav']);
+});
+
+test('exportCandidates: only top-level nodes are considered, never children', () => {
+    const now = 1e7;
+    const tree = [node({ id: 'root', updated: 0, children: [node({ id: 'kid', updated: now })] })];
+    assert.deepEqual(L.exportCandidates(tree, new Set(), now), []);
+});

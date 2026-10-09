@@ -1138,6 +1138,118 @@
             padding-left: 10px
         }
 
+        .ovl {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .ovl[hidden] {
+            display: none
+        }
+
+        .ovl-bg {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .55)
+        }
+
+        .ovl-box {
+            position: relative;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            width: min(640px, 92vw);
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        .ovl-head {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 13px;
+            background: #a9c7f2;
+            color: #14213d;
+            border-radius: 9px 9px 0 0
+        }
+
+        .ovl-x {
+            cursor: pointer;
+            color: #41557a;
+            border: none;
+            background: none;
+            font-size: 16px;
+            padding: 2px 6px
+        }
+
+        .ovl-body {
+            padding: 12px 16px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px
+        }
+
+        .ovl-row {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .ovl-row input[type=text] {
+            flex: 1;
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font: inherit;
+            font-size: 12px
+        }
+
+        .ovl-list {
+            overflow: auto;
+            max-height: 40vh;
+            border: 1px solid var(--line);
+            border-radius: 6px
+        }
+
+        .ovl-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer
+        }
+
+        .ovl-item:hover {
+            background: #1d2026
+        }
+
+        .ovl-item .sub {
+            color: var(--dim);
+            margin-left: auto;
+            white-space: nowrap
+        }
+
+        .ovl-msg {
+            font-size: 12px;
+            color: var(--dim);
+            white-space: pre-wrap
+        }
+
+        .ovl-msg.err {
+            color: #f7768e
+        }
+
         #modal {
             position: fixed;
             inset: 0;
@@ -1549,9 +1661,9 @@
     <symbol id="hum-approval" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><path d="M11.7 15.45l2.55 2.55 4.95-5.55" fill="none" stroke="#12290f" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="hum-image" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><rect x="11.25" y="12.6" width="8.1" height="5.85" rx="1.05" fill="none" stroke="#12290f" stroke-width="1.4"/><circle cx="13.2" cy="14.4" r="0.75" fill="#12290f"/><path d="M12 17.85l2.25-2.4 1.5 1.8 1.2-1.35 2.55 3z" fill="#12290f"/></symbol>
 </defs></svg>
-<header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button></span></div>
+<header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button><button class="fbtn" id="dbbrowse" hidden></button></span></div>
     <div class="hgrp center" id="grp-hl"><label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">highlight context size</span><i class="hlsq warn"></i><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><i class="hlsq crit"></i><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"></label></div>
-    <div class="hgrp right" id="grp-meta"><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
+    <div class="hgrp right" id="grp-meta"><button class="fbtn" id="expbtn" onclick="expOpen()"></button><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
         <div class="mcol">
         <div class="grow"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></div>
         <div class="grow"><span id="langsw" class="langsw" title="Language"></span></div>
@@ -1592,6 +1704,30 @@
         <div class="empty" id="detailempty">Select a session…</div>
     </div>
 </main>
+<div class="ovl" id="expdlg" hidden>
+    <div class="ovl-bg" onclick="expClose()"></div>
+    <div class="ovl-box">
+        <div class="ovl-head"><span id="exphead"></span><button class="ovl-x" onclick="expClose()">✕</button></div>
+        <div class="ovl-body">
+            <div class="ovl-row"><button class="fbtn" id="expall"></button><button class="fbtn" id="expnone"></button></div>
+            <div class="ovl-list" id="explist"></div>
+            <div class="ovl-row"><input type="text" id="expdir"><button class="fbtn" id="expbrowse"></button></div>
+            <div class="ovl-msg" id="expmsg"></div>
+            <div class="ovl-row"><button class="fbtn" id="expgo"></button></div>
+        </div>
+    </div>
+</div>
+<div class="ovl" id="browsedlg" hidden>
+    <div class="ovl-bg" onclick="browseClose()"></div>
+    <div class="ovl-box">
+        <div class="ovl-head"><span id="brhead"></span><button class="ovl-x" onclick="browseClose()">✕</button></div>
+        <div class="ovl-body">
+            <div class="ovl-msg" id="brpath"></div>
+            <div class="ovl-list" id="brlist"></div>
+            <div class="ovl-row"><button class="fbtn" id="brpick"></button></div>
+        </div>
+    </div>
+</div>
 <div id="modal" hidden>
     <div id="modal-bg" onclick="modalClose()"></div>
     <div id="modal-box">
@@ -1874,10 +2010,18 @@
         try { return decodeURIComponent(m[1]); } catch (e) { return null; }
     }
 
+    // Sessions offered by the export dialog: top-level sessions that are
+    // favourites or were updated within the last hour, newest first.
+    const EXPORT_RECENT_MS = 60 * 60 * 1000;
+    function exportCandidates(tree, marked, nowMs) {
+        return tree.filter(n => marked.has(n.id) || n.updated >= nowMs - EXPORT_RECENT_MS)
+            .sort((a, b) => b.updated - a.updated);
+    }
+
     if (typeof module !== 'undefined' && module.exports) module.exports = {
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
         treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeCheckedVisible, nodeDir, heartSizes, ecgPoints,
-        callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel,
+        callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel, exportCandidates,
         COST_DEF, COST, MCOST, costOf, costT, costNode, tokEqOf, resetCost
     };
     // FILTER-LOGIC-END
@@ -3054,6 +3198,17 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (dba) dba.textContent = tr('db.apply');
         const dbi = document.querySelector('#dbcustom');
         if (dbi) dbi.placeholder = tr('db.custom.placeholder');
+        document.querySelector('#expbtn').textContent = tr('exp.btn');
+        document.querySelector('#expbtn').title = tr('exp.btn.title');
+        document.querySelector('#exphead').textContent = tr('exp.head');
+        document.querySelector('#expall').textContent = tr('exp.all');
+        document.querySelector('#expnone').textContent = tr('exp.none');
+        document.querySelector('#expdir').placeholder = tr('exp.dir.ph');
+        document.querySelector('#expbrowse').textContent = tr('exp.browse');
+        document.querySelector('#expgo').textContent = tr('exp.go');
+        document.querySelector('#dbbrowse').textContent = tr('exp.browse');
+        document.querySelector('#brhead').textContent = tr('exp.browse.head');
+        document.querySelector('#brpick').textContent = tr('exp.browse.pick');
         if (lastDbInfo) renderDbField(lastDbInfo);
         const de = document.querySelector('#detailempty');
         if (de) de.textContent = tr('detail.select');
@@ -3109,16 +3264,19 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
     const DB_STORE_KEY = 'db.path';
     let lastDbInfo = null;
 
+    // opencode keeps the historic key; other path-switchable providers get their own
+    const dbKey = () => lastProv && lastProv !== 'opencode' ? DB_STORE_KEY + '.' + lastProv : DB_STORE_KEY;
+
     function lsGetDb() {
         if (typeof localStorage === 'undefined') return null;
-        try { return localStorage.getItem(DB_STORE_KEY); } catch (e) { return null; }
+        try { return localStorage.getItem(dbKey()); } catch (e) { return null; }
     }
 
     function lsSetDb(v) {
         if (typeof localStorage === 'undefined') return;
         try {
-            if (v === null) localStorage.removeItem(DB_STORE_KEY);
-            else localStorage.setItem(DB_STORE_KEY, v);
+            if (v === null) localStorage.removeItem(dbKey());
+            else localStorage.setItem(dbKey(), v);
         } catch (e) { }
     }
 
@@ -3162,7 +3320,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         } catch (e) { return { ok: false, error: String(e) }; }
     }
 
-    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'copilot' ? tr('prov.copilot') : n;
+    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'copilot' ? tr('prov.copilot') : n === 'folder' ? tr('prov.folder') : n;
 
     let lastProv = null;
 
@@ -3260,6 +3418,11 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         sel.title = info.found
             ? tr('db.title')
             : tr('db.missing.tip') + (info.error ? ' — ' + info.error : '');
+        const isFolder = lastProv === 'folder';
+        const dbl = document.querySelector('#dblabel'), dbi = document.querySelector('#dbcustom'), dbb = document.querySelector('#dbbrowse');
+        if (dbl) dbl.textContent = tr(isFolder ? 'exp.folder.label' : 'db.label');
+        if (dbi) dbi.placeholder = tr(isFolder ? 'exp.folder.ph' : 'db.custom.placeholder');
+        if (dbb) dbb.hidden = !isFolder;
         const wrap = document.querySelector('#dbwrap');
         if (wrap) {
             wrap.hidden = !info.switchable;
@@ -3317,6 +3480,114 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             else lsSetDb(null);
         }
     }
+
+    // ---- export to folder / folder picker ----
+    const EXP_DIR_KEY = 'export.dir';
+    let expSel = new Set();
+    let browseCb = null, browseCur = '';
+
+    function expRows() { return exportCandidates(TREE, CHK.marked, Date.now()); }
+
+    function expOpen() {
+        const rows = expRows();
+        expSel = new Set(rows.map(n => n.id));
+        let dir = '';
+        try { dir = localStorage.getItem(EXP_DIR_KEY) || ''; } catch (e) { }
+        document.querySelector('#expdir').value = dir;
+        expMsg('', false);
+        expRender();
+        document.querySelector('#expdlg').hidden = false;
+    }
+
+    function expClose() { document.querySelector('#expdlg').hidden = true; }
+
+    function expMsg(t, err) {
+        const m = document.querySelector('#expmsg');
+        m.textContent = t;
+        m.classList.toggle('err', !!err);
+    }
+
+    function expRender() {
+        const rows = expRows();
+        document.querySelector('#explist').innerHTML = rows.length ? rows.map(n => {
+            const nm = SNAME[n.id] || (n.agent ? displayTitle(n.title, n.agent) : n.title);
+            const sub = (CHK.marked.has(n.id) ? '★ ' : '') + (n.children.length ? tr('exp.subs', {n: n.children.length}) + ' · ' : '') + when(n.updated);
+            return `<label class="ovl-item"><input type="checkbox" data-id="${esc(n.id)}"${expSel.has(n.id) ? ' checked' : ''}><span>${esc(nm)}</span><span class="sub">${esc(sub)}</span></label>`;
+        }).join('') : `<div class="empty">${esc(tr('exp.empty'))}</div>`;
+        document.querySelectorAll('#explist input').forEach(cb => cb.addEventListener('change', () => {
+            if (cb.checked) expSel.add(cb.dataset.id); else expSel.delete(cb.dataset.id);
+        }));
+    }
+
+    async function expGo() {
+        const dir = document.querySelector('#expdir').value.trim();
+        if (!dir) { expMsg(tr('exp.err.dir'), true); return; }
+        if (!expSel.size) { expMsg(tr('exp.err.none'), true); return; }
+        const ids = expRows().map(n => n.id).filter(id => expSel.has(id));
+        const names = {};
+        (function walk(ns) { for (const n of ns) { if (SNAME[n.id]) names[n.id] = SNAME[n.id]; walk(n.children); } })(TREE);
+        const go = document.querySelector('#expgo');
+        go.disabled = true;
+        expMsg(tr('exp.running', {n: ids.length}), false);
+        let res;
+        try {
+            const r = await fetch('/api/export', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids, dir, names})
+            });
+            res = await r.json();
+        } catch (e) { res = {ok: false, error: String(e)}; }
+        go.disabled = false;
+        try { localStorage.setItem(EXP_DIR_KEY, dir); } catch (e) { }
+        if (!res.written) { expMsg(res.error || tr('exp.err.unknown'), true); return; }
+        const lines = [tr('exp.done', {w: res.written.length, s: res.skipped.length, e: res.errors.length})];
+        for (const e of res.errors) lines.push(e.id + ': ' + e.error);
+        expMsg(lines.join('\n'), res.errors.length > 0);
+    }
+
+    async function browseLoad(path) {
+        let j;
+        try {
+            const r = await fetch('/api/browse?path=' + encodeURIComponent(path || ''));
+            j = await r.json();
+        } catch (e) { j = {error: String(e)}; }
+        const list = document.querySelector('#brlist');
+        if (j.error) {
+            document.querySelector('#brpath').textContent = j.error;
+            if (!browseCur) list.innerHTML = '';
+            return;
+        }
+        browseCur = j.path;
+        document.querySelector('#brpath').textContent = j.path;
+        const row = (p, label) => `<div class="ovl-item" data-p="${esc(p)}">${esc(label)}</div>`;
+        list.innerHTML = (j.parent ? row(j.parent, '..') : '')
+            + j.dirs.map(d => row(j.path.replace(/[\\/]+$/, '') + '/' + d, d + '/')).join('');
+        list.querySelectorAll('.ovl-item').forEach(it => it.addEventListener('click', () => browseLoad(it.dataset.p)));
+    }
+
+    function browseOpen(start, cb) {
+        browseCb = cb;
+        browseCur = '';
+        document.querySelector('#browsedlg').hidden = false;
+        browseLoad(start);
+    }
+
+    function browseClose() { document.querySelector('#browsedlg').hidden = true; }
+
+    function browsePick() {
+        const cb = browseCb, p = browseCur;
+        browseClose();
+        if (cb && p) cb(p);
+    }
+
+    document.querySelector('#expall').addEventListener('click', () => { expSel = new Set(expRows().map(n => n.id)); expRender(); });
+    document.querySelector('#expnone').addEventListener('click', () => { expSel = new Set(); expRender(); });
+    document.querySelector('#expgo').addEventListener('click', expGo);
+    document.querySelector('#brpick').addEventListener('click', browsePick);
+    document.querySelector('#expbrowse').addEventListener('click', () =>
+        browseOpen(document.querySelector('#expdir').value.trim(), p => { document.querySelector('#expdir').value = p; }));
+    document.querySelector('#dbbrowse').addEventListener('click', () =>
+        browseOpen((lastDbInfo && lastDbInfo.path) || '', p => applyDbPath(p)));
 
     loadSettings();
     applyLangStatic();
