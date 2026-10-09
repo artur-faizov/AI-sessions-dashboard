@@ -925,6 +925,28 @@
             background: #1d2026
         }
 
+        table.calls tbody tr.wait {
+            cursor: default
+        }
+
+        table.calls tbody tr.wait:hover {
+            background: none
+        }
+
+        table.calls tbody tr.wait td {
+            padding: 2px 10px;
+            font-size: 11px;
+            color: var(--dim);
+            text-align: center;
+            border-top: 1px dashed var(--line);
+            border-bottom: 1px dashed var(--line)
+        }
+
+        table.calls .wbar {
+            width: 120px;
+            margin: 0 0 0 8px
+        }
+
         table.calls .sep {
             border-left: 1px solid var(--line);
             padding-left: 10px
@@ -2368,8 +2390,12 @@
         const mCtx = mx('ctx'), mD = Math.max(1, ...vis.map(r => r.delta)),
             mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr'), mTq = mx('tokeq'), mMon = mx('money');
         const bar = (v, m, cls) => `<span class="vbar${cls ? ' ' + cls : ''}"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
+        const waitOf = r => r.hu && r.n > 1 ? calls[r.n - 1].time - calls[r.n - 2].time : 0;
+        const mWait = Math.max(1, ...vis.map(waitOf));
         let rows = '';
         vis.forEach(r => {
+            const wait = waitOf(r);
+            if (wait > 0) rows += `<tr class="wait"><td colspan="9" title="${tr('calls.wait.tip')}">${tr('calls.wait', {t: dur(wait)})}<span class="vbar wbar"><span style="width:${Math.max(2, wait / mWait * 100)}%"></span></span></td></tr>`;
             const cls = r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
             rows += `<tr${cls ? ` class="${cls}"` : ''}${r.hu ? ` title="${humTip(r.hu)}"` : ''} onclick="callPick('${esc(r.mid)}')">
   <td class="num">${r.hu ? humIcon(r.hu) : ''}${r.n}</td>

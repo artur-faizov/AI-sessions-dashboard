@@ -200,6 +200,14 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 	}
 
 	for _, n := range nodes {
+		calls, err := sessionCalls(pool, n.ID)
+		if err != nil {
+			return nil, err
+		}
+		n.Dur = provider.ActiveDur(n.Dur, calls)
+	}
+
+	for _, n := range nodes {
 		if n.Active {
 			beats, err := sessionBeats(pool, n.ID, nowMS-provider.ActiveWindowMS)
 			if err != nil {

@@ -15,7 +15,7 @@
     "created": 1767265200000,
     "updated": 1767265210000,
     "active": false,
-    "dur": 10000,
+    "dur": 9000,
     "beats": [],
     "children": [
       {
@@ -100,7 +100,7 @@
     "created": 1767261600000,
     "updated": 1767261611000,
     "active": false,
-    "dur": 11000,
+    "dur": 9000,
     "beats": [],
     "children": [],
     "subtree": {

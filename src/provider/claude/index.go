@@ -704,6 +704,7 @@ func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode
 	if n.Dur = updated - n.Created; n.Dur < 0 {
 		n.Dur = 0
 	}
+	n.Dur = provider.ActiveDur(n.Dur, s.file.calls())
 	if n.Dir == "" {
 		n.Dir = s.dirHint
 	}
