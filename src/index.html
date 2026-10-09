@@ -474,6 +474,7 @@
 
         #tree {
             flex: 1;
+            min-height: 0;
             overflow: auto;
             padding: 0 18px 12px
         }
@@ -689,6 +690,33 @@
 
         .vbar.green span {
             background: var(--user)
+        }
+
+        #treepane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0
+        }
+
+        .treehead {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 16px;
+            padding: 10px 18px 6px;
+            background: var(--bg)
+        }
+
+        .treehead #grp-filter {
+            margin: 0 0 0 auto
+        }
+
+        .ptitle {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--fg)
         }
 
         .thead {
@@ -1168,6 +1196,34 @@
             color: var(--fg)
         }
 
+        .callsbox {
+            position: relative
+        }
+
+        /* #detail's padding-top is 16px and sticky offsets count from inside the padding,
+           so top:-16px pins the title to the very top edge; the table header then sits
+           right under its 36px height, i.e. 20px below the content edge. */
+        .callshead {
+            position: sticky;
+            top: -16px;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg);
+            margin: 0 -20px;
+            padding: 0 20px;
+            height: 36px;
+            white-space: nowrap
+        }
+
+        table.calls thead th {
+            position: sticky;
+            top: 20px;
+            z-index: 1;
+            background: var(--bg)
+        }
+
         .sect .fbtn {
             margin-left: 10px;
             padding: 1px 9px;
@@ -1211,11 +1267,6 @@
     <symbol id="hum-image" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><rect x="11.25" y="12.6" width="8.1" height="5.85" rx="1.05" fill="none" stroke="#12290f" stroke-width="1.4"/><circle cx="13.2" cy="14.4" r="0.75" fill="#12290f"/><path d="M12 17.85l2.25-2.4 1.5 1.8 1.2-1.35 2.55 3z" fill="#12290f"/></symbol>
 </defs></svg>
 <header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button></span></div>
-    <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
-    <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">threshold</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."></label>
-    <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
-    <label class="hlbox" id="chkbox" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><input type="checkbox" id="chkonly" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chklabel" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this.">check-mark</span></label>
-    <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
     <div class="hgrp right" id="grp-meta"><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
         <div class="mcol">
         <div class="grow"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></div>
@@ -1240,7 +1291,16 @@
     </div></span>
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></div></header>
 <main>
-    <div id="tree"></div>
+    <div id="treepane">
+        <div class="treehead"><div class="ptitle" id="treetitle"></div>
+        <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
+        <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">threshold</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."></label>
+        <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
+        <label class="hlbox" id="chkbox" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><input type="checkbox" id="chkonly" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chklabel" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this.">check-mark</span></label>
+        <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
+        </div>
+        <div id="tree"></div>
+    </div>
     <div id="splitter" title="Drag to resize · double-click to reset"></div>
     <div id="detail">
         <div class="empty" id="detailempty">Select a session…</div>
@@ -2351,7 +2411,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const s = find(TREE, id);
         if (!s) return;
         document.querySelector('#detail').innerHTML = `<h2 id="dtitle" title="${esc(s.title)}">${esc(s.title)}</h2>
-  <div class="sect">${tr('detail.calls')} <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div><div id="calls">${tr('loading')}</div>
+  <div class="callsbox"><div class="sect callshead">${tr('detail.calls')} <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div><div id="calls">${tr('loading')}</div></div>
   <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre>`;
         await fillDetail(id);
     }
@@ -2541,6 +2601,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         fb.title = tr('filter.btn.title');
         updateFilterBtns();
         document.querySelector('#fbymark').textContent = tr('filter.by');
+        document.querySelector('#treetitle').textContent = tr('tree.title');
         document.querySelector('#hlbox').title = tr('hl.title');
         document.querySelector('#hllabel').textContent = tr('filter.threshold');
         document.querySelector('#hlwarn').title = tr('hl.warn.title');
