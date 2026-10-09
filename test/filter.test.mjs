@@ -19,7 +19,7 @@ const node = (o = {}) => ({
     active: false, children: [], subtree: { in: 0, out: 0, reason: 0, cr: 0, cw: 0 }, ...o,
 });
 const tf = (o = {}) => ({
-    text: '', models: new Set(), providers: new Set(),
+    text: '', models: new Set(), providers: new Set(), dirs: new Set(),
     numMin: null, numMax: null,
     datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
     ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null, ...o,
@@ -234,6 +234,34 @@ test('tree node order and date criteria AND together with the rest', () => {
     assert.equal(L.treeMatchesNode(n, tf({ ...f, dateMin: new Date('2026-10-06T00:00').getTime() })), false);
 });
 
+test('tree folder filter: empty set = off, empty dir = (unknown), AND with model filter', () => {
+    const n = node({ dir: '/home/me/project' });
+    const u = node({ dir: '' });
+    assert.equal(L.nodeDir(n), '/home/me/project');
+    assert.equal(L.nodeDir(u), '(unknown)');
+    assert.equal(L.treeMatchesNode(n, tf()), true);
+    assert.equal(L.treeMatchesNode(n, tf({ dirs: new Set(['/home/me/project']) })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ dirs: new Set(['/other']) })), false);
+    assert.equal(L.treeMatchesNode(u, tf({ dirs: new Set(['(unknown)']) })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ dirs: new Set(['/home/me/project']), models: new Set(['zzz']) })), false);
+});
+
+test('treeCheckedVisible: node or any descendant in the marked set', () => {
+    const root = node({ id: 'r', children: [node({ id: 'a' }), node({ id: 'b', children: [node({ id: 'c' })] })] });
+    assert.equal(L.treeCheckedVisible(root, new Set()), false);
+    assert.equal(L.treeCheckedVisible(root, new Set(['r'])), true);
+    assert.equal(L.treeCheckedVisible(root, new Set(['c'])), true);
+    assert.equal(L.treeCheckedVisible(root, new Set(['a', 'x'])), true);
+    assert.equal(L.treeCheckedVisible(node({ id: 's' }), new Set(['s'])), true);
+    assert.equal(L.treeCheckedVisible(node({}), new Set(['s'])), false);
+});
+
+test('treeFilterCount: dirs count as a criterion group', () => {
+    assert.equal(L.treeFilterCount(tf()), 0);
+    assert.equal(L.treeFilterCount(tf({ dirs: new Set(['/a']) })), 1);
+    assert.equal(L.treeFilterCount(tf({ text: 'x', dirs: new Set(['/a']), ctxMin: 1 })), 3);
+});
+
 test('treeVisible: root shown if it or any descendant matches', () => {
     const root = node({
         title: 'plain',
@@ -317,9 +345,9 @@ test('heartSizes: tie on updated keeps insertion order for the top ranks', () =>
     assert.equal(m.get('s'), 'lg');
 });
 
-test('ecgPoints: no beats = flat baseline from left to right edge', () => {
+test('ecgPoints: no beats = empty trace (no flatline from the past)', () => {
     const p = L.ecgPoints([], 1000000, { win: 1000, w: 40, h: 20 });
-    assert.equal(p, '0.0,10.0 40.0,10.0');
+    assert.equal(p, '');
 });
 
 test('ecgPoints: beat maps to an ECG spike — R peak above baseline at its position', () => {
@@ -331,13 +359,15 @@ test('ecgPoints: beat maps to an ECG spike — R peak above baseline at its posi
     assert.ok(pts.some(([x, y]) => Math.abs(x - 20) < 1 && y === 1), 'R peak at beat position above baseline');
     // dips below baseline exist (Q/S)
     assert.ok(pts.some(([x, y]) => y > 10), 'dip below baseline');
+    // trace starts at the first beat, not at the left edge
+    assert.ok(pts[0][0] >= 15 && pts[0][0] <= 17, 'no leading flatline before first beat');
     assert.ok(pts.every(([x, y]) => x >= 0 && x <= 40 && y >= 0 && y <= 20), 'all points in bounds');
 });
 
 test('ecgPoints: beats outside the window are ignored', () => {
     const now = 1000000;
     const p = L.ecgPoints([now - 5000, now + 500], now, { win: 1000, w: 40, h: 20 });
-    assert.equal(p, '0.0,10.0 40.0,10.0');
+    assert.equal(p, '');
 });
 
 test('ecgPoints: unsorted beats still produce monotonically increasing x', () => {
@@ -345,6 +375,12 @@ test('ecgPoints: unsorted beats still produce monotonically increasing x', () =>
     const p = L.ecgPoints([now - 200, now - 800], now, { win: 1000, w: 40, h: 20 });
     const xs = p.split(' ').map(s => Number(s.split(',')[0]));
     assert.deepEqual([...xs].sort((a, b) => a - b).map(Number), xs);
+});
+
+test('ecgPoints: x position depends only on (beat - now), so all rows share one timeline', () => {
+    const p1 = L.ecgPoints([1500], 2000, { win: 1000, w: 40, h: 20 });
+    const p2 = L.ecgPoints([11500], 12000, { win: 1000, w: 40, h: 20 });
+    assert.equal(p1, p2);
 });
 
 test('ecgPoints: beat at the right edge stays clamped inside the box', () => {
@@ -363,7 +399,7 @@ test('callDeltaAt: first call delta = its ctx, later = growth vs previous', () =
 });
 
 test('callRowMatches: min/max on every column', () => {
-    const row = { n: 3, ctx: 1000, delta: 200, out: 50, reason: 30, in: 120, cr: 800, text: '10/5/2026, 3:24:15 PM' };
+    const row = { n: 3, ctx: 1000000, delta: 200000, out: 50000, reason: 30000, in: 120000, cr: 800000, text: '10/5/2026, 3:24:15 PM' };
     assert.equal(L.callRowMatches(row, cf()), true);
     assert.equal(L.callRowMatches(row, cf({ numMin: 3, numMax: 3 })), true);
     assert.equal(L.callRowMatches(row, cf({ numMin: 4 })), false);
@@ -390,17 +426,17 @@ test('callRowMatches: text on row text, case-insensitive, empty = off', () => {
 });
 
 test('visibleCallRows: delta computed against the full list, then filtered', () => {
-    const calls = [call({ ctx: 100 }), call({ ctx: 150 }), call({ ctx: 120 }), call({ ctx: 400 })];
+    const calls = [call({ ctx: 100000 }), call({ ctx: 150000 }), call({ ctx: 120000 }), call({ ctx: 400000 })];
     const vis = L.visibleCallRows(calls, cf({ deltaMin: 60 }));
     assert.deepEqual(vis.map(r => r.n), [1, 4]);
-    assert.equal(vis[1].delta, 280);
+    assert.equal(vis[1].delta, 280000);
     const vis2 = L.visibleCallRows(calls, cf());
     assert.equal(vis2.length, 4);
-    assert.deepEqual(vis2.map(r => r.delta), [100, 50, -30, 280]);
+    assert.deepEqual(vis2.map(r => r.delta), [100000, 50000, -30000, 280000]);
 });
 
 test('visibleCallRows: all active criteria AND together', () => {
-    const calls = [call({ ctx: 100, out: 10 }), call({ ctx: 900, out: 90 })];
+    const calls = [call({ ctx: 100000, out: 10000 }), call({ ctx: 900000, out: 90000 })];
     const vis = L.visibleCallRows(calls, cf({ ctxMin: 500, outMin: 50 }));
     assert.deepEqual(vis.map(r => r.n), [2]);
 });
@@ -439,4 +475,23 @@ test('parseHashSel: reads the session id from the url hash', () => {
     assert.equal(L.parseHashSel('#session=ses_1'), 'ses_1');
     assert.equal(L.parseHashSel('#x=1&session=a%2Fb'), 'a/b');
     assert.equal(L.parseHashSel('#session=%E0%A4%A'), null);
+});
+
+test('exportCandidates: favourites plus top-level sessions updated within the last hour, newest first', () => {
+    const now = 10 * 3600e3;
+    const tree = [
+        node({ id: 'old', updated: now - 3 * 3600e3 }),
+        node({ id: 'fav', updated: now - 5 * 3600e3 }),
+        node({ id: 'recent', updated: now - 600e3 }),
+        node({ id: 'edge', updated: now - 3600e3 }),
+        node({ id: 'newest', updated: now - 1000 }),
+    ];
+    const ids = L.exportCandidates(tree, new Set(['fav']), now).map(n => n.id);
+    assert.deepEqual(ids, ['newest', 'recent', 'edge', 'fav']);
+});
+
+test('exportCandidates: only top-level nodes are considered, never children', () => {
+    const now = 1e7;
+    const tree = [node({ id: 'root', updated: 0, children: [node({ id: 'kid', updated: now })] })];
+    assert.deepEqual(L.exportCandidates(tree, new Set(), now), []);
 });

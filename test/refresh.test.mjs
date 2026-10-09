@@ -105,8 +105,6 @@ test('refresh re-fetches AI calls of the selected session', async () => {
         'refresh must re-fetch the AI calls of the selected session');
     assert.ok(ctx.els.get('#calls').innerHTML.includes('777'),
         'refreshed calls table must show the new call');
-    assert.ok(ctx.els.get('#ctxnow').textContent.includes('777'),
-        'ctx now must reflect the newest call');
 });
 
 test('refresh updates the detail panel in place, not rebuilding it', async () => {
@@ -127,23 +125,24 @@ test('refresh updates the detail panel in place, not rebuilding it', async () =>
         '#detail must not be rewritten on refresh: it is the scroll container, a rewrite resets scroll and flashes loading');
 });
 
-test('refresh updates session totals in the detail meta', async () => {
-    const ctx = boot({
-        '/api/tree': [sess()],
-        '/api/prompt/s1': {texts: []},
-        '/api/calls/s1': {calls: [call({mid: 'm1', ctx: 111})]},
-    });
+test('tree row shows total(own) for nodes with subagents, and refresh re-renders it', async () => {
+    const child = sess({id: 'c1', parent: 's1', title: 'sub', in: 500, out: 0, reason: 0, cr: 0, cw: 0,
+        subtree: {in: 500, out: 0, reason: 0, cr: 0, cw: 0}});
+    const parent = (own) => sess({in: own, out: 0, reason: 0, cr: 0, cw: 0, children: [child],
+        subtree: {in: own + 500, out: 0, reason: 0, cr: 0, cw: 0}});
+    const ctx = boot({'/api/tree': [parent(1000)]});
     await settle();
-    await ctx.pick('s1');
+    await ctx.load();
     await settle();
-    assert.ok(!ctx.document.querySelector('#meta').innerHTML.includes('4.2k'), 'sanity: old meta value absent');
+    assert.ok(ctx.document.querySelector('#tree').innerHTML.includes('<b>1.5k</b><span class="own-part">(1.0k)</span>'),
+        'spent cell must show total(own) for the parent');
 
-    ctx.routes.set('/api/tree', [sess({in: 4200, subtree: {in: 4200, out: 20, reason: 5, cr: 7, cw: 8}})]);
+    ctx.routes.set('/api/tree', [parent(4200)]);
     await ctx.load();
     await settle();
 
-    assert.ok(ctx.document.querySelector('#meta').innerHTML.includes('4.2k'),
-        'meta totals must be re-rendered from the fresh tree');
+    assert.ok(ctx.document.querySelector('#tree').innerHTML.includes('<b>4.7k</b><span class="own-part">(4.2k)</span>'),
+        'total(own) must be re-rendered from the fresh tree');
 });
 
 test('refresh updates the session prompt text', async () => {
@@ -178,22 +177,18 @@ test('refresh does not fetch calls or prompt when no session is selected', async
     assert.ok(!ctx.fetchLog.some(u => u.startsWith('/api/prompt')));
 });
 
-test('tree hearts: most recent active is xl, second lg, other active regular, inactive empty', async () => {
+test('tree hearts: every active session gets the same background ecg, inactive none', async () => {
     const ctx = boot({
         '/api/tree': [
             sess({id: 'top', active: true, updated: 9000000}),
             sess({id: 'second', active: true, updated: 8000000}),
-            sess({id: 'third', active: true, updated: 7000000}),
             sess({id: 'idle'}),
         ],
     });
     await settle();
     const tree = ctx.els.get('#tree').innerHTML;
-    assert.ok(/class="ecg xl"/.test(tree), 'most recently updated active session gets the xl ecg');
-    assert.ok(/class="ecg lg"/.test(tree), 'second most recently updated active session gets the lg ecg');
-    assert.ok(/class="ecg"/.test(tree), 'remaining active sessions get a regular ecg');
-    assert.equal((tree.match(/<span class="hcol"><\/span>/g) || []).length, 1,
-        'inactive sessions get an empty column');
+    assert.equal((tree.match(/<svg class="ttlbg"/g) || []).length, 2, 'one background ecg per active session');
+    assert.ok(!/class="ecg (xl|lg)"/.test(tree), 'no size variants');
 });
 
 test('recent-only filter keeps active sessions and their parent chain', async () => {
@@ -211,38 +206,27 @@ test('recent-only filter keeps active sessions and their parent chain', async ()
     assert.ok(!tree.includes('data-id="alone"'), 'inactive standalone session is dropped');
 });
 
-test('agent badge hidden for default agent, shown for others (any depth)', async () => {
+test('agent badge column is gone for every agent', async () => {
     const ctx = boot({
         '/api/tree': [
             sess({id: 'r1', agent: 'build'}),
-            sess({id: 'r2', agent: 'plan'}),
-            sess({id: 'r3', agent: 'build', children: [
-                sess({id: 'kb', agent: 'build'}),
-                sess({id: 'ke', agent: 'explore'}),
-                sess({id: 'kg', agent: 'general'}),
-                sess({id: 'kv', agent: 'vision'}),
-                sess({id: 'kn', agent: ''}),
-            ]}),
+            sess({id: 'r2', agent: 'plan', children: [sess({id: 'ke', agent: 'explore'})]}),
         ],
     });
     await settle();
     const tree = ctx.els.get('#tree').innerHTML;
-    const row = (id) => {
-        const i = tree.indexOf(`data-id="${id}"`);
-        const j = tree.indexOf('data-id="', i + 1);
-        return tree.slice(i, j === -1 ? undefined : j);
-    };
-    assert.ok(!row('r1').includes('badge agent'), 'build root has no agent badge');
-    assert.ok(row('r2').includes('badge agent'), 'plan root keeps its badge');
-    assert.ok(!row('r3').includes('badge agent'), 'build root with children has no badge');
-    assert.ok(!row('kb').includes('badge agent'), 'build subagent has no badge');
-    const names = {ke: 'explore', kg: 'general', kv: 'vision'};
-    for (const [id, name] of Object.entries(names)) {
-        assert.ok(row(id).includes('badge agent'), `subagent ${name} keeps its badge`);
-        assert.ok(row(id).includes(`>${name}<`), `badge shows agent name for ${name}`);
-    }
-    assert.ok(row('kn').includes('badge agent'), 'empty-agent session keeps a badge');
-    assert.ok(row('kn').includes('>—<'), 'empty agent renders em dash');
+    assert.ok(!tree.includes('badge agent'), 'no agent badge rendered');
+});
+
+test('favourite star only on roots, filled when marked', async () => {
+    const ctx = boot({
+        '/api/tree': [sess({id: 'r1', children: [sess({id: 'k1'})]})],
+    });
+    await settle();
+    vm.runInNewContext("CHK.marked.add('r1'); render();", ctx);
+    const tree = ctx.els.get('#tree').innerHTML;
+    assert.equal((tree.match(/class="star/g) || []).length, 1, 'subagent has no star');
+    assert.ok(/class="star on"[^>]*>★</.test(tree), 'marked root shows filled star');
 });
 
 test('active sessions render an ECG sparkline across the heart', async () => {
@@ -252,7 +236,7 @@ test('active sessions render an ECG sparkline across the heart', async () => {
     });
     await settle();
     const tree = ctx.els.get('#tree').innerHTML;
-    assert.ok(/<svg class="ecg[ "]/.test(tree), 'active session renders a standalone ECG svg');
+    assert.ok(/<svg class="ttlbg"/.test(tree), 'active session renders a background ECG svg');
     assert.ok(/<polyline points="[^"]+"/.test(tree), 'sparkline polyline with points rendered');
 });
 

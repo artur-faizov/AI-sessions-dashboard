@@ -51,3 +51,21 @@ func TestActiveWindowIs15Minutes(t *testing.T) {
 		t.Fatalf("ActiveWindowMS = %d", ActiveWindowMS)
 	}
 }
+
+func TestActiveDurExcludesHumanWaits(t *testing.T) {
+	calls := []CallRec{
+		{Time: 1000},
+		{Time: 4000, Hu: TrigText},     // waited 3000
+		{Time: 5000},                   // agent-driven: not a wait
+		{Time: 9000, Hu: TrigApproval}, // waited 4000
+	}
+	if got := WaitBeforeMS(calls, 0); got != 0 {
+		t.Fatalf("first call wait = %d", got)
+	}
+	if got := ActiveDur(10000, calls); got != 3000 {
+		t.Fatalf("ActiveDur = %d", got)
+	}
+	if got := ActiveDur(2000, calls); got != 0 {
+		t.Fatalf("must clamp at 0, got %d", got)
+	}
+}

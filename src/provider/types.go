@@ -3,26 +3,27 @@ package provider
 // SessionNode is one session in the /api/tree payload. Field order is the JSON
 // order on the wire; Source must stay last.
 type SessionNode struct {
-	ID       string         `json:"id"`
-	Parent   any            `json:"parent"`
-	Title    string         `json:"title"`
-	Agent    any            `json:"agent"`
-	Model    any            `json:"model"`
-	Dir      string         `json:"dir"`
-	MaxCtx   int64          `json:"maxctx"`
-	In       int64          `json:"in"`
-	Out      int64          `json:"out"`
-	Reason   int64          `json:"reason"`
-	Cr       int64          `json:"cr"`
-	Cw       int64          `json:"cw"`
-	Created  int64          `json:"created"`
-	Updated  int64          `json:"updated"`
-	Active   bool           `json:"active"`
-	Dur      int64          `json:"dur"`
-	Beats    []int64        `json:"beats"`
-	Children []*SessionNode `json:"children"`
-	Subtree  *SubtreeSums   `json:"subtree"`
-	Source   string         `json:"source"`
+	ID       string                  `json:"id"`
+	Parent   any                     `json:"parent"`
+	Title    string                  `json:"title"`
+	Agent    any                     `json:"agent"`
+	Model    any                     `json:"model"`
+	Dir      string                  `json:"dir"`
+	MaxCtx   int64                   `json:"maxctx"`
+	In       int64                   `json:"in"`
+	Out      int64                   `json:"out"`
+	Reason   int64                   `json:"reason"`
+	Cr       int64                   `json:"cr"`
+	Cw       int64                   `json:"cw"`
+	Created  int64                   `json:"created"`
+	Updated  int64                   `json:"updated"`
+	Active   bool                    `json:"active"`
+	Dur      int64                   `json:"dur"`
+	Beats    []int64                 `json:"beats"`
+	Children []*SessionNode          `json:"children"`
+	Subtree  *SubtreeSums            `json:"subtree"`
+	ByModel  map[string]*SubtreeSums `json:"bymodel,omitempty"`
+	Source   string                  `json:"source"`
 }
 
 // SubtreeSums are token totals over a node and all its descendants.
@@ -58,6 +59,7 @@ type CallRec struct {
 	Reason int64  `json:"reason"`
 	Ctx    int64  `json:"ctx"`
 	Hu     Trig   `json:"hu"`
+	Model  string `json:"model,omitempty"`
 }
 
 // TriggerPartText is a text part of a /api/trigger payload.

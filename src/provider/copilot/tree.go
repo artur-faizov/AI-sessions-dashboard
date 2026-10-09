@@ -72,6 +72,7 @@ func setTokens(n *provider.SessionNode, t nodeTokens) {
 func (s *session) tree(nowMS int64, td tokenData) *provider.SessionNode {
 	locked := hasLock(s.dir)
 	root := s.rootNode(nowMS, locked)
+	root.Dur = provider.ActiveDur(root.Dur, s.calls("", td))
 	rootTokens := s.nodeTokens("", td)
 	setTokens(root, rootTokens)
 

@@ -46,6 +46,8 @@ type claudeMsg struct {
 	toolResults []claudeToolResult
 }
 
+const claudeTitleMaxRunes = 80
+
 // claudeFile is a parsed transcript (main session or subagent).
 type claudeFile struct {
 	path      string
@@ -62,6 +64,7 @@ type claudeFile struct {
 type claudeRawLine struct {
 	Type      string        `json:"type"`
 	UUID      string        `json:"uuid"`
+	RequestID string        `json:"requestId"`
 	Timestamp string        `json:"timestamp"`
 	Cwd       string        `json:"cwd"`
 	SessionID string        `json:"sessionId"`
@@ -157,6 +160,7 @@ func parseClaudeFile(path string) *claudeFile {
 		return f
 	}
 	seen := map[string]bool{}
+	seenReq := map[string]bool{}
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -183,6 +187,8 @@ func parseClaudeFile(path string) *claudeFile {
 		if ts == 0 {
 			continue // no valid timestamp: skip silently
 		}
+		m := &claudeMsg{mid: raw.UUID, role: raw.Type, timeMS: ts}
+		dupReq := false
 		if raw.Type == "assistant" {
 			if raw.UUID != "" {
 				if seen[raw.UUID] {
@@ -190,8 +196,31 @@ func parseClaudeFile(path string) *claudeFile {
 				}
 				seen[raw.UUID] = true
 			}
+			// One API request is written as multiple assistant lines (one per
+			// content block), each repeating the same usage block. Count usage
+			// only on the first line of a request to avoid overcounting.
+			if raw.RequestID != "" {
+				if seenReq[raw.RequestID] {
+					dupReq = true
+				} else {
+					seenReq[raw.RequestID] = true
+				}
+			}
+			m.model = raw.Message.Model
+			if !dupReq {
+				if raw.Message.Usage != nil {
+					m.usage = claudeUsage{
+						in:  raw.Message.Usage.InputTokens,
+						out: raw.Message.Usage.OutputTokens,
+						cr:  raw.Message.Usage.CacheReadInputTokens,
+						cw:  raw.Message.Usage.CacheCreationInputTokens,
+					}
+				}
+				if m.usage.nonzero() && m.model != "<synthetic>" {
+					m.hasUsage = true
+				}
+			}
 		}
-		m := &claudeMsg{mid: raw.UUID, role: raw.Type, timeMS: ts}
 		if raw.Type == "user" {
 			m.meta = raw.IsMeta
 		}
@@ -203,20 +232,6 @@ func parseClaudeFile(path string) *claudeFile {
 		}
 		if ts > f.lastMS {
 			f.lastMS = ts
-		}
-		if raw.Type == "assistant" {
-			m.model = raw.Message.Model
-			if raw.Message.Usage != nil {
-				m.usage = claudeUsage{
-					in:  raw.Message.Usage.InputTokens,
-					out: raw.Message.Usage.OutputTokens,
-					cr:  raw.Message.Usage.CacheReadInputTokens,
-					cw:  raw.Message.Usage.CacheCreationInputTokens,
-				}
-			}
-			if m.usage.nonzero() && m.model != "<synthetic>" {
-				m.hasUsage = true
-			}
 		}
 		// content: plain string or block array
 		var blocks []claudeRawBlock
@@ -450,8 +465,9 @@ func (f *claudeFile) calls() []provider.CallRec {
 				Mid: m.mid, Time: m.timeMS,
 				In: m.usage.in, Cr: m.usage.cr, Cw: m.usage.cw,
 				Out: m.usage.out, Reason: 0,
-				Ctx: m.usage.in + m.usage.cr + m.usage.cw,
-				Hu:  f.humanTrig(prev),
+				Ctx:   m.usage.in + m.usage.cr + m.usage.cw,
+				Hu:    f.humanTrig(prev),
+				Model: m.model,
 			})
 		}
 		prev = m
@@ -476,7 +492,29 @@ func (f *claudeFile) prompt() []string {
 	return texts
 }
 
-func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats []int64) {
+// promptTitle derives a fallback title from the first human prompt: its first
+// non-empty line, clipped to claudeTitleMaxRunes. Empty when there is none.
+func (f *claudeFile) promptTitle() string {
+	for _, m := range f.messages {
+		if m.role != "user" || m.human == "" {
+			continue
+		}
+		for _, line := range strings.Split(m.human, "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			if r := []rune(line); len(r) > claudeTitleMaxRunes {
+				line = string(r[:claudeTitleMaxRunes]) + "…"
+			}
+			return line
+		}
+	}
+	return ""
+}
+
+func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats []int64, byModel map[string]*provider.SubtreeSums) {
+	byModel = map[string]*provider.SubtreeSums{}
 	for _, m := range f.messages {
 		if m.role != "assistant" || !m.hasUsage {
 			continue
@@ -491,9 +529,13 @@ func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats
 		if m.model != "" {
 			model = m.model
 		}
+		provider.ByModelAdd(byModel, m.model, &provider.SubtreeSums{
+			In: m.usage.in, Out: m.usage.out,
+			Cr: m.usage.cr, Cw: m.usage.cw,
+		})
 		beats = append(beats, m.timeMS)
 	}
-	return in, out, cr, cw, maxctx, model, beats
+	return in, out, cr, cw, maxctx, model, beats, byModel
 }
 
 // trigger builds the trigger response for a call mid, reporting ok=false when
@@ -572,6 +614,9 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 	idx := c.scanIndex()
 	nodes := map[string]*provider.SessionNode{}
 	for sid, s := range idx.sessions {
+		if s.file.promptTitle() == "" {
+			continue // no user request (opened and closed): hide
+		}
 		nodes[sid] = claudeNode(s, nil, nowMS)
 	}
 	for _, a := range idx.agents {
@@ -591,9 +636,10 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 		}
 	}
 
+	provider.DropClosed(roots, provider.ProcDirs("claude"))
 	for id, n := range nodes {
 		if n.Active {
-			_, _, _, _, _, _, beats := idx.lookup(id).file.stats()
+			_, _, _, _, _, _, beats, _ := idx.lookup(id).file.stats()
 			sort.Slice(beats, func(i, j int) bool { return beats[i] < beats[j] })
 			n.Beats = beats
 		}
@@ -609,6 +655,7 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 			t.Reason += st.Reason
 			t.Cr += st.Cr
 			t.Cw += st.Cw
+			provider.ByModelMerge(n.ByModel, ch.ByModel)
 		}
 		n.Subtree = &t
 		sort.Slice(n.Children, func(i, j int) bool {
@@ -627,7 +674,7 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 }
 
 func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode {
-	in, out, cr, cw, maxctx, model, _ := s.file.stats()
+	in, out, cr, cw, maxctx, model, _, byModel := s.file.stats()
 	var modelV any
 	if model != "" {
 		modelV = model
@@ -651,11 +698,14 @@ func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode
 		Active:   updated > 0 && nowMS-updated < provider.ActiveWindowMS,
 		Beats:    []int64{},
 		Children: []*provider.SessionNode{},
+		Subtree:  nil,
+		ByModel:  byModel,
 		Source:   "claude",
 	}
 	if n.Dur = updated - n.Created; n.Dur < 0 {
 		n.Dur = 0
 	}
+	n.Dur = provider.ActiveDur(n.Dur, s.file.calls())
 	if n.Dir == "" {
 		n.Dir = s.dirHint
 	}
@@ -671,6 +721,9 @@ func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode
 				n.Title = agent
 			}
 		}
+	}
+	if n.Title == "" {
+		n.Title = s.file.promptTitle()
 	}
 	if n.Title == "" {
 		n.Title = "(untitled)"

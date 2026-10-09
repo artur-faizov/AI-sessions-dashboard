@@ -375,25 +375,15 @@ func TestClaudePromptSkipsNoise(t *testing.T) {
 	}
 }
 
-func TestClaudeEmptySessionStillServed(t *testing.T) {
+func TestClaudeEmptySessionHidden(t *testing.T) {
 	p, dir := claudeFixture(t, "-home-x-proj")
 	writeLines(t, filepath.Join(dir, "s1.jsonl"), "garbage line")
 	roots, err := p.BuildTree(0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	n := findNode(roots, "s1")
-	if n == nil {
-		t.Fatal("empty session must still yield a node")
-	}
-	if n.Title != "(untitled)" || n.Created != 0 || n.Updated != 0 || n.Active {
-		t.Fatalf("empty node wrong: %s", jdump(n))
-	}
-	if n.Dir != "-home-x-proj" {
-		t.Fatalf("dir fallback %q", n.Dir)
-	}
-	if n.Beats == nil || n.Children == nil {
-		t.Fatal("beats and children must be non-nil")
+	if findNode(roots, "s1") != nil {
+		t.Fatal("session without a user request must be hidden")
 	}
 	calls, err := p.SessionCalls("s1")
 	if err != nil || len(calls) != 0 {
@@ -548,5 +538,22 @@ func TestClaudeProviderNotPathSwitchable(t *testing.T) {
 	}
 	if p.DataPath() != root {
 		t.Fatalf("data path changed to %s", p.DataPath())
+	}
+}
+
+func TestPromptTitleFallback(t *testing.T) {
+	f := &claudeFile{messages: []*claudeMsg{
+		{role: "assistant"},
+		{role: "user", human: "\n  first line  \nsecond"},
+	}}
+	if got := f.promptTitle(); got != "first line" {
+		t.Fatalf("got %q", got)
+	}
+	f.messages[1].human = strings.Repeat("x", 100)
+	if got := f.promptTitle(); got != strings.Repeat("x", claudeTitleMaxRunes)+"…" {
+		t.Fatalf("not clipped: %q", got)
+	}
+	if got := (&claudeFile{}).promptTitle(); got != "" {
+		t.Fatalf("want empty, got %q", got)
 	}
 }

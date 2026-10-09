@@ -225,7 +225,8 @@ test('db_not_found on /api/tree renders a localized empty state and refreshes db
     await settle();
     assert.ok(ctx.els.get('#tree').innerHTML.includes('db.notfound'),
         'tree area shows the db-not-found empty state');
-    assert.equal(ctx.els.get('#summary').textContent, '');
+    assert.equal(ctx.els.get('#statrows').textContent, 'stats.rows',
+        'stats area shows an empty state');
     const sel = ctx.els.get('#dbsel');
     assert.match(sel.title, /db\.missing\.tip/, 'field reflects missing state');
 });

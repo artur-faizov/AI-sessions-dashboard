@@ -31,8 +31,11 @@
         header {
             position: sticky;
             top: 0;
-            background: var(--bg);
-            border-bottom: 1px solid var(--line);
+            background: #232834;
+            border: 1px solid #3a4258;
+            border-radius: 14px;
+            margin: 8px 10px 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .45);
             padding: 10px 18px;
             display: flex;
             gap: 16px;
@@ -92,9 +95,9 @@
 
         .headcol {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
-            align-items: flex-start;
+            flex-direction: row;
+            gap: 12px;
+            align-items: center;
             flex: none
         }
         .dbwrap {
@@ -231,19 +234,35 @@
         }
 
         .gearmenu {
-            position: absolute;
-            top: calc(100% + 8px);
-            right: 0;
+            position: fixed;
+            left: 18px;
+            right: 18px;
+            top: 64px;
             background: var(--bg);
             border: 1px solid var(--line);
             border-radius: 8px;
             padding: 10px 12px 12px;
-            min-width: 252px;
             z-index: 20;
             box-shadow: 0 4px 8px rgba(0, 0, 0, .35);
             display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            align-content: flex-start;
+            gap: 14px;
+            max-height: calc(100vh - 90px);
+            overflow-y: auto
+        }
+
+        .gearmenu .mcol {
+            display: flex;
             flex-direction: column;
-            gap: 8px
+            gap: 8px;
+            min-width: 240px
+        }
+
+        .gearmenu .mcol.wide {
+            flex: 1 1 320px
         }
 
         .gearmenu[hidden] {
@@ -317,6 +336,45 @@
             align-self: flex-start
         }
 
+        .gearmenu .mrow {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 6px
+        }
+
+        .gearmenu .mcard {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            border: 1px solid var(--dim, #555);
+            border-radius: 4px;
+            padding: 5px 7px;
+            min-width: 130px
+        }
+
+        .gearmenu .mcard .mname {
+            font-size: 12px;
+            font-weight: bold;
+            word-break: break-all
+        }
+
+        .gearmenu .mcard .mrow2 {
+            display: flex;
+            align-items: center;
+            gap: 4px
+        }
+
+        .gearmenu .mcard label {
+            flex: none;
+            width: auto
+        }
+
+        .gearmenu .mcard .mtot {
+            color: var(--dim);
+            font-size: 11px
+        }
+
         .hlbox {
             display: flex;
             gap: 6px;
@@ -337,6 +395,19 @@
             font-size: 13px
         }
 
+        .hlsq {
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            border-radius: 2px;
+            flex: none;
+            background: rgb(230, 200, 80)
+        }
+
+        .hlsq.crit {
+            background: rgb(247, 118, 142)
+        }
+
         .hlbox input[type=number]:focus {
             outline: none;
             border-color: var(--acc)
@@ -345,6 +416,42 @@
         .hlbox input[type=checkbox] {
             accent-color: var(--acc);
             cursor: pointer
+        }
+
+        #grp-filter .fchip, #grp-filter .projdd > button, #grp-filter .fbtn {
+            box-sizing: border-box;
+            height: 28px;
+            padding-left: 8px;
+            padding-right: 8px;
+            display: inline-flex;
+            align-items: center
+        }
+
+        .fchip {
+            padding: 0 7px;
+            border: 1px solid transparent;
+            border-radius: 6px
+        }
+
+        .fchip.on, .projdd > button.on {
+            background: rgba(122, 162, 247, .22);
+            border-color: var(--acc);
+            color: var(--fg)
+        }
+
+        .favbox {
+            cursor: pointer;
+            user-select: none
+        }
+
+        .favbox .fstar {
+            color: #8b9099;
+            font-size: 15px;
+            line-height: 1
+        }
+
+        .favbox:hover .fstar, .favbox.on .fstar {
+            color: #f5c518
         }
 
         .node.warn {
@@ -419,6 +526,7 @@
 
         #tree {
             flex: 1;
+            min-height: 0;
             overflow: auto;
             padding: 0 18px 12px
         }
@@ -438,7 +546,21 @@
             width: 44%;
             min-width: 300px;
             border-left: 1px solid var(--line);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        /* same layout as the left pane: fixed title row on top, scroller below
+           with the table header sticky at top:0 */
+        #dscroll {
+            flex: 1;
+            min-height: 0;
             overflow: auto;
+            padding: 0 20px 12px
+        }
+
+        #detail > .empty {
             padding: 16px 20px
         }
 
@@ -476,6 +598,30 @@
             background: #1d2026
         }
 
+        .chkcol {
+            width: 16px;
+            flex: none;
+            text-align: center
+        }
+
+        .node .star {
+            width: 16px;
+            flex: none;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            line-height: 1;
+            color: #8b9099
+        }
+
+        .node .star:hover {
+            color: #f5c518
+        }
+
+        .node .star.on {
+            color: #f5c518
+        }
+
         .hcol {
             width: 68px;
             text-align: center;
@@ -489,18 +635,27 @@
             overflow: visible
         }
 
-        .ecg.lg {
-            height: 30px
-        }
-
-        .ecg.xl {
-            height: 40px
-        }
-
         .ecg polyline {
             fill: none;
             stroke: #e5484d;
             stroke-width: 1.3
+        }
+
+        .ttlbg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: .35;
+            overflow: hidden
+        }
+
+        .ttlbg polyline {
+            fill: none;
+            stroke: #e5484d;
+            stroke-width: 1.3;
+            vector-effect: non-scaling-stroke
         }
 
         .hlbox .ecg {
@@ -510,12 +665,59 @@
         }
 
         .node .ttl {
+            position: relative;
             flex: 1;
             min-width: 180px;
             font-weight: 500;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap
+        }
+
+        .node .ttl {
+            display: flex;
+            align-items: center
+        }
+
+        .tname {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .rnmark {
+            flex: none;
+            margin-right: 4px;
+            font-size: 11px;
+            font-weight: 400
+        }
+
+        .rnbtn {
+            visibility: hidden;
+            flex: none;
+            padding: 0 6px;
+            color: var(--dim);
+            cursor: pointer;
+            font-weight: 400
+        }
+
+        .node:hover .rnbtn {
+            visibility: visible
+        }
+
+        .rninput {
+            flex: 1;
+            min-width: 0;
+            font: inherit;
+            color: var(--fg);
+            background: #14161a;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 0 4px
+        }
+
+        .rnbtn:hover {
+            color: var(--fg)
         }
 
         .node.root > .ttl {
@@ -543,10 +745,6 @@
             font-variant-numeric: tabular-nums;
             font-size: 12px;
             color: var(--dim);
-            white-space: nowrap
-        }
-
-        #summary {
             white-space: nowrap
         }
 
@@ -588,11 +786,15 @@
         }
 
         .v-tok {
-            width: 5.5ch
+            width: 12ch
         }
 
         .v-money {
-            width: 6ch
+            width: 13ch
+        }
+
+        .own-part {
+            color: var(--dim)
         }
 
         .vbar {
@@ -621,6 +823,155 @@
             background: var(--user)
         }
 
+        #treepane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0
+        }
+
+        .treehead {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 16px;
+            padding: 10px 18px 6px;
+            margin: 6px 10px 6px 10px;
+            background: #1b1f27;
+            border: 1px solid var(--line);
+            border-radius: 10px
+        }
+
+        .namesel {
+            box-sizing: border-box;
+            height: 28px;
+            width: 110px;
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0 10px;
+            font: inherit;
+            font-size: 13px
+        }
+
+        .namesel:focus {
+            outline: none;
+            border-color: var(--acc)
+        }
+
+        .namesel {
+            margin-right: 10px
+        }
+
+        .namesel.on {
+            background: rgba(122, 162, 247, .22);
+            border-color: var(--acc)
+        }
+
+        .projwrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px
+        }
+
+        .projwrap input[type=checkbox] {
+            accent-color: var(--acc);
+            cursor: pointer;
+            margin: 0
+        }
+
+        .projdd {
+            position: relative;
+            display: inline-block
+        }
+
+        .projdd > button {
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0 8px;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer
+        }
+
+        .projmenu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 50;
+            min-width: 100%;
+            max-height: 320px;
+            overflow: auto;
+            background: #262b36;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .4)
+        }
+
+        .projdd.open .projmenu {
+            display: block
+        }
+
+        .projmenu input[type=text] {
+            box-sizing: border-box;
+            width: calc(100% - 16px);
+            margin: 2px 8px 4px;
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 7px;
+            font: inherit;
+            font-size: 13px
+        }
+
+        .projmenu input[type=text]:focus {
+            outline: none;
+            border-color: var(--acc)
+        }
+
+        .projmenu .projnone {
+            padding: 3px 10px;
+            color: var(--dim)
+        }
+
+        .projmenu label {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            padding: 3px 10px;
+            white-space: nowrap;
+            cursor: pointer
+        }
+
+        .projmenu label:hover {
+            background: #323948
+        }
+
+        .treehead #grp-filter {
+            gap: 6px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            margin: 0 0 0 auto
+        }
+
+        .ptitle {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--fg)
+        }
+
         .thead {
             position: sticky;
             top: 0;
@@ -632,6 +983,7 @@
             padding: 7px 4px;
             margin-bottom: 6px;
             border: 2px solid #3d4455;
+            border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, .35)
         }
 
@@ -681,14 +1033,6 @@
             content: '▴'
         }
 
-        .caret {
-            cursor: pointer;
-            color: var(--dim);
-            width: 14px;
-            display: inline-block;
-            user-select: none
-        }
-
         .project {
             color: var(--dim);
             font-size: 12px;
@@ -699,76 +1043,6 @@
         #detail h2 {
             font-size: 15px;
             margin: 0 0 8px
-        }
-
-        #detail .meta {
-            background: #1a1d22;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 10px 12px;
-            font-size: 13px;
-            margin-bottom: 14px
-        }
-
-        #detail .meta dl {
-            display: grid;
-            grid-template-columns:auto 1fr;
-            gap: 4px 14px;
-            margin: 0
-        }
-
-        #detail .meta dt {
-            color: var(--dim)
-        }
-
-        #detail .meta dd {
-            margin: 0;
-            font-variant-numeric: tabular-nums;
-            overflow-wrap: anywhere
-        }
-
-        table.tokgrid {
-            border-collapse: collapse;
-            margin-top: 10px;
-            width: 100%;
-            font-variant-numeric: tabular-nums
-        }
-
-        table.tokgrid th, table.tokgrid td {
-            padding: 3px 8px;
-            text-align: right;
-            border-top: 1px solid var(--line)
-        }
-
-        table.tokgrid thead th {
-            color: var(--dim);
-            font-weight: 500;
-            font-size: 12px;
-            border-top: none
-        }
-
-        table.tokgrid tbody th {
-            text-align: left;
-            font-weight: 500;
-            color: var(--dim);
-            padding-left: 0;
-            white-space: nowrap
-        }
-
-        table.tokgrid .sep {
-            border-left: 1px solid var(--line)
-        }
-
-        table.tokgrid tr.own td:nth-of-type(1) {
-            color: var(--acc)
-        }
-
-        table.tokgrid tr.kids td:nth-of-type(1) {
-            color: var(--sub)
-        }
-
-        table.tokgrid tr.total td {
-            font-weight: 700
         }
 
         pre.prompt {
@@ -797,14 +1071,6 @@
             text-align: center
         }
 
-        .own {
-            color: var(--acc)
-        }
-
-        .kids {
-            color: var(--sub)
-        }
-
         table.calls {
             border-collapse: separate;
             border-spacing: 0;
@@ -826,18 +1092,19 @@
             border-bottom: 1px solid #1f2229
         }
 
-        table.calls tfoot td {
-            border-top: 1px solid var(--line);
-            border-bottom: none;
-            color: var(--fg)
-        }
-
         .ctxsize {
             background: #ffd43b;
             color: #1a1a1a;
             font-weight: 700;
             padding: 0 5px;
             border-radius: 4px
+        }
+
+        table.calls tbody tr.gap td {
+            height: 10px;
+            pointer-events: none;
+            padding: 0;
+            border: 0
         }
 
         table.calls .vbar {
@@ -852,9 +1119,143 @@
             background: #1d2026
         }
 
+        table.calls tbody tr.wait {
+            cursor: default
+        }
+
+        table.calls tbody tr.wait:hover {
+            background: none
+        }
+
+        table.calls tbody tr.wait td {
+            padding: 2px 10px;
+            font-size: 11px;
+            color: var(--dim);
+            text-align: center;
+            border-top: 1px dashed var(--line);
+            border-bottom: 1px dashed var(--line)
+        }
+
+        table.calls .wbar {
+            width: 120px;
+            margin: 0 0 0 8px
+        }
+
         table.calls .sep {
             border-left: 1px solid var(--line);
             padding-left: 10px
+        }
+
+        .ovl {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .ovl[hidden] {
+            display: none
+        }
+
+        .ovl-bg {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .55)
+        }
+
+        .ovl-box {
+            position: relative;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            width: min(640px, 92vw);
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        .ovl-head {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 13px;
+            background: #a9c7f2;
+            color: #14213d;
+            border-radius: 9px 9px 0 0
+        }
+
+        .ovl-x {
+            cursor: pointer;
+            color: #41557a;
+            border: none;
+            background: none;
+            font-size: 16px;
+            padding: 2px 6px
+        }
+
+        .ovl-body {
+            padding: 12px 16px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px
+        }
+
+        .ovl-row {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .ovl-row input[type=text] {
+            flex: 1;
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font: inherit;
+            font-size: 12px
+        }
+
+        .ovl-list {
+            overflow: auto;
+            max-height: 40vh;
+            border: 1px solid var(--line);
+            border-radius: 6px
+        }
+
+        .ovl-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer
+        }
+
+        .ovl-item:hover {
+            background: #1d2026
+        }
+
+        .ovl-item .sub {
+            color: var(--dim);
+            margin-left: auto;
+            white-space: nowrap
+        }
+
+        .ovl-msg {
+            font-size: 12px;
+            color: var(--dim);
+            white-space: pre-wrap
+        }
+
+        .ovl-msg.err {
+            color: #f7768e
         }
 
         #modal {
@@ -1182,12 +1583,59 @@
             color: var(--fg)
         }
 
-        .sect .fbtn {
-            margin-left: 10px;
-            padding: 1px 9px;
-            font-size: 11px;
-            border-radius: 5px;
-            vertical-align: 1px
+        .callshead {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 10px 18px 6px;
+            margin: 6px 10px 6px 10px;
+            background: #1b1f27;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            white-space: nowrap
+        }
+
+        .callstitle {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--fg);
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .sesname {
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 13px;
+            color: var(--fg)
+        }
+
+        /* styled like the sessions header (.thead) so the sticky row has a clear edge;
+           whole-pixel height (36px = 2px + 32px + 2px) avoids subpixel jitter while scrolling */
+        table.calls thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #262b36;
+            border-top: 2px solid #3d4455;
+            border-bottom: 2px solid #3d4455;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, .35);
+            padding: 0 6px;
+            line-height: 32px;
+            height: 36px
+        }
+
+        table.calls thead th:first-child {
+            border-left: 2px solid #3d4455;
+            border-radius: 8px 0 0 8px
+        }
+
+        table.calls thead th:last-child {
+            border-right: 2px solid #3d4455;
+            border-radius: 0 8px 8px 0
         }
 
         @media (max-width: 900px) {
@@ -1224,14 +1672,16 @@
     <symbol id="hum-approval" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><path d="M11.7 15.45l2.55 2.55 4.95-5.55" fill="none" stroke="#12290f" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="hum-image" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><rect x="11.25" y="12.6" width="8.1" height="5.85" rx="1.05" fill="none" stroke="#12290f" stroke-width="1.4"/><circle cx="13.2" cy="14.4" r="0.75" fill="#12290f"/><path d="M12 17.85l2.25-2.4 1.5 1.8 1.2-1.35 2.55 3z" fill="#12290f"/></symbol>
 </defs></svg>
-<header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button></span></div>
-    <div class="hgrp center" id="grp-filter"><button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
-    <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="hlapplylabel" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
-    <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent sessions only</span></label>
-    <span id="summary" class="num"></span></div>
-    <div class="hgrp right" id="grp-meta"><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
+<header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button><button class="fbtn" id="dbbrowse" hidden></button></span></div>
+    <div class="hgrp center" id="grp-hl"><label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">highlight context size</span><i class="hlsq warn"></i><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><i class="hlsq crit"></i><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"></label></div>
+    <div class="hgrp right" id="grp-meta"><button class="fbtn" id="expbtn" onclick="expOpen()"></button><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
+        <div class="mcol">
         <div class="grow"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></div>
         <div class="grow"><span id="langsw" class="langsw" title="Language"></span></div>
+        <div class="sect" id="gearstats">statistics</div>
+        <div class="grow" id="statrows"></div>
+        </div>
+        <div class="mcol">
         <div class="sect" id="gearcost">cost formula</div>
         <div class="grow cost"><input type="checkbox" id="ck-in" checked><label for="ck-in" id="lbl-in">fresh input</label><span class="cur">$</span><input type="number" id="pr-in" step="0.01" min="0" value="4" title="$/1M"></div>
         <div class="grow cost"><input type="checkbox" id="ck-out" checked><label for="ck-out" id="lbl-out">output</label><span class="cur">$</span><input type="number" id="pr-out" step="0.01" min="0" value="20" title="$/1M"></div>
@@ -1240,15 +1690,56 @@
         <div class="grow cost"><input type="checkbox" id="ck-cr" checked><label for="ck-cr" id="lbl-cr">cache read</label><span class="cur">$</span><input type="number" id="pr-cr" step="0.01" min="0" value="0.2" title="$/1M"></div>
         <div class="gformula" id="gearformula"></div>
         <button class="freset" id="gearreset">reset to default</button>
+        </div>
+        <div class="mcol wide">
+        <div class="sect" id="gearmodels-sect">per-model prices</div>
+        <div class="mrow" id="gearmodels" title=""></div>
+        </div>
     </div></span>
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></div></header>
 <main>
-    <div id="tree"></div>
+    <div id="treepane">
+        <div class="treehead"><div class="ptitle" id="treetitle"></div>
+        <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
+        <input type="text" class="namesel" id="namesel" autocomplete="off">
+        <span class="projwrap"><input type="checkbox" id="projon" checked><span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span></span>
+        <label class="hlbox fchip" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
+        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
+        <span class="hlbox favbox fchip" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
+        <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
+        </div>
+        <div id="tree"></div>
+    </div>
     <div id="splitter" title="Drag to resize · double-click to reset"></div>
     <div id="detail">
+        <div class="sect callshead"><span class="callstitle">AI CALLS IN SESSION</span></div>
         <div class="empty" id="detailempty">Select a session…</div>
     </div>
 </main>
+<div class="ovl" id="expdlg" hidden>
+    <div class="ovl-bg" onclick="expClose()"></div>
+    <div class="ovl-box">
+        <div class="ovl-head"><span id="exphead"></span><button class="ovl-x" onclick="expClose()">✕</button></div>
+        <div class="ovl-body">
+            <div class="ovl-row"><button class="fbtn" id="expall"></button><button class="fbtn" id="expnone"></button></div>
+            <div class="ovl-list" id="explist"></div>
+            <div class="ovl-row"><input type="text" id="expdir"><button class="fbtn" id="expbrowse"></button></div>
+            <div class="ovl-msg" id="expmsg"></div>
+            <div class="ovl-row"><button class="fbtn" id="expgo"></button></div>
+        </div>
+    </div>
+</div>
+<div class="ovl" id="browsedlg" hidden>
+    <div class="ovl-bg" onclick="browseClose()"></div>
+    <div class="ovl-box">
+        <div class="ovl-head"><span id="brhead"></span><button class="ovl-x" onclick="browseClose()">✕</button></div>
+        <div class="ovl-body">
+            <div class="ovl-msg" id="brpath"></div>
+            <div class="ovl-list" id="brlist"></div>
+            <div class="ovl-row"><button class="fbtn" id="brpick"></button></div>
+        </div>
+    </div>
+</div>
 <div id="modal" hidden>
     <div id="modal-bg" onclick="modalClose()"></div>
     <div id="modal-box">
@@ -1325,6 +1816,31 @@
     function resetCost() {
         Object.keys(COST).forEach(k => delete COST[k]);
         Object.assign(COST, JSON.parse(JSON.stringify(COST_DEF)));
+        MCOST = {};
+    }
+
+    // Per-model price overrides: model -> {in: price, ...}; a missing field
+    // falls back to the global COST price.
+    let MCOST = {};
+
+    // t = {in, out, reason, cr, cw} token counts, model = string or undefined;
+    // returns dollars using per-model overrides where set.
+    function costT(t, model) {
+        const o = model ? MCOST[model] : null;
+        const p = k => (o && o[k] != null) ? +o[k] : COST[k].price;
+        return (COST.in.on ? (t.in || 0) / 1e6 * p('in') : 0) + (COST.out.on ? (t.out || 0) / 1e6 * p('out') : 0)
+            + (COST.reason.on ? (t.reason || 0) / 1e6 * p('reason') : 0) + (COST.cw.on ? (t.cw || 0) / 1e6 * p('cw') : 0)
+            + (COST.cr.on ? (t.cr || 0) / 1e6 * p('cr') : 0);
+    }
+
+    // Node cost: per-model subtree sums when present, else global subtree cost.
+    function costNode(n) {
+        if (n && n.bymodel) {
+            let s = 0, any = false;
+            for (const m of Object.keys(n.bymodel)) { s += costT(n.bymodel[m], m); any = true; }
+            if (any) return s;
+        }
+        return costT((n && n.subtree) || {});
     }
 
     function modelName(m) {
@@ -1374,17 +1890,22 @@
         return presetRange(f.datePreset, now);
     }
 
+    function nodeDir(n) {
+        return n.dir || '(unknown)';
+    }
+
     function treeMatchesNode(n, f) {
         if (f.text) {
-            const hay = (n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase();
+            const hay = ((SNAME[n.id] || '') + ' ' + n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase();
             if (!hay.includes(f.text.toLowerCase())) return false;
         }
         if (f.models.size && !f.models.has(modelName(n.model))) return false;
         if (f.providers.size && !f.providers.has(nodeProvider(n))) return false;
+        if (f.dirs.size && !f.dirsOff && !f.dirs.has(nodeDir(n))) return false;
         if (!inRange(n.order || 0, f.numMin, f.numMax)) return false;
         if (!inRange(n.created || 0, f.dateMin, f.dateMax)) return false;
         if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
-        if (!inRange(costOf(n.subtree), f.spentMin, f.spentMax)) return false;
+        if (!inRange(costNode(n), f.spentMin, f.spentMax)) return false;
         if (!inRange(n.dur, f.durMin, f.durMax)) return false;
         return true;
     }
@@ -1407,6 +1928,19 @@
         return !!n.active || n.children.some(c => treeActiveVisible(c));
     }
 
+    function treeCheckedVisible(n, marked) {
+        return marked.has(n.id) || n.children.some(c => treeCheckedVisible(c, marked));
+    }
+
+    function treeFilterCount(f) {
+        const set = (a, b) => a != null || b != null;
+        return [
+            !!f.text, f.models.size > 0, f.providers.size > 0, f.dirs.size > 0 && !f.dirsOff, set(f.numMin, f.numMax),
+            f.datePreset != null && (f.datePreset !== 'custom' || !!f.dateFrom || !!f.dateTo),
+            set(f.ctxMin, f.ctxMax), set(f.spentMin, f.spentMax), set(f.durMin, f.durMax)
+        ].filter(Boolean).length;
+    }
+
     function heartSizes(roots) {
         const actives = [];
         (function walk(ns) {
@@ -1427,7 +1961,8 @@
         const mid = h / 2, amp = h * 0.45, lo = now - win;
         const ts = (beats || []).filter(t => t >= lo && t <= now).sort((a, b) => a - b);
         const x = t => Math.max(0, Math.min(w, (t - lo) / win * w));
-        const pts = [[0, mid]];
+        // No leading flatline from the past: the trace begins at the first beat.
+        const pts = [];
         for (const t of ts) {
             const cx = x(t);
             pts.push([Math.max(0, cx - 4), mid]);        // baseline before spike
@@ -1436,6 +1971,7 @@
             pts.push([Math.min(w, cx + 1.5), mid + h * 0.15]); // S dip
             pts.push([Math.min(w, cx + 4), mid]);        // back to baseline
         }
+        if (!pts.length) return '';
         pts.push([w, mid]);
         return pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
     }
@@ -1447,12 +1983,12 @@
     function callRowMatches(r, f) {
         if (f.text && !(r.text || '').toLowerCase().includes(f.text.toLowerCase())) return false;
         return inRange(r.n, f.numMin, f.numMax)
-            && inRange(r.ctx, f.ctxMin, f.ctxMax)
-            && inRange(r.delta, f.deltaMin, f.deltaMax)
-            && inRange(r.out, f.outMin, f.outMax)
-            && inRange(r.reason, f.reasonMin, f.reasonMax)
-            && inRange(r.in, f.inMin, f.inMax)
-            && inRange(r.cr, f.crMin, f.crMax);
+            && inRange(r.ctx, kilo(f.ctxMin), kilo(f.ctxMax))
+            && inRange(r.delta, kilo(f.deltaMin), kilo(f.deltaMax))
+            && inRange(r.out, kilo(f.outMin), kilo(f.outMax))
+            && inRange(r.reason, kilo(f.reasonMin), kilo(f.reasonMax))
+            && inRange(r.in, kilo(f.inMin), kilo(f.inMax))
+            && inRange(r.cr, kilo(f.crMin), kilo(f.crMax));
     }
 
     function visibleCallRows(calls, f, textOf) {
@@ -1472,15 +2008,6 @@
         return m && m[1] === agent && m.index > 0 ? t.slice(0, m.index) : t;
     }
 
-    function treeFilterCount(f) {
-        const set = (a, b) => a != null || b != null;
-        return [
-            !!f.text, f.models.size > 0, f.providers.size > 0, set(f.numMin, f.numMax),
-            f.datePreset != null && (f.datePreset !== 'custom' || !!f.dateFrom || !!f.dateTo),
-            set(f.ctxMin, f.ctxMax), set(f.spentMin, f.spentMax), set(f.durMin, f.durMax)
-        ].filter(Boolean).length;
-    }
-
     function callFilterCount(f) {
         const set = (a, b) => a != null || b != null;
         return [
@@ -1495,11 +2022,19 @@
         try { return decodeURIComponent(m[1]); } catch (e) { return null; }
     }
 
+    // Sessions offered by the export dialog: top-level sessions that are
+    // favourites or were updated within the last hour, newest first.
+    const EXPORT_RECENT_MS = 60 * 60 * 1000;
+    function exportCandidates(tree, marked, nowMs) {
+        return tree.filter(n => marked.has(n.id) || n.updated >= nowMs - EXPORT_RECENT_MS)
+            .sort((a, b) => b.updated - a.updated);
+    }
+
     if (typeof module !== 'undefined' && module.exports) module.exports = {
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
-        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, heartSizes, ecgPoints,
-        callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel,
-        COST_DEF, COST, costOf, tokEqOf, resetCost
+        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeCheckedVisible, nodeDir, heartSizes, ecgPoints,
+        callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel, exportCandidates,
+        COST_DEF, COST, MCOST, costOf, costT, costNode, tokEqOf, resetCost
     };
     // FILTER-LOGIC-END
 
@@ -1508,7 +2043,7 @@
     const pricesTip = () => COST_FIELDS.map(k => `${tr(costKey(k))}: $${COST[k].price}/1M${COST[k].on ? '' : ' ✕'}`).join(' · ');
 
     const newTreeFilter = () => ({
-        text: '', models: new Set(), providers: new Set(),
+        text: '', models: new Set(), providers: new Set(), dirs: new Set(), dirsOff: false,
         numMin: null, numMax: null,
         datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
         ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null
@@ -1520,6 +2055,8 @@
     let treeFilter = newTreeFilter(), callFilter = newCallFilter();
     let HOT = { warn: 100, crit: 120, apply: false };
     let REC = { only: false };
+    let CHK = { only: false, marked: new Set() };
+    let SNAME = {}; // local session names: id -> text (replaces the title in the UI)
 
     const SET_KEY = 'ttree-settings';
 
@@ -1527,9 +2064,10 @@
         if (typeof localStorage === 'undefined') return;
         try {
             const tree = Object.assign({}, treeFilter, {
-                models: [...treeFilter.models], providers: [...treeFilter.providers]
+                models: [...treeFilter.models], providers: [...treeFilter.providers], dirs: [...treeFilter.dirs]
             });
-            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC, cost: COST}));
+            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC,
+                chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST}));
         } catch (e) { /* storage unavailable — ignore */ }
     }
 
@@ -1544,6 +2082,21 @@
         return c;
     }
 
+    function mergeMCost(saved) {
+        const out = {};
+        if (!saved || typeof saved !== 'object') return out;
+        for (const m of Object.keys(saved)) {
+            const f = saved[m];
+            if (!f || typeof f !== 'object') continue;
+            const clean = {};
+            for (const k of COST_FIELDS) {
+                if (typeof f[k] === 'number' && Number.isFinite(f[k])) clean[k] = f[k];
+            }
+            if (Object.keys(clean).length) out[m] = clean;
+        }
+        return out;
+    }
+
     function loadSettings() {
         if (typeof localStorage === 'undefined') return;
         let s;
@@ -1551,15 +2104,22 @@
         if (!s || (s.v !== 1 && s.v !== 2)) return;
         try {
             if (s.tree) treeFilter = Object.assign(newTreeFilter(), s.tree,
-                {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || [])});
+                {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || []), dirs: new Set(s.tree.dirs || [])});
             if (s.call) callFilter = Object.assign(newCallFilter(), s.call);
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
             if (s.rec) REC = Object.assign({only: false}, s.rec);
+            if (s.chk) CHK = Object.assign({only: false, marked: new Set(s.chk.marked || [])}, {only: !!s.chk.only});
+            if (s.names && typeof s.names === 'object') {
+                SNAME = {};
+                for (const k of Object.keys(s.names)) if (typeof s.names[k] === 'string' && s.names[k]) SNAME[k] = s.names[k];
+            }
             if (s.cost) Object.assign(COST, mergeCost(s.cost));
+            MCOST = mergeMCost(s.mcost);
             document.querySelector('#hlwarn').value = HOT.warn ?? '';
             document.querySelector('#hlcrit').value = HOT.crit ?? '';
             document.querySelector('#hlapply').checked = !!HOT.apply;
             document.querySelector('#reconly').checked = !!REC.only;
+            syncFav();
         } catch (e) { /* corrupt — keep defaults */ }
     }
 
@@ -1584,9 +2144,9 @@
     }
 
     function updateFilterBtns() {
-        const lbl = n => tr('filter.btn') + (n ? ' · ' + n : '');
+        const lbl = n => tr('filter.extra') + (n ? ' · ' + n : '');
         const tb = document.querySelector('#tree-fbtn');
-        const tn = treeFilterCount(treeFilter);
+        const tn = treeFilterCount(treeFilter) - (treeFilter.dirs.size && !treeFilter.dirsOff ? 1 : 0);
         tb.classList.toggle('on', tn > 0);
         tb.textContent = lbl(tn);
         const cb = document.querySelector('#call-fbtn');
@@ -1600,7 +2160,79 @@
 
     let SHOWN = {roots: 0, total: 0};
 
+    const shortDir = d => d.split('/').filter(Boolean).slice(-2).join('/') || d;
+
+    function refreshProjSel() {
+        syncNameSel();
+        const menu = document.querySelector('#projmenu');
+        if (!menu) return;
+        const sel = treeFilter.dirs;
+        const last = new Map();
+        (function walk(ns) {
+            for (const n of ns) {
+                const d = nodeDir(n);
+                last.set(d, Math.max(last.get(d) || 0, n.updated || 0));
+                walk(n.children);
+            }
+        })(TREE);
+        const vals = [...last.keys()].sort((a, b) => last.get(b) - last.get(a) || a.localeCompare(b));
+        sel.forEach(v => vals.includes(v) || vals.push(v));
+        const q = document.querySelector('#projsearch').value.trim().toLowerCase();
+        const shown = q ? vals.filter(v => v.toLowerCase().includes(q)) : vals;
+        document.querySelector('#projsearch').placeholder = tr('filter.project.search');
+        document.querySelector('#projlist').innerHTML = !shown.length ? `<div class="projnone">${esc(tr('filter.project.none'))}</div>` : shown.map(v => `<label title="${esc(v)}"><input type="checkbox" value="${esc(v)}"${sel.has(v) ? ' checked' : ''}>${esc(shortDir(v))}</label>`).join('');
+        const btn = document.querySelector('#projbtn');
+        btn.textContent = tr('filter.project.n', {n: sel.size});
+        btn.title = tr('fmod.folder');
+        btn.classList.toggle('on', sel.size > 0 && !treeFilter.dirsOff);
+        const on = document.querySelector('#projon');
+        on.checked = !treeFilter.dirsOff;
+        on.title = tr('filter.project.on');
+        document.querySelector('#ctxbox').classList.toggle('on', !!HOT.apply);
+        document.querySelector('#recbox').classList.toggle('on', !!REC.only);
+    }
+
+    function syncNameSel() {
+        const el = document.querySelector('#namesel');
+        if (document.activeElement !== el) el.value = treeFilter.text;
+        el.classList.toggle('on', !!treeFilter.text);
+        el.placeholder = tr('filter.name.ph');
+        el.title = tr('ftree.text.ph');
+    }
+
+    document.querySelector('#namesel').addEventListener('input', e => {
+        treeFilter.text = e.target.value;
+        applyTreeFilter();
+    });
+
+    document.querySelector('#projon').addEventListener('change', e => {
+        treeFilter.dirsOff = !e.target.checked;
+        applyTreeFilter();
+    });
+
+    document.querySelector('#projbtn').addEventListener('click', () => {
+        const open = document.querySelector('#projdd').classList.toggle('open');
+        if (open) document.querySelector('#projsearch').focus();
+    });
+    document.querySelector('#projsearch').addEventListener('input', refreshProjSel);
+    document.querySelector('#projmenu').addEventListener('change', e => {
+        if (e.target.type !== 'checkbox') return;
+        const v = e.target.value;
+        e.target.checked ? treeFilter.dirs.add(v) : treeFilter.dirs.delete(v);
+        applyTreeFilter();
+    });
+    document.addEventListener('click', e => {
+        if (e.target.closest('#projdd')) return;
+        document.querySelector('#projdd').classList.remove('open');
+        const q = document.querySelector('#projsearch');
+        if (q.value) {
+            q.value = '';
+            refreshProjSel();
+        }
+    });
+
     function updateFilterCount() {
+        refreshProjSel();
         const el = document.querySelector('#fcount');
         if (!el) return;
         el.textContent = fmodalKind === 'tree'
@@ -1732,6 +2364,86 @@
         saveSettings();
     });
 
+    function syncFav() {
+        const b = document.querySelector('#chkbox');
+        b.classList.toggle('on', !!CHK.only);
+        b.setAttribute('aria-checked', CHK.only ? 'true' : 'false');
+        document.querySelector('#chkonly').textContent = CHK.only ? '★' : '☆';
+    }
+
+    function favFilterToggle() {
+        CHK.only = !CHK.only;
+        syncFav();
+        render();
+        saveSettings();
+    }
+
+    document.querySelector('#chkbox').addEventListener('click', favFilterToggle);
+    document.querySelector('#chkbox').addEventListener('keydown', e => {
+        if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            favFilterToggle();
+        }
+    });
+
+    function renameSession(e) {
+        e.stopPropagation();
+        const id = e.target.dataset.id;
+        const s = find(TREE, id);
+        const ttl = e.target.closest('.ttl');
+        if (!s || !ttl || ttl.querySelector('.rninput')) return;
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'rninput';
+        inp.value = SNAME[id] || '';
+        inp.placeholder = s.title;
+        let done = false;
+        const finish = save => {
+            if (done) return;
+            done = true;
+            if (save) {
+                const t = inp.value.trim();
+                if (t) SNAME[id] = t; else delete SNAME[id];
+                saveSettings();
+            }
+            inp.remove();
+            render();
+            if (save && id === sel) refreshDetail();
+        };
+        inp.addEventListener('keydown', ev => {
+            ev.stopPropagation();
+            if (ev.key === 'Enter') finish(true);
+            else if (ev.key === 'Escape') finish(false);
+        });
+        inp.addEventListener('blur', () => finish(true));
+        for (const t of ['click', 'dblclick', 'mousedown']) inp.addEventListener(t, ev => ev.stopPropagation());
+        ttl.textContent = '';
+        ttl.appendChild(inp);
+        inp.focus();
+    }
+
+    function chkToggle(e) {
+        e.stopPropagation();
+        const id = e.target.dataset.id;
+        const on = !CHK.marked.has(id);
+        const find = ns => {
+            for (const n of ns) {
+                if (n.id === id) return n;
+                const f = find(n.children);
+                if (f) return f;
+            }
+            return null;
+        };
+        const s = find(TREE);
+        if (!s) return;
+        (function walk(n) {
+            if (on) CHK.marked.add(n.id); else CHK.marked.delete(n.id);
+            n.children.forEach(walk);
+        })(s);
+        render();
+        saveSettings();
+    }
+
     function syncGearFormula() {
         const parts = COST_FIELDS.filter(k => COST[k].on).map(k => `${k}×$${+COST[k].price}`);
         document.querySelector('#gearformula').textContent = parts.length ? `$ = (${parts.join(' + ')}) / 1M` : '$ = 0';
@@ -1745,10 +2457,59 @@
         syncGearFormula();
     }
 
+    // Aggregates per-model token totals across the whole tree from bymodel maps.
+    function modelTotals() {
+        const totals = new Map();
+        (function walk(ns) {
+            for (const n of ns) {
+                if (n.bymodel) for (const m of Object.keys(n.bymodel)) {
+                    const t = n.bymodel[m];
+                    let a = totals.get(m);
+                    if (!a) { a = {in: 0, out: 0, reason: 0, cw: 0, cr: 0}; totals.set(m, a); }
+                    a.in += t.in || 0; a.out += t.out || 0; a.reason += t.reason || 0;
+                    a.cw += t.cw || 0; a.cr += t.cr || 0;
+                }
+                walk(n.children);
+            }
+        })(TREE);
+        return totals;
+    }
+
+    function buildGearModels() {
+        const wrap = document.querySelector('#gearmodels');
+        const totals = modelTotals();
+        const models = [...totals.keys()].sort();
+        if (!models.length) { wrap.innerHTML = `<div class="mtot">${tr('gear.models.none')}</div>`; return; }
+        wrap.innerHTML = models.map(m => {
+            const t = totals.get(m);
+            const fields = COST_FIELDS.filter(k => t[k] > 0);
+            const rows = fields.map(k => {
+                const ov = MCOST[m] && MCOST[m][k] != null ? MCOST[m][k] : COST[k].price;
+                return `<span class="mrow2"><label for="mp-${esc(m)}-${k}" title="${esc(tr(costKey(k)))}">${esc(tr(costKey(k)))}</label><span class="cur">$</span><input type="number" step="0.01" min="0" data-m="${esc(m)}" data-k="${k}" id="mp-${esc(m)}-${k}" value="${ov}" title="$/1M"></span>`;
+            }).join('');
+            return `<div class="mcard"><span class="mname" title="${esc(m)}">${esc(m)}</span>${rows}<span class="mtot">${tr('gear.models.tok', {n: fmt(t.in + t.out + t.reason + t.cw + t.cr)})}</span></div>`;
+        }).join('');
+    }
+
+    document.querySelector('#gearmodels').addEventListener('input', e => {
+        const m = e.target.getAttribute('data-m'), k = e.target.getAttribute('data-k');
+        if (!m || !k) return;
+        if (!MCOST[m]) MCOST[m] = {};
+        if (e.target.value === '') delete MCOST[m][k];
+        else {
+            const n = Number(e.target.value);
+            MCOST[m][k] = Number.isFinite(n) ? n : 0;
+        }
+        if (!Object.keys(MCOST[m]).length) delete MCOST[m];
+        applyCost();
+    });
+
     function gearToggle() {
         const m = document.querySelector('#gearmenu');
         if (m.hidden) {
             syncGearInputs();
+            syncGearStats();
+            buildGearModels();
             m.hidden = false;
         } else m.hidden = true;
     }
@@ -1775,6 +2536,7 @@
     document.querySelector('#gearreset').addEventListener('click', () => {
         resetCost();
         syncGearInputs();
+        buildGearModels();
         applyCost();
     });
     document.addEventListener('click', e => {
@@ -1868,12 +2630,12 @@
         <div class="frow"><span class="finputs"><input type="text" id="fc-text" value="${esc(f.text)}" placeholder="${tr('fcall.text.ph')}" style="width:100%"></span></div>
         <div class="fsect">${tr('fmod.ranges')}</div>
         ${rangeRow(tr('calls.th.num'), 'fc-nummin', 'fc-nummax', f, 'numMin', 'numMax')}
-        ${rangeRow(tr('calls.th.ctx'), 'fc-ctxmin', 'fc-ctxmax', f, 'ctxMin', 'ctxMax')}
-        ${rangeRow(tr('calls.th.delta'), 'fc-dmin', 'fc-dmax', f, 'deltaMin', 'deltaMax')}
-        ${rangeRow(tr('calls.th.out'), 'fc-outmin', 'fc-outmax', f, 'outMin', 'outMax')}
-        ${rangeRow(tr('calls.th.reason'), 'fc-rmin', 'fc-rmax', f, 'reasonMin', 'reasonMax')}
-        ${rangeRow(tr('calls.th.in'), 'fc-inmin', 'fc-inmax', f, 'inMin', 'inMax')}
-        ${rangeRow(tr('calls.th.cr'), 'fc-crmin', 'fc-crmax', f, 'crMin', 'crMax')}
+        ${rangeRow(tr('calls.th.ctx') + ' (k)', 'fc-ctxmin', 'fc-ctxmax', f, 'ctxMin', 'ctxMax')}
+        ${rangeRow(tr('calls.th.delta') + ' (k)', 'fc-dmin', 'fc-dmax', f, 'deltaMin', 'deltaMax')}
+        ${rangeRow(tr('calls.th.out') + ' (k)', 'fc-outmin', 'fc-outmax', f, 'outMin', 'outMax')}
+        ${rangeRow(tr('calls.th.reason') + ' (k)', 'fc-rmin', 'fc-rmax', f, 'reasonMin', 'reasonMax')}
+        ${rangeRow(tr('calls.th.in') + ' (k)', 'fc-inmin', 'fc-inmax', f, 'inMin', 'inMax')}
+        ${rangeRow(tr('calls.th.cr') + ' (k)', 'fc-crmin', 'fc-crmax', f, 'crMin', 'crMax')}
         <button class="freset" onclick="resetCallFilter()">${tr('fmod.reset')}</button>`);
         const apply = applyCallFilter;
         document.querySelector('#fc-text').addEventListener('input', e => {
@@ -1914,7 +2676,7 @@
     function sortVal(s) {
         return sortKey === 'dur' ? s.dur : sortKey === 'ctx' ? (s.maxctx || 0)
             : sortKey === 'time' ? (s.created || 0)
-            : sortKey === 'money' ? costOf(s.subtree)
+            : sortKey === 'money' ? costNode(s)
             : tokEqOf(s.subtree);
     }
 
@@ -1922,17 +2684,25 @@
         return sortKey ? [...ns].sort((a, b) => sortAsc ? sortVal(a) - sortVal(b) : sortVal(b) - sortVal(a)) : ns;
     }
 
+    // Shared timeline anchor: one Date.now() per render pass so every EKG row
+    // maps beat timestamps onto the identical time axis — spikes line up
+    // vertically across sessions, making start order obvious.
+    let NOW = 0;
+
     function render() {
+        if (document.querySelector('#tree .rninput')) return; // keep an in-progress rename alive across auto-refresh
+        NOW = Date.now();
         let h = '';
         const roots = sorted(TREE.filter(s => matches(s)
             && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
-            && (!REC.only || treeActiveVisible(s))));
+            && (!REC.only || treeActiveVisible(s))
+            && (!CHK.only || treeCheckedVisible(s, CHK.marked))));
         const HEARTS = heartSizes(roots);
         let mc = 0, mt = 0, mm = 0;
         (function scan(ns) {
             for (const x of ns) {
                 if (x.maxctx > mc) mc = x.maxctx;
-                const te = tokEqOf(x.subtree), mo = costOf(x.subtree);
+                const te = tokEqOf(x.subtree), mo = costNode(x);
                 if (te > mt) mt = te;
                 if (mo > mm) mm = mo;
                 scan(x.children);
@@ -1941,7 +2711,7 @@
         VMAX = {ctx: mc, tok: mt, money: mm};
         const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : k === 'money' ? ' v-money' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')"><span class="thl">${lbl}</span></span>`;
         const thc = (cls, lbl, tip) => `<span class="thc ${cls}" title="${esc(tip)}">${lbl}</span>`;
-        h += `<div class="thead">${thc('hcol', tr('tree.th.ekg'), tr('tree.th.ekg.tip'))}<span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}${thc('grow', tr('tree.th.session'), tr('tree.th.session.tip'))}${thc('', tr('tree.th.agent'), tr('tree.th.agent.tip'))}${thc('', tr('tree.th.model'), tr('tree.th.model.tip'))}<span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}<span class="hsp"></span>${th('money', tr('tree.th.money'), tr('tree.th.money.tip'))}</span></div>`;
+        h += `<div class="thead"><span class="chkcol"></span><span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}${thc('grow', tr('tree.th.session'), tr('tree.th.session.tip'))}${thc('', tr('tree.th.model'), tr('tree.th.model.tip'))}<span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}<span class="hsp"></span>${th('money', tr('tree.th.money'), tr('tree.th.money.tip'))}</span></div>`;
         let groups = 0;
         SHOWN = {roots: 0, total: TREE.length};
         for (const [dirName, sessions] of docmap(roots)) {
@@ -1950,8 +2720,7 @@
             groups++;
             SHOWN.roots += vis.length;
             const tot = vis.reduce((a, s) => {
-                const t = s.subtree;
-                return {tok: a.tok + tokEqOf(t), money: a.money + costOf(t)}
+                return {tok: a.tok + tokEqOf(s.subtree), money: a.money + costNode(s)}
             }, {tok: 0, money: 0});
             h += `<div class="project">${dirName} — ${tr('tree.sessions', {n: vis.length})} · ${tr('tree.project.spent', {spent: fmt(tot.tok), money: fmtMoney(tot.money)})}</div><ul>`;
             for (const s of vis) h += node(s, 1, HEARTS);
@@ -1959,10 +2728,16 @@
         }
         if (!groups) h += `<div class="empty">${tr('tree.empty')}</div>`;
         document.querySelector('#tree').innerHTML = h;
-        const allTok = TREE.reduce((a, s) => a + tokEqOf(s.subtree), 0);
-        const allMoney = TREE.reduce((a, s) => a + costOf(s.subtree), 0);
-        document.querySelector('#summary').textContent = tr('summary', {n: TREE.length, spent: fmt(allTok), money: fmtMoney(allMoney)});
         updateFilterCount();
+        syncGearStats();
+    }
+
+    function syncGearStats() {
+        const el = document.querySelector('#statrows');
+        if (!el) return;
+        const allTok = TREE.reduce((a, s) => a + tokEqOf(s.subtree), 0);
+        const allMoney = TREE.reduce((a, s) => a + costNode(s), 0);
+        el.textContent = tr('stats.rows', {n: TREE.length, spent: fmt(allTok), money: fmtMoney(allMoney)});
     }
 
     const DEFAULT_AGENT = 'build';
@@ -1970,31 +2745,37 @@
     function node(s, depth, HEARTS) {
         const t = s.subtree;
         const kids = sorted(s.children).filter(k =>
-            (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit)) && (!REC.only || treeActiveVisible(k)));
+            (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit))
+            && (!REC.only || treeActiveVisible(k))
+            && (!CHK.only || treeCheckedVisible(k, CHK.marked)));
         const hasSub = kids.length > 0;
         const spent = tokEqOf(t);
-        const money = costOf(t);
+        const hasKids = s.children.length > 0;
+        const own = tokEqOf(s);
+        const money = costNode(s);
+        const ownMoney = costOf(s);
         const ctxPct = VMAX.ctx && s.maxctx ? Math.max(2, s.maxctx / VMAX.ctx * 100) : 0;
         const tokPct = VMAX.tok && spent ? Math.max(2, spent / VMAX.tok * 100) : 0;
         const monPct = VMAX.money && money ? Math.max(2, money / VMAX.money * 100) : 0;
-        const spentTip = tr('node.spent.tip') + ' · ' + pricesTip();
-        const moneyTip = tr('node.money.tip') + ' · ' + pricesTip();
+        const totalOwnTip = tr('node.totalown.tip') + ' · ';
+        const spentTip = totalOwnTip + tr('node.spent.tip') + ' · ' + pricesTip();
+        const moneyTip = totalOwnTip + tr('node.money.tip') + ' · ' + pricesTip();
         const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
-        const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
+        const heartNow = NOW || Date.now();
         const heart = s.active
-            ? `<svg class="ecg${HEARTS.get(s.id) ? ' ' + HEARTS.get(s.id) : ''}" viewBox="0 0 34 20" title="${esc(tr('node.active.tip'))} · ${esc(tr('node.active.updated', {ago: dur(Date.now() - s.updated)}))}"><polyline points="${ecgPoints(s.beats, Date.now())}"/></svg>`
-            : '<span class="hcol"></span>';
+            ? `<svg class="ttlbg" viewBox="0 0 34 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="${ecgPoints(s.beats, heartNow)}"/></svg>`
+            : '';
+        const ttlTip = s.active ? `${s.title} · ${tr('node.active.tip')} · ${tr('node.active.updated', {ago: dur(heartNow - s.updated)})}` : s.title;
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
-            const agentBadge = s.agent && s.agent === DEFAULT_AGENT ? '' : `<span class="badge agent">${esc(s.agent || '—')}</span>`;
+            const hasAgent = s.agent && s.agent !== DEFAULT_AGENT;
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}${sel === s.id ? ' sel' : ''}" data-id="${s.id}">
-    ${heart}
-    ${caret}
+    ${depth === 1 ? `<span class="star${CHK.marked.has(s.id) ? ' on' : ''}" data-id="${esc(s.id)}" onclick="chkToggle(event)" title="${esc(tr('favourites.title'))}">${CHK.marked.has(s.id) ? '★' : '☆'}</span>` : '<span class="chkcol"></span>'}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
-    <span class="ttl" title="${esc(s.title)}">${esc(agentBadge ? displayTitle(s.title, s.agent) : s.title)}</span>
-    ${agentBadge}${subBadges}
-    <span class="badge">${esc(modelName(s.model))}</span>
-    <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b></span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b></span></span></div>`;
+    <span class="ttl" title="${esc(ttlTip)}">${heart}${SNAME[s.id] ? `<span class="rnmark" title="${esc(tr('rename.mark'))}">📝</span>` : ''}<span class="tname">${esc(SNAME[s.id] || (hasAgent ? displayTitle(s.title, s.agent) : s.title))}</span><span class="rnbtn" data-id="${esc(s.id)}" onclick="renameSession(event)" title="${esc(tr('rename.title'))}">✎</span></span>
+    ${subBadges}
+    ${s.model ? `<span class="badge">${esc(modelName(s.model))}</span>` : ''}
+    <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${s.dur < 0 ? '' : dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : ''}</span></span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b>${hasKids ? `<span class="own-part">(${fmt(own)})</span>` : ''}</span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b>${hasKids ? `<span class="own-part">(${fmtMoney(ownMoney)})</span>` : ''}</span></span></div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS)).join('')}</ul>`;
         return h + '</li>';
     }
@@ -2009,21 +2790,19 @@
         return [...g.entries()];
     }
 
-    function toggle(e) {
-        e.stopPropagation();
-        const li = e.target.closest('li');
+    function toggleNode(nd) {
+        const li = nd.closest('li');
         const ul = li.querySelector(':scope > ul');
         if (!ul) return;
-        ul.style.display = ul.style.display === 'none' ? '' : 'none';
-        const id = li.querySelector('.node').dataset.id;
+        const id = nd.dataset.id;
         if (ul.style.display === 'none') {
-            COLLAPSED.add(id);
-            EXPANDED.delete(id);
-            e.target.textContent = '+';
-        } else {
+            ul.style.display = '';
             EXPANDED.add(id);
             COLLAPSED.delete(id);
-            e.target.textContent = '−';
+        } else {
+            ul.style.display = 'none';
+            COLLAPSED.add(id);
+            EXPANDED.delete(id);
         }
     }
 
@@ -2060,14 +2839,18 @@
         }));
         vis.forEach(r => {
             r.tokeq = tokEqOf(r);
-            r.money = costOf(r);
+            r.money = costT(r, r.model);
         });
         const mx = k => vis.reduce((m, r) => Math.max(m, r[k]), 1);
         const mCtx = mx('ctx'), mD = Math.max(1, ...vis.map(r => r.delta)),
             mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr'), mTq = mx('tokeq'), mMon = mx('money');
         const bar = (v, m, cls) => `<span class="vbar${cls ? ' ' + cls : ''}"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
+        const waitOf = r => r.hu && r.n > 1 ? calls[r.n - 1].time - calls[r.n - 2].time : 0;
+        const mWait = Math.max(1, ...vis.map(waitOf));
         let rows = '';
         vis.forEach(r => {
+            const wait = waitOf(r);
+            if (wait > 0) rows += `<tr class="wait"><td colspan="9" title="${tr('calls.wait.tip')}">${tr('calls.wait', {t: dur(wait)})}<span class="vbar wbar"><span style="width:${Math.max(2, wait / mWait * 100)}%"></span></span></td></tr>`;
             const cls = r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
             rows += `<tr${cls ? ` class="${cls}"` : ''}${r.hu ? ` title="${humTip(r.hu)}"` : ''} onclick="callPick('${esc(r.mid)}')">
   <td class="num">${r.hu ? humIcon(r.hu) : ''}${r.n}</td>
@@ -2080,16 +2863,6 @@
   <td class="num sep">${bar(r.tokeq, mTq, 'amber')}${fmt(r.tokeq)}</td>
   <td class="num">${bar(r.money, mMon, 'green')}${fmtMoney(r.money)}</td></tr>`;
         });
-        const sum = rs => rs.reduce((a, r) => ({ctx: a.ctx + r.ctx, in: a.in + r.in, cr: a.cr + r.cr, out: a.out + r.out, reason: a.reason + r.reason, cw: a.cw + r.cw}), {ctx: 0, in: 0, cr: 0, out: 0, reason: 0, cw: 0});
-        const ta = sum(all), tv = sum(vis);
-        const footRow = (lbl, t, lastCtx) => `<tr><td>${lbl}</td><td title="${tr('calls.foot.sum.tip')}">${fmt(t.ctx)}</td><td title="${tr('calls.foot.delta.tip')}">${fmt(lastCtx)}</td><td>${fmt(t.out)}</td><td>${fmt(t.reason)}</td><td>${fmt(t.in)}</td><td>${fmt(t.cr)}</td><td class="sep">${fmt(tokEqOf(t))}</td><td>${fmtMoney(costOf(t))}</td></tr>`;
-        let foot;
-        if (callFilterActive()) {
-            foot = footRow(tr('calls.foot.filtered', {n: vis.length}), tv, vis[vis.length - 1].ctx)
-                + footRow(tr('calls.foot.all_label', {n: calls.length}), ta, calls[calls.length - 1].ctx);
-        } else {
-            foot = footRow(tr('calls.foot.all', {n: calls.length}), ta, calls[calls.length - 1].ctx);
-        }
         const heads = [
             [tr('calls.th.num'), tr('calls.th.num.tip'), ''],
             [tr('calls.th.ctx'), tr('calls.th.ctx.tip'), ''],
@@ -2102,8 +2875,8 @@
             [tr('calls.th.money'), tr('calls.th.money.tip'), '']
         ];
         return `<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
-  <tbody>${rows}</tbody>
-  <tfoot>${foot}</tfoot></table>`;
+  <tbody><tr class="gap"><td colspan="9"></td></tr>${rows}</tbody>
+</table>`;
     }
 
     let curCall = -1;
@@ -2202,31 +2975,17 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         }
     }
 
-    function metaDl(s) {
-        const t = s.subtree;
-        const mObj = s.model && typeof s.model === 'object' ? s.model : null;
-        const mName = modelName(s.model);
-        const mFull = mObj ? `${mObj.providerID || '—'} / ${mName}${mObj.variant ? ' · ' + mObj.variant : ''}` : mName;
-        const kids = {in: t.in - s.in, out: t.out - s.out, reason: t.reason - s.reason, cr: t.cr - s.cr, cw: t.cw - s.cw};
-        const row = (lbl, v, cls, tip) => `<tr${cls ? ` class="${cls}"` : ''}><th title="${esc(tip)}">${lbl}</th><td>${fmt(v.in)}</td><td>${fmt(v.out)}</td><td>${fmt(v.reason)}</td><td class="sep">${fmt(v.cr)}</td><td>${fmt(v.cw)}</td><td class="sep">${fmt(tokEqOf(v))}</td><td>${fmtMoney(costOf(v))}</td></tr>`;
-        const hasKids = s.children.length > 0;
-        return `<dl><dt>${tr('detail.ctx_now')}</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
-    <dt>${tr('detail.ctx_max')}</dt><dd>${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</dd>
-    <dt>${tr('detail.agent_model')}</dt><dd>${esc(s.agent || '—')} / ${esc(mFull)}</dd>
-    <dt>${tr('detail.dir')}</dt><dd>${esc(s.dir)}</dd>
-    <dt>${tr('detail.created_updated')}</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd></dl>
-    <table class="tokgrid"><thead><tr><th></th><th>${tr('detail.tok.in')}</th><th>${tr('detail.tok.out')}</th><th>${tr('detail.tok.reason')}</th><th class="sep">${tr('detail.tok.cr')}</th><th>${tr('detail.tok.cw')}</th><th class="sep">${tr('detail.tok.tokeq')}</th><th>${tr('detail.tok.money')}</th></tr></thead>
-    <tbody>${row(tr('detail.tok.own'), s, 'own', tr('detail.own'))}${hasKids ? row(tr('detail.tok.kids', {n: s.children.length}), kids, 'kids', tr('detail.kids')) + row(tr('detail.tok.subtree'), t, 'total', tr('detail.subtree')) : ''}</tbody></table>`;
+    function emptyDetailHtml() {
+        return `<div class="sect callshead"><span class="callstitle">${tr('detail.calls')}</span></div><div class="empty" id="detailempty">${tr('detail.select')}</div>`;
     }
 
     async function pick(id) {
         sel = id;
         const s = find(TREE, id);
         if (!s) return;
-        document.querySelector('#detail').innerHTML = `<h2 id="dtitle" title="${esc(s.title)}">${esc(s.title)}</h2>
-  <div class="meta" id="meta">${metaDl(s)}</div>
-  <div class="sect">${tr('detail.calls')} <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div><div id="calls">${tr('loading')}</div>
-  <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre>`;
+        document.querySelector('#detail').innerHTML = `<div class="sect callshead"><span class="callstitle">${tr('detail.calls')} - <span id="dtitle" class="sesname" title="${esc(s.title)}">${esc(SNAME[s.id] || s.title)}</span></span> <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div>
+  <div id="dscroll"><div id="calls">${tr('loading')}</div>
+  <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre></div>`;
         await fillDetail(id);
     }
 
@@ -2237,13 +2996,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (!s) return;
         const h2 = document.querySelector('#dtitle');
         if (h2) {
-            h2.textContent = s.title;
+            h2.textContent = SNAME[s.id] || s.title;
             h2.title = s.title;
-        }
-        const dl = document.querySelector('#meta');
-        if (dl) {
-            dl.innerHTML = metaDl(s);
-            if (CALLS.length) document.querySelector('#ctxnow').textContent = fmt(CALLS[CALLS.length - 1].ctx);
         }
         await fillDetail(id);
     }
@@ -2261,7 +3015,6 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (cj) {
             CALLS = (cj.calls || []).map((c, i) => Object.assign({}, c, {n: i + 1}));
             document.querySelector('#calls').innerHTML = callsTable(CALLS);
-            document.querySelector('#ctxnow').textContent = CALLS.length ? fmt(CALLS[CALLS.length - 1].ctx) : '—';
         }
         updateFilterBtns();
     }
@@ -2336,7 +3089,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             sel = null;
             CALLS = [];
             markSel('');
-            document.querySelector('#detail').innerHTML = `<div class="empty" id="detailempty">${tr('detail.select')}</div>`;
+            document.querySelector('#detail').innerHTML = emptyDetailHtml();
             return;
         }
         if (id && id !== sel) selectSession(id, {reveal: true, scroll: true});
@@ -2364,16 +3117,16 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (e.key === 'Home') return go(0);
         if (e.key === 'End') return go(nodes.length - 1);
         if (cur < 0) return;
-        const nd = nodes[cur], caret = nd.querySelector('.caret');
+        const nd = nodes[cur];
         const ul = nd.parentElement.querySelector(':scope > ul');
         const open = ul && ul.style.display !== 'none';
         if (e.key === 'Enter') {
-            if (ul) caret.click();
+            if (ul) toggleNode(nd);
         } else if (e.key === 'ArrowRight') {
-            if (ul && !open) caret.click();
+            if (ul && !open) toggleNode(nd);
             else if (open) go(cur + 1);
         } else if (e.key === 'ArrowLeft') {
-            if (open) caret.click();
+            if (open) toggleNode(nd);
             else {
                 const up = nd.parentElement.parentElement.closest('li');
                 if (up) selectSession(up.querySelector(':scope > .node').dataset.id, {scroll: true, delay: 150});
@@ -2383,10 +3136,17 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
 
     document.querySelector('#tree').addEventListener('click', e => {
         const nd = e.target.closest('.node');
-        if (nd && !e.target.classList.contains('caret')) {
+        if (nd) {
             if (nd.dataset.id === sel) return;
             selectSession(nd.dataset.id, {push: true});
         }
+    });
+    document.querySelector('#tree').addEventListener('dblclick', e => {
+        const nd = e.target.closest('.node');
+        if (!nd || e.target.closest('.star, .rnbtn')) return;
+        const sel = window.getSelection();
+        if (sel) sel.removeAllRanges();
+        toggleNode(nd);
     });
     document.querySelector('#refresh').addEventListener('click', load);
 
@@ -2420,20 +3180,29 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const fb = document.querySelector('#tree-fbtn');
         fb.title = tr('filter.btn.title');
         updateFilterBtns();
+        document.querySelector('#fbymark').textContent = tr('filter.by');
+        document.querySelector('#treetitle').textContent = tr('tree.title');
         document.querySelector('#hlbox').title = tr('hl.title');
-        document.querySelector('#hllabel').textContent = tr('hl.label');
+        document.querySelector('#hllabel').textContent = tr('filter.threshold');
         document.querySelector('#hlwarn').title = tr('hl.warn.title');
         document.querySelector('#hlcrit').title = tr('hl.crit.title');
         document.querySelector('#hlapply').title = tr('hl.apply.title');
-        document.querySelector('#hlapplylabel').title = tr('hl.apply.title');
-        document.querySelector('#hlapplylabel').textContent = tr('hl.apply.label');
+        document.querySelector('#ctxbox').title = tr('hl.apply.title');
+        document.querySelector('#ctxlabel').textContent = tr('filter.ctxsize');
         document.querySelector('#recbox').title = tr('recent.only.title');
         document.querySelector('#reconly').title = tr('recent.only.title');
         document.querySelector('#reclabel').title = tr('recent.only.title');
-        document.querySelector('#reclabel').textContent = tr('recent.only.label');
+        document.querySelector('#reclabel').textContent = tr('filter.recent');
+        document.querySelector('#chkbox').title = tr('favourites.only.title');
+        document.querySelector('#chklabel').title = tr('favourites.only.title');
+        document.querySelector('#chklabel').textContent = tr('filter.favourites');
         document.querySelector('#version').title = tr('version.title');
         document.querySelector('#gearbtn').title = tr('gear.title');
+        document.querySelector('#gearstats').textContent = tr('gear.stats');
+        syncGearStats();
         document.querySelector('#gearcost').textContent = tr('gear.cost');
+        document.querySelector('#gearmodels-sect').textContent = tr('gear.models');
+        document.querySelector('#gearmodels').title = tr('gear.models.tip');
         COST_FIELDS.forEach(k => document.querySelector('#lbl-' + k).textContent = tr(costKey(k)));
         COST_FIELDS.forEach(k => document.querySelector('#pr-' + k).title = tr('gear.price.ph'));
         document.querySelector('#gearreset').textContent = tr('gear.reset');
@@ -2445,9 +3214,19 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (dba) dba.textContent = tr('db.apply');
         const dbi = document.querySelector('#dbcustom');
         if (dbi) dbi.placeholder = tr('db.custom.placeholder');
+        document.querySelector('#expbtn').textContent = tr('exp.btn');
+        document.querySelector('#expbtn').title = tr('exp.btn.title');
+        document.querySelector('#exphead').textContent = tr('exp.head');
+        document.querySelector('#expall').textContent = tr('exp.all');
+        document.querySelector('#expnone').textContent = tr('exp.none');
+        document.querySelector('#expdir').placeholder = tr('exp.dir.ph');
+        document.querySelector('#expbrowse').textContent = tr('exp.browse');
+        document.querySelector('#expgo').textContent = tr('exp.go');
+        document.querySelector('#dbbrowse').textContent = tr('exp.browse');
+        document.querySelector('#brhead').textContent = tr('exp.browse.head');
+        document.querySelector('#brpick').textContent = tr('exp.browse.pick');
         if (lastDbInfo) renderDbField(lastDbInfo);
-        const de = document.querySelector('#detailempty');
-        if (de) de.textContent = tr('detail.select');
+        if (document.querySelector('#detailempty')) document.querySelector('#detail').innerHTML = emptyDetailHtml();
         refreshLabel();
         buildLangSwitcher();
     }
@@ -2466,6 +3245,20 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         refreshLabel();
     }
 
+    // nothing in the URL: open the most recently updated active session, else the most recent one
+    function autoSelect() {
+        const all = [];
+        (function walk(ns) {
+            for (const n of ns) {
+                all.push(n);
+                walk(n.children);
+            }
+        })(TREE);
+        const best = (list) => list.reduce((a, b) => (!a || (b.updated || 0) > (a.updated || 0) ? b : a), null);
+        const n = best(all.filter(x => x.active)) || best(all);
+        if (n) selectSession(n.id, {reveal: true, scroll: true});
+    }
+
     async function load() {
         const sp = document.querySelector('#refresh');
         sp.classList.add('busy');
@@ -2479,8 +3272,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
                 TREE = [];
                 computeOrder();
                 document.querySelector('#tree').innerHTML = `<div class="empty">${esc(tr('db.notfound'))}</div>`;
-                const sum = document.querySelector('#summary');
-                if (sum) sum.textContent = '';
+                syncGearStats();
                 await refreshDbState();
                 return;
             }
@@ -2492,6 +3284,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             if (!load.done) {
                 load.done = true;
                 applyHashSel();
+                if (!sel) autoSelect();
             }
         } finally {
             sp.classList.remove('busy');
@@ -2501,16 +3294,19 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
     const DB_STORE_KEY = 'db.path';
     let lastDbInfo = null;
 
+    // opencode keeps the historic key; other path-switchable providers get their own
+    const dbKey = () => lastProv && lastProv !== 'opencode' ? DB_STORE_KEY + '.' + lastProv : DB_STORE_KEY;
+
     function lsGetDb() {
         if (typeof localStorage === 'undefined') return null;
-        try { return localStorage.getItem(DB_STORE_KEY); } catch (e) { return null; }
+        try { return localStorage.getItem(dbKey()); } catch (e) { return null; }
     }
 
     function lsSetDb(v) {
         if (typeof localStorage === 'undefined') return;
         try {
-            if (v === null) localStorage.removeItem(DB_STORE_KEY);
-            else localStorage.setItem(DB_STORE_KEY, v);
+            if (v === null) localStorage.removeItem(dbKey());
+            else localStorage.setItem(dbKey(), v);
         } catch (e) { }
     }
 
@@ -2554,7 +3350,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         } catch (e) { return { ok: false, error: String(e) }; }
     }
 
-    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'copilot' ? tr('prov.copilot') : n;
+    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'copilot' ? tr('prov.copilot') : n === 'folder' ? tr('prov.folder') : n;
 
     let lastProv = null;
 
@@ -2652,6 +3448,11 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         sel.title = info.found
             ? tr('db.title')
             : tr('db.missing.tip') + (info.error ? ' — ' + info.error : '');
+        const isFolder = lastProv === 'folder';
+        const dbl = document.querySelector('#dblabel'), dbi = document.querySelector('#dbcustom'), dbb = document.querySelector('#dbbrowse');
+        if (dbl) dbl.textContent = tr(isFolder ? 'exp.folder.label' : 'db.label');
+        if (dbi) dbi.placeholder = tr(isFolder ? 'exp.folder.ph' : 'db.custom.placeholder');
+        if (dbb) dbb.hidden = !isFolder;
         const wrap = document.querySelector('#dbwrap');
         if (wrap) {
             wrap.hidden = !info.switchable;
@@ -2709,6 +3510,114 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             else lsSetDb(null);
         }
     }
+
+    // ---- export to folder / folder picker ----
+    const EXP_DIR_KEY = 'export.dir';
+    let expSel = new Set();
+    let browseCb = null, browseCur = '';
+
+    function expRows() { return exportCandidates(TREE, CHK.marked, Date.now()); }
+
+    function expOpen() {
+        const rows = expRows();
+        expSel = new Set(rows.map(n => n.id));
+        let dir = '';
+        try { dir = localStorage.getItem(EXP_DIR_KEY) || ''; } catch (e) { }
+        document.querySelector('#expdir').value = dir;
+        expMsg('', false);
+        expRender();
+        document.querySelector('#expdlg').hidden = false;
+    }
+
+    function expClose() { document.querySelector('#expdlg').hidden = true; }
+
+    function expMsg(t, err) {
+        const m = document.querySelector('#expmsg');
+        m.textContent = t;
+        m.classList.toggle('err', !!err);
+    }
+
+    function expRender() {
+        const rows = expRows();
+        document.querySelector('#explist').innerHTML = rows.length ? rows.map(n => {
+            const nm = SNAME[n.id] || (n.agent ? displayTitle(n.title, n.agent) : n.title);
+            const sub = (CHK.marked.has(n.id) ? '★ ' : '') + (n.children.length ? tr('exp.subs', {n: n.children.length}) + ' · ' : '') + when(n.updated);
+            return `<label class="ovl-item"><input type="checkbox" data-id="${esc(n.id)}"${expSel.has(n.id) ? ' checked' : ''}><span>${esc(nm)}</span><span class="sub">${esc(sub)}</span></label>`;
+        }).join('') : `<div class="empty">${esc(tr('exp.empty'))}</div>`;
+        document.querySelectorAll('#explist input').forEach(cb => cb.addEventListener('change', () => {
+            if (cb.checked) expSel.add(cb.dataset.id); else expSel.delete(cb.dataset.id);
+        }));
+    }
+
+    async function expGo() {
+        const dir = document.querySelector('#expdir').value.trim();
+        if (!dir) { expMsg(tr('exp.err.dir'), true); return; }
+        if (!expSel.size) { expMsg(tr('exp.err.none'), true); return; }
+        const ids = expRows().map(n => n.id).filter(id => expSel.has(id));
+        const names = {};
+        (function walk(ns) { for (const n of ns) { if (SNAME[n.id]) names[n.id] = SNAME[n.id]; walk(n.children); } })(TREE);
+        const go = document.querySelector('#expgo');
+        go.disabled = true;
+        expMsg(tr('exp.running', {n: ids.length}), false);
+        let res;
+        try {
+            const r = await fetch('/api/export', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids, dir, names})
+            });
+            res = await r.json();
+        } catch (e) { res = {ok: false, error: String(e)}; }
+        go.disabled = false;
+        try { localStorage.setItem(EXP_DIR_KEY, dir); } catch (e) { }
+        if (!res.written) { expMsg(res.error || tr('exp.err.unknown'), true); return; }
+        const lines = [tr('exp.done', {w: res.written.length, s: res.skipped.length, e: res.errors.length})];
+        for (const e of res.errors) lines.push(e.id + ': ' + e.error);
+        expMsg(lines.join('\n'), res.errors.length > 0);
+    }
+
+    async function browseLoad(path) {
+        let j;
+        try {
+            const r = await fetch('/api/browse?path=' + encodeURIComponent(path || ''));
+            j = await r.json();
+        } catch (e) { j = {error: String(e)}; }
+        const list = document.querySelector('#brlist');
+        if (j.error) {
+            document.querySelector('#brpath').textContent = j.error;
+            if (!browseCur) list.innerHTML = '';
+            return;
+        }
+        browseCur = j.path;
+        document.querySelector('#brpath').textContent = j.path;
+        const row = (p, label) => `<div class="ovl-item" data-p="${esc(p)}">${esc(label)}</div>`;
+        list.innerHTML = (j.parent ? row(j.parent, '..') : '')
+            + j.dirs.map(d => row(j.path.replace(/[\\/]+$/, '') + '/' + d, d + '/')).join('');
+        list.querySelectorAll('.ovl-item').forEach(it => it.addEventListener('click', () => browseLoad(it.dataset.p)));
+    }
+
+    function browseOpen(start, cb) {
+        browseCb = cb;
+        browseCur = '';
+        document.querySelector('#browsedlg').hidden = false;
+        browseLoad(start);
+    }
+
+    function browseClose() { document.querySelector('#browsedlg').hidden = true; }
+
+    function browsePick() {
+        const cb = browseCb, p = browseCur;
+        browseClose();
+        if (cb && p) cb(p);
+    }
+
+    document.querySelector('#expall').addEventListener('click', () => { expSel = new Set(expRows().map(n => n.id)); expRender(); });
+    document.querySelector('#expnone').addEventListener('click', () => { expSel = new Set(); expRender(); });
+    document.querySelector('#expgo').addEventListener('click', expGo);
+    document.querySelector('#brpick').addEventListener('click', browsePick);
+    document.querySelector('#expbrowse').addEventListener('click', () =>
+        browseOpen(document.querySelector('#expdir').value.trim(), p => { document.querySelector('#expdir').value = p; }));
+    document.querySelector('#dbbrowse').addEventListener('click', () =>
+        browseOpen((lastDbInfo && lastDbInfo.path) || '', p => applyDbPath(p)));
 
     loadSettings();
     applyLangStatic();
