@@ -420,12 +420,14 @@
         #grp-filter .fchip, #grp-filter .projdd > button, #grp-filter .fbtn {
             box-sizing: border-box;
             height: 28px;
+            padding-left: 8px;
+            padding-right: 8px;
             display: inline-flex;
             align-items: center
         }
 
         .fchip {
-            padding: 0 12px;
+            padding: 0 7px;
             border: 1px solid transparent;
             border-radius: 6px
         }
@@ -794,6 +796,45 @@
             border-radius: 10px
         }
 
+        .namesel {
+            box-sizing: border-box;
+            height: 28px;
+            width: 110px;
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0 10px;
+            font: inherit;
+            font-size: 13px
+        }
+
+        .namesel:focus {
+            outline: none;
+            border-color: var(--acc)
+        }
+
+        .namesel {
+            margin-right: 10px
+        }
+
+        .namesel.on {
+            background: rgba(122, 162, 247, .22);
+            border-color: var(--acc)
+        }
+
+        .projwrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px
+        }
+
+        .projwrap input[type=checkbox] {
+            accent-color: var(--acc);
+            cursor: pointer;
+            margin: 0
+        }
+
         .projdd {
             position: relative;
             display: inline-block
@@ -808,7 +849,7 @@
             color: var(--fg);
             border: 1px solid var(--line);
             border-radius: 6px;
-            padding: 0 12px;
+            padding: 0 8px;
             font: inherit;
             font-size: 13px;
             font-weight: 600;
@@ -872,6 +913,9 @@
         }
 
         .treehead #grp-filter {
+            gap: 6px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
             margin: 0 0 0 auto
         }
 
@@ -1488,7 +1532,8 @@
     <div id="treepane">
         <div class="treehead"><div class="ptitle" id="treetitle"></div>
         <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
-        <span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span>
+        <input type="text" class="namesel" id="namesel" autocomplete="off">
+        <span class="projwrap"><input type="checkbox" id="projon" checked><span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span></span>
         <label class="hlbox fchip" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
         <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
         <span class="hlbox favbox fchip" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
@@ -1662,7 +1707,7 @@
         }
         if (f.models.size && !f.models.has(modelName(n.model))) return false;
         if (f.providers.size && !f.providers.has(nodeProvider(n))) return false;
-        if (f.dirs.size && !f.dirs.has(nodeDir(n))) return false;
+        if (f.dirs.size && !f.dirsOff && !f.dirs.has(nodeDir(n))) return false;
         if (!inRange(n.order || 0, f.numMin, f.numMax)) return false;
         if (!inRange(n.created || 0, f.dateMin, f.dateMax)) return false;
         if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
@@ -1696,7 +1741,7 @@
     function treeFilterCount(f) {
         const set = (a, b) => a != null || b != null;
         return [
-            !!f.text, f.models.size > 0, f.providers.size > 0, f.dirs.size > 0, set(f.numMin, f.numMax),
+            !!f.text, f.models.size > 0, f.providers.size > 0, f.dirs.size > 0 && !f.dirsOff, set(f.numMin, f.numMax),
             f.datePreset != null && (f.datePreset !== 'custom' || !!f.dateFrom || !!f.dateTo),
             set(f.ctxMin, f.ctxMax), set(f.spentMin, f.spentMax), set(f.durMin, f.durMax)
         ].filter(Boolean).length;
@@ -1796,7 +1841,7 @@
     const pricesTip = () => COST_FIELDS.map(k => `${tr(costKey(k))}: $${COST[k].price}/1M${COST[k].on ? '' : ' ✕'}`).join(' · ');
 
     const newTreeFilter = () => ({
-        text: '', models: new Set(), providers: new Set(), dirs: new Set(),
+        text: '', models: new Set(), providers: new Set(), dirs: new Set(), dirsOff: false,
         numMin: null, numMax: null,
         datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
         ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null
@@ -1894,7 +1939,7 @@
     function updateFilterBtns() {
         const lbl = n => tr('filter.extra') + (n ? ' · ' + n : '');
         const tb = document.querySelector('#tree-fbtn');
-        const tn = treeFilterCount(treeFilter) - (treeFilter.dirs.size ? 1 : 0);
+        const tn = treeFilterCount(treeFilter) - (treeFilter.dirs.size && !treeFilter.dirsOff ? 1 : 0);
         tb.classList.toggle('on', tn > 0);
         tb.textContent = lbl(tn);
         const cb = document.querySelector('#call-fbtn');
@@ -1911,6 +1956,7 @@
     const shortDir = d => d.split('/').filter(Boolean).slice(-2).join('/') || d;
 
     function refreshProjSel() {
+        syncNameSel();
         const menu = document.querySelector('#projmenu');
         if (!menu) return;
         const sel = treeFilter.dirs;
@@ -1931,10 +1977,31 @@
         const btn = document.querySelector('#projbtn');
         btn.textContent = tr('filter.project.n', {n: sel.size});
         btn.title = tr('fmod.folder');
-        btn.classList.toggle('on', sel.size > 0);
+        btn.classList.toggle('on', sel.size > 0 && !treeFilter.dirsOff);
+        const on = document.querySelector('#projon');
+        on.checked = !treeFilter.dirsOff;
+        on.title = tr('filter.project.on');
         document.querySelector('#ctxbox').classList.toggle('on', !!HOT.apply);
         document.querySelector('#recbox').classList.toggle('on', !!REC.only);
     }
+
+    function syncNameSel() {
+        const el = document.querySelector('#namesel');
+        if (document.activeElement !== el) el.value = treeFilter.text;
+        el.classList.toggle('on', !!treeFilter.text);
+        el.placeholder = tr('filter.name.ph');
+        el.title = tr('ftree.text.ph');
+    }
+
+    document.querySelector('#namesel').addEventListener('input', e => {
+        treeFilter.text = e.target.value;
+        applyTreeFilter();
+    });
+
+    document.querySelector('#projon').addEventListener('change', e => {
+        treeFilter.dirsOff = !e.target.checked;
+        applyTreeFilter();
+    });
 
     document.querySelector('#projbtn').addEventListener('click', () => {
         const open = document.querySelector('#projdd').classList.toggle('open');
