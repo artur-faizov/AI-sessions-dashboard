@@ -105,8 +105,6 @@ test('refresh re-fetches AI calls of the selected session', async () => {
         'refresh must re-fetch the AI calls of the selected session');
     assert.ok(ctx.els.get('#calls').innerHTML.includes('777'),
         'refreshed calls table must show the new call');
-    assert.ok(ctx.els.get('#ctxnow').textContent.includes('777'),
-        'ctx now must reflect the newest call');
 });
 
 test('refresh updates the detail panel in place, not rebuilding it', async () => {

@@ -767,76 +767,6 @@
             margin: 0 0 8px
         }
 
-        #detail .meta {
-            background: #1a1d22;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 10px 12px;
-            font-size: 13px;
-            margin-bottom: 14px
-        }
-
-        #detail .meta dl {
-            display: grid;
-            grid-template-columns:auto 1fr;
-            gap: 4px 14px;
-            margin: 0
-        }
-
-        #detail .meta dt {
-            color: var(--dim)
-        }
-
-        #detail .meta dd {
-            margin: 0;
-            font-variant-numeric: tabular-nums;
-            overflow-wrap: anywhere
-        }
-
-        table.tokgrid {
-            border-collapse: collapse;
-            margin-top: 10px;
-            width: 100%;
-            font-variant-numeric: tabular-nums
-        }
-
-        table.tokgrid th, table.tokgrid td {
-            padding: 3px 8px;
-            text-align: right;
-            border-top: 1px solid var(--line)
-        }
-
-        table.tokgrid thead th {
-            color: var(--dim);
-            font-weight: 500;
-            font-size: 12px;
-            border-top: none
-        }
-
-        table.tokgrid tbody th {
-            text-align: left;
-            font-weight: 500;
-            color: var(--dim);
-            padding-left: 0;
-            white-space: nowrap
-        }
-
-        table.tokgrid .sep {
-            border-left: 1px solid var(--line)
-        }
-
-        table.tokgrid tr.own td:nth-of-type(1) {
-            color: var(--acc)
-        }
-
-        table.tokgrid tr.kids td:nth-of-type(1) {
-            color: var(--sub)
-        }
-
-        table.tokgrid tr.total td {
-            font-weight: 700
-        }
-
         pre.prompt {
             white-space: pre-wrap;
             word-break: break-word;
@@ -863,14 +793,6 @@
             text-align: center
         }
 
-        .own {
-            color: var(--acc)
-        }
-
-        .kids {
-            color: var(--sub)
-        }
-
         table.calls {
             border-collapse: separate;
             border-spacing: 0;
@@ -890,12 +812,6 @@
         table.calls td {
             padding: 3px 6px;
             border-bottom: 1px solid #1f2229
-        }
-
-        table.calls tfoot td {
-            border-top: 1px solid var(--line);
-            border-bottom: none;
-            color: var(--fg)
         }
 
         .ctxsize {
@@ -2310,16 +2226,6 @@
   <td class="num sep">${bar(r.tokeq, mTq, 'amber')}${fmt(r.tokeq)}</td>
   <td class="num">${bar(r.money, mMon, 'green')}${fmtMoney(r.money)}</td></tr>`;
         });
-        const sum = rs => rs.reduce((a, r) => ({ctx: a.ctx + r.ctx, in: a.in + r.in, cr: a.cr + r.cr, out: a.out + r.out, reason: a.reason + r.reason, cw: a.cw + r.cw}), {ctx: 0, in: 0, cr: 0, out: 0, reason: 0, cw: 0});
-        const ta = sum(all), tv = sum(vis);
-        const footRow = (lbl, t, lastCtx) => `<tr><td>${lbl}</td><td title="${tr('calls.foot.sum.tip')}">${fmt(t.ctx)}</td><td title="${tr('calls.foot.delta.tip')}">${fmt(lastCtx)}</td><td>${fmt(t.out)}</td><td>${fmt(t.reason)}</td><td>${fmt(t.in)}</td><td>${fmt(t.cr)}</td><td class="sep">${fmt(tokEqOf(t))}</td><td>${fmtMoney(costOf(t))}</td></tr>`;
-        let foot;
-        if (callFilterActive()) {
-            foot = footRow(tr('calls.foot.filtered', {n: vis.length}), tv, vis[vis.length - 1].ctx)
-                + footRow(tr('calls.foot.all_label', {n: calls.length}), ta, calls[calls.length - 1].ctx);
-        } else {
-            foot = footRow(tr('calls.foot.all', {n: calls.length}), ta, calls[calls.length - 1].ctx);
-        }
         const heads = [
             [tr('calls.th.num'), tr('calls.th.num.tip'), ''],
             [tr('calls.th.ctx'), tr('calls.th.ctx.tip'), ''],
@@ -2333,7 +2239,7 @@
         ];
         return `<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
   <tbody>${rows}</tbody>
-  <tfoot>${foot}</tfoot></table>`;
+</table>`;
     }
 
     let curCall = -1;
@@ -2432,29 +2338,11 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         }
     }
 
-    function metaDl(s) {
-        const t = s.subtree;
-        const mObj = s.model && typeof s.model === 'object' ? s.model : null;
-        const mName = modelName(s.model);
-        const mFull = mObj ? `${mObj.providerID || '—'} / ${mName}${mObj.variant ? ' · ' + mObj.variant : ''}` : mName;
-        const kids = {in: t.in - s.in, out: t.out - s.out, reason: t.reason - s.reason, cr: t.cr - s.cr, cw: t.cw - s.cw};
-        const row = (lbl, v, cls, tip) => `<tr${cls ? ` class="${cls}"` : ''}><th title="${esc(tip)}">${lbl}</th><td>${fmt(v.in)}</td><td>${fmt(v.out)}</td><td>${fmt(v.reason)}</td><td class="sep">${fmt(v.cr)}</td><td>${fmt(v.cw)}</td><td class="sep">${fmt(tokEqOf(v))}</td><td>${fmtMoney(costOf(v))}</td></tr>`;
-        const hasKids = s.children.length > 0;
-        return `<dl><dt>${tr('detail.ctx_now')}</dt><dd><span class="ctxsize" id="ctxnow">—</span></dd>
-    <dt>${tr('detail.ctx_max')}</dt><dd>${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</dd>
-    <dt>${tr('detail.agent_model')}</dt><dd>${esc(s.agent || '—')} / ${esc(mFull)}</dd>
-    <dt>${tr('detail.dir')}</dt><dd>${esc(s.dir)}</dd>
-    <dt>${tr('detail.created_updated')}</dt><dd>${when(s.created)} → ${when(s.updated)} (${dur(s.dur)})</dd></dl>
-    <table class="tokgrid"><thead><tr><th></th><th>${tr('detail.tok.in')}</th><th>${tr('detail.tok.out')}</th><th>${tr('detail.tok.reason')}</th><th class="sep">${tr('detail.tok.cr')}</th><th>${tr('detail.tok.cw')}</th><th class="sep">${tr('detail.tok.tokeq')}</th><th>${tr('detail.tok.money')}</th></tr></thead>
-    <tbody>${row(tr('detail.tok.own'), s, 'own', tr('detail.own'))}${hasKids ? row(tr('detail.tok.kids', {n: s.children.length}), kids, 'kids', tr('detail.kids')) + row(tr('detail.tok.subtree'), t, 'total', tr('detail.subtree')) : ''}</tbody></table>`;
-    }
-
     async function pick(id) {
         sel = id;
         const s = find(TREE, id);
         if (!s) return;
         document.querySelector('#detail').innerHTML = `<h2 id="dtitle" title="${esc(s.title)}">${esc(s.title)}</h2>
-  <div class="meta" id="meta">${metaDl(s)}</div>
   <div class="sect">${tr('detail.calls')} <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div><div id="calls">${tr('loading')}</div>
   <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre>`;
         await fillDetail(id);
@@ -2469,11 +2357,6 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (h2) {
             h2.textContent = s.title;
             h2.title = s.title;
-        }
-        const dl = document.querySelector('#meta');
-        if (dl) {
-            dl.innerHTML = metaDl(s);
-            if (CALLS.length) document.querySelector('#ctxnow').textContent = fmt(CALLS[CALLS.length - 1].ctx);
         }
         await fillDetail(id);
     }
@@ -2491,7 +2374,6 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (cj) {
             CALLS = (cj.calls || []).map((c, i) => Object.assign({}, c, {n: i + 1}));
             document.querySelector('#calls').innerHTML = callsTable(CALLS);
-            document.querySelector('#ctxnow').textContent = CALLS.length ? fmt(CALLS[CALLS.length - 1].ctx) : '—';
         }
         updateFilterBtns();
     }
