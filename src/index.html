@@ -846,14 +846,6 @@
             content: '▴'
         }
 
-        .caret {
-            cursor: pointer;
-            color: var(--dim);
-            width: 14px;
-            display: inline-block;
-            user-select: none
-        }
-
         .project {
             color: var(--dim);
             font-size: 12px;
@@ -2293,7 +2285,6 @@
         const moneyTip = totalOwnTip + tr('node.money.tip') + ' · ' + pricesTip();
         const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
-        const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
         const heartNow = NOW || Date.now();
         const heart = s.active
             ? `<svg class="ttlbg" viewBox="0 0 34 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="${ecgPoints(s.beats, heartNow)}"/></svg>`
@@ -2303,7 +2294,6 @@
             const hasAgent = s.agent && s.agent !== DEFAULT_AGENT;
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}${sel === s.id ? ' sel' : ''}" data-id="${s.id}">
     ${depth === 1 ? `<span class="star${CHK.marked.has(s.id) ? ' on' : ''}" data-id="${esc(s.id)}" onclick="chkToggle(event)" title="${esc(tr('favourites.title'))}">${CHK.marked.has(s.id) ? '★' : '☆'}</span>` : '<span class="chkcol"></span>'}
-    ${caret}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
     <span class="ttl" title="${esc(ttlTip)}">${heart}${esc(hasAgent ? displayTitle(s.title, s.agent) : s.title)}</span>
     ${subBadges}
@@ -2323,21 +2313,19 @@
         return [...g.entries()];
     }
 
-    function toggle(e) {
-        e.stopPropagation();
-        const li = e.target.closest('li');
+    function toggleNode(nd) {
+        const li = nd.closest('li');
         const ul = li.querySelector(':scope > ul');
         if (!ul) return;
-        ul.style.display = ul.style.display === 'none' ? '' : 'none';
-        const id = li.querySelector('.node').dataset.id;
+        const id = nd.dataset.id;
         if (ul.style.display === 'none') {
-            COLLAPSED.add(id);
-            EXPANDED.delete(id);
-            e.target.textContent = '+';
-        } else {
+            ul.style.display = '';
             EXPANDED.add(id);
             COLLAPSED.delete(id);
-            e.target.textContent = '−';
+        } else {
+            ul.style.display = 'none';
+            COLLAPSED.add(id);
+            EXPANDED.delete(id);
         }
     }
 
@@ -2644,16 +2632,16 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (e.key === 'Home') return go(0);
         if (e.key === 'End') return go(nodes.length - 1);
         if (cur < 0) return;
-        const nd = nodes[cur], caret = nd.querySelector('.caret');
+        const nd = nodes[cur];
         const ul = nd.parentElement.querySelector(':scope > ul');
         const open = ul && ul.style.display !== 'none';
         if (e.key === 'Enter') {
-            if (ul) caret.click();
+            if (ul) toggleNode(nd);
         } else if (e.key === 'ArrowRight') {
-            if (ul && !open) caret.click();
+            if (ul && !open) toggleNode(nd);
             else if (open) go(cur + 1);
         } else if (e.key === 'ArrowLeft') {
-            if (open) caret.click();
+            if (open) toggleNode(nd);
             else {
                 const up = nd.parentElement.parentElement.closest('li');
                 if (up) selectSession(up.querySelector(':scope > .node').dataset.id, {scroll: true, delay: 150});
@@ -2663,10 +2651,17 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
 
     document.querySelector('#tree').addEventListener('click', e => {
         const nd = e.target.closest('.node');
-        if (nd && !e.target.classList.contains('caret')) {
+        if (nd) {
             if (nd.dataset.id === sel) return;
             selectSession(nd.dataset.id, {push: true});
         }
+    });
+    document.querySelector('#tree').addEventListener('dblclick', e => {
+        const nd = e.target.closest('.node');
+        if (!nd || e.target.closest('.star')) return;
+        const sel = window.getSelection();
+        if (sel) sel.removeAllRanges();
+        toggleNode(nd);
     });
     document.querySelector('#refresh').addEventListener('click', load);
 
