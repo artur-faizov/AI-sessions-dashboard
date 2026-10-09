@@ -654,11 +654,15 @@
         }
 
         .v-tok {
-            width: 5.5ch
+            width: 12ch
         }
 
         .v-money {
-            width: 6ch
+            width: 13ch
+        }
+
+        .own-part {
+            color: var(--dim)
         }
 
         .vbar {
@@ -2117,12 +2121,16 @@
             && (!CHK.only || treeCheckedVisible(k, CHK.marked)));
         const hasSub = kids.length > 0;
         const spent = tokEqOf(t);
+        const hasKids = s.children.length > 0;
+        const own = tokEqOf(s);
         const money = costNode(s);
+        const ownMoney = costOf(s);
         const ctxPct = VMAX.ctx && s.maxctx ? Math.max(2, s.maxctx / VMAX.ctx * 100) : 0;
         const tokPct = VMAX.tok && spent ? Math.max(2, spent / VMAX.tok * 100) : 0;
         const monPct = VMAX.money && money ? Math.max(2, money / VMAX.money * 100) : 0;
-        const spentTip = tr('node.spent.tip') + ' · ' + pricesTip();
-        const moneyTip = tr('node.money.tip') + ' · ' + pricesTip();
+        const totalOwnTip = tr('node.totalown.tip') + ' · ';
+        const spentTip = totalOwnTip + tr('node.spent.tip') + ' · ' + pricesTip();
+        const moneyTip = totalOwnTip + tr('node.money.tip') + ' · ' + pricesTip();
         const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
@@ -2140,7 +2148,7 @@
     <span class="ttl" title="${esc(s.title)}">${esc(agentBadge ? displayTitle(s.title, s.agent) : s.title)}</span>
     ${agentBadge}${subBadges}
     <span class="badge">${esc(modelName(s.model))}</span>
-    <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b></span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b></span></span></div>`;
+    <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : '—'}</span></span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b>${hasKids ? `<span class="own-part">(${fmt(own)})</span>` : ''}</span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b>${hasKids ? `<span class="own-part">(${fmtMoney(ownMoney)})</span>` : ''}</span></span></div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS)).join('')}</ul>`;
         return h + '</li>';
     }

@@ -125,23 +125,24 @@ test('refresh updates the detail panel in place, not rebuilding it', async () =>
         '#detail must not be rewritten on refresh: it is the scroll container, a rewrite resets scroll and flashes loading');
 });
 
-test('refresh updates session totals in the detail meta', async () => {
-    const ctx = boot({
-        '/api/tree': [sess()],
-        '/api/prompt/s1': {texts: []},
-        '/api/calls/s1': {calls: [call({mid: 'm1', ctx: 111})]},
-    });
+test('tree row shows total(own) for nodes with subagents, and refresh re-renders it', async () => {
+    const child = sess({id: 'c1', parent: 's1', title: 'sub', in: 500, out: 0, reason: 0, cr: 0, cw: 0,
+        subtree: {in: 500, out: 0, reason: 0, cr: 0, cw: 0}});
+    const parent = (own) => sess({in: own, out: 0, reason: 0, cr: 0, cw: 0, children: [child],
+        subtree: {in: own + 500, out: 0, reason: 0, cr: 0, cw: 0}});
+    const ctx = boot({'/api/tree': [parent(1000)]});
     await settle();
-    await ctx.pick('s1');
+    await ctx.load();
     await settle();
-    assert.ok(!ctx.document.querySelector('#meta').innerHTML.includes('4.2k'), 'sanity: old meta value absent');
+    assert.ok(ctx.document.querySelector('#tree').innerHTML.includes('<b>1.5k</b><span class="own-part">(1.0k)</span>'),
+        'spent cell must show total(own) for the parent');
 
-    ctx.routes.set('/api/tree', [sess({in: 4200, subtree: {in: 4200, out: 20, reason: 5, cr: 7, cw: 8}})]);
+    ctx.routes.set('/api/tree', [parent(4200)]);
     await ctx.load();
     await settle();
 
-    assert.ok(ctx.document.querySelector('#meta').innerHTML.includes('4.2k'),
-        'meta totals must be re-rendered from the fresh tree');
+    assert.ok(ctx.document.querySelector('#tree').innerHTML.includes('<b>4.7k</b><span class="own-part">(4.2k)</span>'),
+        'total(own) must be re-rendered from the fresh tree');
 });
 
 test('refresh updates the session prompt text', async () => {
