@@ -494,7 +494,21 @@
             width: 44%;
             min-width: 300px;
             border-left: 1px solid var(--line);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        /* same layout as the left pane: fixed title row on top, scroller below
+           with the table header sticky at top:0 */
+        #dscroll {
+            flex: 1;
+            min-height: 0;
             overflow: auto;
+            padding: 0 20px 12px
+        }
+
+        #detail > .empty {
             padding: 16px 20px
         }
 
@@ -1196,40 +1210,43 @@
             color: var(--fg)
         }
 
-        .callsbox {
-            position: relative
-        }
-
-        /* #detail's padding-top is 16px and sticky offsets count from inside the padding,
-           so top:-16px pins the title to the very top edge; the table header then sits
-           right under its 36px height, i.e. 20px below the content edge. */
         .callshead {
-            position: sticky;
-            top: -16px;
-            z-index: 2;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 10px 20px 6px;
             background: var(--bg);
-            margin: 0 -20px;
-            padding: 0 20px;
-            height: 36px;
             white-space: nowrap
         }
 
-        table.calls thead th {
-            position: sticky;
-            top: 20px;
-            z-index: 1;
-            background: var(--bg)
+        .callstitle {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis
         }
 
-        .sect .fbtn {
-            margin-left: 10px;
-            padding: 1px 9px;
-            font-size: 11px;
-            border-radius: 5px;
-            vertical-align: 1px
+        .sesname {
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 13px;
+            color: var(--fg)
+        }
+
+        /* styled like the sessions header (.thead) so the sticky row has a clear edge;
+           whole-pixel height (36px = 2px + 32px + 2px) avoids subpixel jitter while scrolling */
+        table.calls thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #262b36;
+            border-top: 2px solid #3d4455;
+            border-bottom: 2px solid #3d4455;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, .35);
+            padding: 0 6px;
+            line-height: 32px;
+            height: 36px
         }
 
         @media (max-width: 900px) {
@@ -2410,9 +2427,9 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         sel = id;
         const s = find(TREE, id);
         if (!s) return;
-        document.querySelector('#detail').innerHTML = `<h2 id="dtitle" title="${esc(s.title)}">${esc(s.title)}</h2>
-  <div class="callsbox"><div class="sect callshead">${tr('detail.calls')} <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div><div id="calls">${tr('loading')}</div></div>
-  <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre>`;
+        document.querySelector('#detail').innerHTML = `<div class="sect callshead"><span class="callstitle">${tr('detail.calls')} - <span id="dtitle" class="sesname" title="${esc(s.title)}">${esc(s.title)}</span></span> <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div>
+  <div id="dscroll"><div id="calls">${tr('loading')}</div>
+  <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre></div>`;
         await fillDetail(id);
     }
 
