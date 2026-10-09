@@ -317,9 +317,9 @@ test('heartSizes: tie on updated keeps insertion order for the top ranks', () =>
     assert.equal(m.get('s'), 'lg');
 });
 
-test('ecgPoints: no beats = flat baseline from left to right edge', () => {
+test('ecgPoints: no beats = empty trace (no flatline from the past)', () => {
     const p = L.ecgPoints([], 1000000, { win: 1000, w: 40, h: 20 });
-    assert.equal(p, '0.0,10.0 40.0,10.0');
+    assert.equal(p, '');
 });
 
 test('ecgPoints: beat maps to an ECG spike — R peak above baseline at its position', () => {
@@ -331,13 +331,15 @@ test('ecgPoints: beat maps to an ECG spike — R peak above baseline at its posi
     assert.ok(pts.some(([x, y]) => Math.abs(x - 20) < 1 && y === 1), 'R peak at beat position above baseline');
     // dips below baseline exist (Q/S)
     assert.ok(pts.some(([x, y]) => y > 10), 'dip below baseline');
+    // trace starts at the first beat, not at the left edge
+    assert.ok(pts[0][0] >= 15 && pts[0][0] <= 17, 'no leading flatline before first beat');
     assert.ok(pts.every(([x, y]) => x >= 0 && x <= 40 && y >= 0 && y <= 20), 'all points in bounds');
 });
 
 test('ecgPoints: beats outside the window are ignored', () => {
     const now = 1000000;
     const p = L.ecgPoints([now - 5000, now + 500], now, { win: 1000, w: 40, h: 20 });
-    assert.equal(p, '0.0,10.0 40.0,10.0');
+    assert.equal(p, '');
 });
 
 test('ecgPoints: unsorted beats still produce monotonically increasing x', () => {
@@ -345,6 +347,12 @@ test('ecgPoints: unsorted beats still produce monotonically increasing x', () =>
     const p = L.ecgPoints([now - 200, now - 800], now, { win: 1000, w: 40, h: 20 });
     const xs = p.split(' ').map(s => Number(s.split(',')[0]));
     assert.deepEqual([...xs].sort((a, b) => a - b).map(Number), xs);
+});
+
+test('ecgPoints: x position depends only on (beat - now), so all rows share one timeline', () => {
+    const p1 = L.ecgPoints([1500], 2000, { win: 1000, w: 40, h: 20 });
+    const p2 = L.ecgPoints([11500], 12000, { win: 1000, w: 40, h: 20 });
+    assert.equal(p1, p2);
 });
 
 test('ecgPoints: beat at the right edge stays clamped inside the box', () => {

@@ -1427,7 +1427,8 @@
         const mid = h / 2, amp = h * 0.45, lo = now - win;
         const ts = (beats || []).filter(t => t >= lo && t <= now).sort((a, b) => a - b);
         const x = t => Math.max(0, Math.min(w, (t - lo) / win * w));
-        const pts = [[0, mid]];
+        // No leading flatline from the past: the trace begins at the first beat.
+        const pts = [];
         for (const t of ts) {
             const cx = x(t);
             pts.push([Math.max(0, cx - 4), mid]);        // baseline before spike
@@ -1436,6 +1437,7 @@
             pts.push([Math.min(w, cx + 1.5), mid + h * 0.15]); // S dip
             pts.push([Math.min(w, cx + 4), mid]);        // back to baseline
         }
+        if (!pts.length) return '';
         pts.push([w, mid]);
         return pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
     }
@@ -1922,7 +1924,13 @@
         return sortKey ? [...ns].sort((a, b) => sortAsc ? sortVal(a) - sortVal(b) : sortVal(b) - sortVal(a)) : ns;
     }
 
+    // Shared timeline anchor: one Date.now() per render pass so every EKG row
+    // maps beat timestamps onto the identical time axis — spikes line up
+    // vertically across sessions, making start order obvious.
+    let NOW = 0;
+
     function render() {
+        NOW = Date.now();
         let h = '';
         const roots = sorted(TREE.filter(s => matches(s)
             && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
@@ -1982,8 +1990,9 @@
         const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const caret = hasSub ? `<span class="caret" onclick="toggle(event)">${open ? '−' : '+'}</span>` : `<span class="caret" style="visibility:hidden">·</span>`;
+        const heartNow = NOW || Date.now();
         const heart = s.active
-            ? `<svg class="ecg${HEARTS.get(s.id) ? ' ' + HEARTS.get(s.id) : ''}" viewBox="0 0 34 20" title="${esc(tr('node.active.tip'))} · ${esc(tr('node.active.updated', {ago: dur(Date.now() - s.updated)}))}"><polyline points="${ecgPoints(s.beats, Date.now())}"/></svg>`
+            ? `<svg class="ecg${HEARTS.get(s.id) ? ' ' + HEARTS.get(s.id) : ''}" viewBox="0 0 34 20" title="${esc(tr('node.active.tip'))} · ${esc(tr('node.active.updated', {ago: dur(heartNow - s.updated)}))}"><polyline points="${ecgPoints(s.beats, heartNow)}"/></svg>`
             : '<span class="hcol"></span>';
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
             const agentBadge = s.agent && s.agent === DEFAULT_AGENT ? '' : `<span class="badge agent">${esc(s.agent || '—')}</span>`;
