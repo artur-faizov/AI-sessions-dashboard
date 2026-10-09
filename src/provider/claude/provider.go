@@ -86,3 +86,19 @@ func (c *Provider) CallTrigger(mid string) (*provider.TriggerResp, error) {
 	}
 	return nil, nil
 }
+
+// SessionTriggers resolves the triggers of all the given calls of one session
+// with a single index scan (CallTrigger scans the whole projects dir per call).
+func (c *Provider) SessionTriggers(sid string, calls []provider.CallRec) (map[string]*provider.TriggerResp, error) {
+	f := c.findSessionFile(sid)
+	if f == nil {
+		return nil, fmt.Errorf("session not found: %s", sid)
+	}
+	out := make(map[string]*provider.TriggerResp, len(calls))
+	for _, cr := range calls {
+		if t, ok := f.trigger(cr.Mid); ok {
+			out[cr.Mid] = t
+		}
+	}
+	return out, nil
+}
