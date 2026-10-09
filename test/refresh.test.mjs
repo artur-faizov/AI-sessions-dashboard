@@ -177,22 +177,18 @@ test('refresh does not fetch calls or prompt when no session is selected', async
     assert.ok(!ctx.fetchLog.some(u => u.startsWith('/api/prompt')));
 });
 
-test('tree hearts: most recent active is xl, second lg, other active regular, inactive empty', async () => {
+test('tree hearts: every active session gets the same background ecg, inactive none', async () => {
     const ctx = boot({
         '/api/tree': [
             sess({id: 'top', active: true, updated: 9000000}),
             sess({id: 'second', active: true, updated: 8000000}),
-            sess({id: 'third', active: true, updated: 7000000}),
             sess({id: 'idle'}),
         ],
     });
     await settle();
     const tree = ctx.els.get('#tree').innerHTML;
-    assert.ok(/class="ecg xl"/.test(tree), 'most recently updated active session gets the xl ecg');
-    assert.ok(/class="ecg lg"/.test(tree), 'second most recently updated active session gets the lg ecg');
-    assert.ok(/class="ecg"/.test(tree), 'remaining active sessions get a regular ecg');
-    assert.equal((tree.match(/<span class="hcol"><\/span>/g) || []).length, 1,
-        'inactive sessions get an empty column');
+    assert.equal((tree.match(/<svg class="ttlbg"/g) || []).length, 2, 'one background ecg per active session');
+    assert.ok(!/class="ecg (xl|lg)"/.test(tree), 'no size variants');
 });
 
 test('recent-only filter keeps active sessions and their parent chain', async () => {
@@ -210,38 +206,27 @@ test('recent-only filter keeps active sessions and their parent chain', async ()
     assert.ok(!tree.includes('data-id="alone"'), 'inactive standalone session is dropped');
 });
 
-test('agent badge hidden for default agent, shown for others (any depth)', async () => {
+test('agent badge column is gone for every agent', async () => {
     const ctx = boot({
         '/api/tree': [
             sess({id: 'r1', agent: 'build'}),
-            sess({id: 'r2', agent: 'plan'}),
-            sess({id: 'r3', agent: 'build', children: [
-                sess({id: 'kb', agent: 'build'}),
-                sess({id: 'ke', agent: 'explore'}),
-                sess({id: 'kg', agent: 'general'}),
-                sess({id: 'kv', agent: 'vision'}),
-                sess({id: 'kn', agent: ''}),
-            ]}),
+            sess({id: 'r2', agent: 'plan', children: [sess({id: 'ke', agent: 'explore'})]}),
         ],
     });
     await settle();
     const tree = ctx.els.get('#tree').innerHTML;
-    const row = (id) => {
-        const i = tree.indexOf(`data-id="${id}"`);
-        const j = tree.indexOf('<li>', i + 1);
-        return tree.slice(i, j === -1 ? undefined : j);
-    };
-    assert.ok(!row('r1').includes('badge agent'), 'build root has no agent badge');
-    assert.ok(row('r2').includes('badge agent'), 'plan root keeps its badge');
-    assert.ok(!row('r3').includes('badge agent'), 'build root with children has no badge');
-    assert.ok(!row('kb').includes('badge agent'), 'build subagent has no badge');
-    const names = {ke: 'explore', kg: 'general', kv: 'vision'};
-    for (const [id, name] of Object.entries(names)) {
-        assert.ok(row(id).includes('badge agent'), `subagent ${name} keeps its badge`);
-        assert.ok(row(id).includes(`>${name}<`), `badge shows agent name for ${name}`);
-    }
-    assert.ok(row('kn').includes('badge agent'), 'empty-agent session keeps a badge');
-    assert.ok(row('kn').includes('>—<'), 'empty agent renders em dash');
+    assert.ok(!tree.includes('badge agent'), 'no agent badge rendered');
+});
+
+test('favourite star only on roots, filled when marked', async () => {
+    const ctx = boot({
+        '/api/tree': [sess({id: 'r1', children: [sess({id: 'k1'})]})],
+    });
+    await settle();
+    vm.runInNewContext("CHK.marked.add('r1'); render();", ctx);
+    const tree = ctx.els.get('#tree').innerHTML;
+    assert.equal((tree.match(/class="star/g) || []).length, 1, 'subagent has no star');
+    assert.ok(/class="star on"[^>]*>★</.test(tree), 'marked root shows filled star');
 });
 
 test('active sessions render an ECG sparkline across the heart', async () => {
@@ -251,7 +236,7 @@ test('active sessions render an ECG sparkline across the heart', async () => {
     });
     await settle();
     const tree = ctx.els.get('#tree').innerHTML;
-    assert.ok(/<svg class="ecg[ "]/.test(tree), 'active session renders a standalone ECG svg');
+    assert.ok(/<svg class="ttlbg"/.test(tree), 'active session renders a background ECG svg');
     assert.ok(/<polyline points="[^"]+"/.test(tree), 'sparkline polyline with points rendered');
 });
 
