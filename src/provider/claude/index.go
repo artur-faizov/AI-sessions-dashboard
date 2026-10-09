@@ -62,6 +62,7 @@ type claudeFile struct {
 type claudeRawLine struct {
 	Type      string        `json:"type"`
 	UUID      string        `json:"uuid"`
+	RequestID string        `json:"requestId"`
 	Timestamp string        `json:"timestamp"`
 	Cwd       string        `json:"cwd"`
 	SessionID string        `json:"sessionId"`
@@ -157,6 +158,7 @@ func parseClaudeFile(path string) *claudeFile {
 		return f
 	}
 	seen := map[string]bool{}
+	seenReq := map[string]bool{}
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -183,6 +185,8 @@ func parseClaudeFile(path string) *claudeFile {
 		if ts == 0 {
 			continue // no valid timestamp: skip silently
 		}
+		m := &claudeMsg{mid: raw.UUID, role: raw.Type, timeMS: ts}
+		dupReq := false
 		if raw.Type == "assistant" {
 			if raw.UUID != "" {
 				if seen[raw.UUID] {
@@ -190,8 +194,31 @@ func parseClaudeFile(path string) *claudeFile {
 				}
 				seen[raw.UUID] = true
 			}
+			// One API request is written as multiple assistant lines (one per
+			// content block), each repeating the same usage block. Count usage
+			// only on the first line of a request to avoid overcounting.
+			if raw.RequestID != "" {
+				if seenReq[raw.RequestID] {
+					dupReq = true
+				} else {
+					seenReq[raw.RequestID] = true
+				}
+			}
+			m.model = raw.Message.Model
+			if !dupReq {
+				if raw.Message.Usage != nil {
+					m.usage = claudeUsage{
+						in:  raw.Message.Usage.InputTokens,
+						out: raw.Message.Usage.OutputTokens,
+						cr:  raw.Message.Usage.CacheReadInputTokens,
+						cw:  raw.Message.Usage.CacheCreationInputTokens,
+					}
+				}
+				if m.usage.nonzero() && m.model != "<synthetic>" {
+					m.hasUsage = true
+				}
+			}
 		}
-		m := &claudeMsg{mid: raw.UUID, role: raw.Type, timeMS: ts}
 		if raw.Type == "user" {
 			m.meta = raw.IsMeta
 		}
@@ -203,20 +230,6 @@ func parseClaudeFile(path string) *claudeFile {
 		}
 		if ts > f.lastMS {
 			f.lastMS = ts
-		}
-		if raw.Type == "assistant" {
-			m.model = raw.Message.Model
-			if raw.Message.Usage != nil {
-				m.usage = claudeUsage{
-					in:  raw.Message.Usage.InputTokens,
-					out: raw.Message.Usage.OutputTokens,
-					cr:  raw.Message.Usage.CacheReadInputTokens,
-					cw:  raw.Message.Usage.CacheCreationInputTokens,
-				}
-			}
-			if m.usage.nonzero() && m.model != "<synthetic>" {
-				m.hasUsage = true
-			}
 		}
 		// content: plain string or block array
 		var blocks []claudeRawBlock
