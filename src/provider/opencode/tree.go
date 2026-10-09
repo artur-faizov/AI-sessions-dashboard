@@ -207,6 +207,7 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 		n.Dur = provider.ActiveDur(n.Dur, calls)
 	}
 
+	provider.DropClosed(roots, provider.ProcDirs("opencode"))
 	for _, n := range nodes {
 		if n.Active {
 			beats, err := sessionBeats(pool, n.ID, nowMS-provider.ActiveWindowMS)

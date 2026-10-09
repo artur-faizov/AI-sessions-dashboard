@@ -636,6 +636,7 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 		}
 	}
 
+	provider.DropClosed(roots, provider.ProcDirs("claude"))
 	for id, n := range nodes {
 		if n.Active {
 			_, _, _, _, _, _, beats, _ := idx.lookup(id).file.stats()
