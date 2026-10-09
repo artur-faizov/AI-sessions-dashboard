@@ -417,6 +417,25 @@
             cursor: pointer
         }
 
+        #grp-filter .fchip, #grp-filter .projdd > button, #grp-filter .fbtn {
+            box-sizing: border-box;
+            height: 28px;
+            display: inline-flex;
+            align-items: center
+        }
+
+        .fchip {
+            padding: 0 12px;
+            border: 1px solid transparent;
+            border-radius: 6px
+        }
+
+        .fchip.on, .projdd > button.on {
+            background: rgba(122, 162, 247, .22);
+            border-color: var(--acc);
+            color: var(--fg)
+        }
+
         .favbox {
             cursor: pointer;
             user-select: none
@@ -773,6 +792,83 @@
             background: #1b1f27;
             border: 1px solid var(--line);
             border-radius: 10px
+        }
+
+        .projdd {
+            position: relative;
+            display: inline-block
+        }
+
+        .projdd > button {
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0 12px;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer
+        }
+
+        .projmenu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 50;
+            min-width: 100%;
+            max-height: 320px;
+            overflow: auto;
+            background: #262b36;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .4)
+        }
+
+        .projdd.open .projmenu {
+            display: block
+        }
+
+        .projmenu input[type=text] {
+            box-sizing: border-box;
+            width: calc(100% - 16px);
+            margin: 2px 8px 4px;
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 7px;
+            font: inherit;
+            font-size: 13px
+        }
+
+        .projmenu input[type=text]:focus {
+            outline: none;
+            border-color: var(--acc)
+        }
+
+        .projmenu .projnone {
+            padding: 3px 10px;
+            color: var(--dim)
+        }
+
+        .projmenu label {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            padding: 3px 10px;
+            white-space: nowrap;
+            cursor: pointer
+        }
+
+        .projmenu label:hover {
+            background: #323948
         }
 
         .treehead #grp-filter {
@@ -1392,9 +1488,10 @@
     <div id="treepane">
         <div class="treehead"><div class="ptitle" id="treetitle"></div>
         <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
-        <label class="hlbox" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
-        <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
-        <span class="hlbox favbox" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
+        <span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span>
+        <label class="hlbox fchip" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
+        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
+        <span class="hlbox favbox fchip" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
         <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
         </div>
         <div id="tree"></div>
@@ -1797,7 +1894,7 @@
     function updateFilterBtns() {
         const lbl = n => tr('filter.extra') + (n ? ' · ' + n : '');
         const tb = document.querySelector('#tree-fbtn');
-        const tn = treeFilterCount(treeFilter);
+        const tn = treeFilterCount(treeFilter) - (treeFilter.dirs.size ? 1 : 0);
         tb.classList.toggle('on', tn > 0);
         tb.textContent = lbl(tn);
         const cb = document.querySelector('#call-fbtn');
@@ -1811,7 +1908,57 @@
 
     let SHOWN = {roots: 0, total: 0};
 
+    const shortDir = d => d.split('/').filter(Boolean).slice(-2).join('/') || d;
+
+    function refreshProjSel() {
+        const menu = document.querySelector('#projmenu');
+        if (!menu) return;
+        const sel = treeFilter.dirs;
+        const last = new Map();
+        (function walk(ns) {
+            for (const n of ns) {
+                const d = nodeDir(n);
+                last.set(d, Math.max(last.get(d) || 0, n.updated || 0));
+                walk(n.children);
+            }
+        })(TREE);
+        const vals = [...last.keys()].sort((a, b) => last.get(b) - last.get(a) || a.localeCompare(b));
+        sel.forEach(v => vals.includes(v) || vals.push(v));
+        const q = document.querySelector('#projsearch').value.trim().toLowerCase();
+        const shown = q ? vals.filter(v => v.toLowerCase().includes(q)) : vals;
+        document.querySelector('#projsearch').placeholder = tr('filter.project.search');
+        document.querySelector('#projlist').innerHTML = !shown.length ? `<div class="projnone">${esc(tr('filter.project.none'))}</div>` : shown.map(v => `<label title="${esc(v)}"><input type="checkbox" value="${esc(v)}"${sel.has(v) ? ' checked' : ''}>${esc(shortDir(v))}</label>`).join('');
+        const btn = document.querySelector('#projbtn');
+        btn.textContent = tr('filter.project.n', {n: sel.size});
+        btn.title = tr('fmod.folder');
+        btn.classList.toggle('on', sel.size > 0);
+        document.querySelector('#ctxbox').classList.toggle('on', !!HOT.apply);
+        document.querySelector('#recbox').classList.toggle('on', !!REC.only);
+    }
+
+    document.querySelector('#projbtn').addEventListener('click', () => {
+        const open = document.querySelector('#projdd').classList.toggle('open');
+        if (open) document.querySelector('#projsearch').focus();
+    });
+    document.querySelector('#projsearch').addEventListener('input', refreshProjSel);
+    document.querySelector('#projmenu').addEventListener('change', e => {
+        if (e.target.type !== 'checkbox') return;
+        const v = e.target.value;
+        e.target.checked ? treeFilter.dirs.add(v) : treeFilter.dirs.delete(v);
+        applyTreeFilter();
+    });
+    document.addEventListener('click', e => {
+        if (e.target.closest('#projdd')) return;
+        document.querySelector('#projdd').classList.remove('open');
+        const q = document.querySelector('#projsearch');
+        if (q.value) {
+            q.value = '';
+            refreshProjSel();
+        }
+    });
+
     function updateFilterCount() {
+        refreshProjSel();
         const el = document.querySelector('#fcount');
         if (!el) return;
         el.textContent = fmodalKind === 'tree'
@@ -2100,8 +2247,6 @@
         ${ckList('ft-models', collectValues(n => modelName(n.model)), f.models)}
         <div class="fsect">${tr('fmod.provider')}${ckAllNone('ft-provs')}</div>
         ${ckList('ft-provs', collectValues(nodeProvider), f.providers)}
-        <div class="fsect">${tr('fmod.folder')}${ckAllNone('ft-dirs')}</div>
-        ${ckList('ft-dirs', collectValues(nodeDir), f.dirs)}
         <div class="fsect">${tr('fmod.ranges')}</div>
         ${rangeRow(tr('calls.th.num'), 'ft-nummin', 'ft-nummax', f, 'numMin', 'numMax')}
         ${rangeRow(tr('ftree.ctx'), 'ft-ctxmin', 'ft-ctxmax', f, 'ctxMin', 'ctxMax')}
@@ -2119,7 +2264,6 @@
         });
         bindCk('ft-models', f.models, apply);
         bindCk('ft-provs', f.providers, apply);
-        bindCk('ft-dirs', f.dirs, apply);
         bindNum('ft-nummin', f, 'numMin', apply);
         bindNum('ft-nummax', f, 'numMax', apply);
         bindNum('ft-ctxmin', f, 'ctxMin', apply);
