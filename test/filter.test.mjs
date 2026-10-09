@@ -19,7 +19,7 @@ const node = (o = {}) => ({
     active: false, children: [], subtree: { in: 0, out: 0, reason: 0, cr: 0, cw: 0 }, ...o,
 });
 const tf = (o = {}) => ({
-    text: '', models: new Set(), providers: new Set(),
+    text: '', models: new Set(), providers: new Set(), dirs: new Set(),
     numMin: null, numMax: null,
     datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
     ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null, ...o,
@@ -232,6 +232,34 @@ test('tree node order and date criteria AND together with the rest', () => {
     assert.equal(L.treeMatchesNode(n, f), true);
     assert.equal(L.treeMatchesNode(n, tf({ ...f, numMin: 3 })), false);
     assert.equal(L.treeMatchesNode(n, tf({ ...f, dateMin: new Date('2026-10-06T00:00').getTime() })), false);
+});
+
+test('tree folder filter: empty set = off, empty dir = (unknown), AND with model filter', () => {
+    const n = node({ dir: '/home/me/project' });
+    const u = node({ dir: '' });
+    assert.equal(L.nodeDir(n), '/home/me/project');
+    assert.equal(L.nodeDir(u), '(unknown)');
+    assert.equal(L.treeMatchesNode(n, tf()), true);
+    assert.equal(L.treeMatchesNode(n, tf({ dirs: new Set(['/home/me/project']) })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ dirs: new Set(['/other']) })), false);
+    assert.equal(L.treeMatchesNode(u, tf({ dirs: new Set(['(unknown)']) })), true);
+    assert.equal(L.treeMatchesNode(n, tf({ dirs: new Set(['/home/me/project']), models: new Set(['zzz']) })), false);
+});
+
+test('treeCheckedVisible: node or any descendant in the marked set', () => {
+    const root = node({ id: 'r', children: [node({ id: 'a' }), node({ id: 'b', children: [node({ id: 'c' })] })] });
+    assert.equal(L.treeCheckedVisible(root, new Set()), false);
+    assert.equal(L.treeCheckedVisible(root, new Set(['r'])), true);
+    assert.equal(L.treeCheckedVisible(root, new Set(['c'])), true);
+    assert.equal(L.treeCheckedVisible(root, new Set(['a', 'x'])), true);
+    assert.equal(L.treeCheckedVisible(node({ id: 's' }), new Set(['s'])), true);
+    assert.equal(L.treeCheckedVisible(node({}), new Set(['s'])), false);
+});
+
+test('treeFilterCount: dirs count as a criterion group', () => {
+    assert.equal(L.treeFilterCount(tf()), 0);
+    assert.equal(L.treeFilterCount(tf({ dirs: new Set(['/a']) })), 1);
+    assert.equal(L.treeFilterCount(tf({ text: 'x', dirs: new Set(['/a']), ctxMin: 1 })), 3);
 });
 
 test('treeVisible: root shown if it or any descendant matches', () => {

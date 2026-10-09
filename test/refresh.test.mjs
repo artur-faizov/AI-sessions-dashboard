@@ -229,7 +229,7 @@ test('agent badge hidden for default agent, shown for others (any depth)', async
     const tree = ctx.els.get('#tree').innerHTML;
     const row = (id) => {
         const i = tree.indexOf(`data-id="${id}"`);
-        const j = tree.indexOf('data-id="', i + 1);
+        const j = tree.indexOf('<li>', i + 1);
         return tree.slice(i, j === -1 ? undefined : j);
     };
     assert.ok(!row('r1').includes('badge agent'), 'build root has no agent badge');

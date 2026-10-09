@@ -476,6 +476,21 @@
             background: #1d2026
         }
 
+        .chkcol {
+            width: 16px;
+            flex: none;
+            text-align: center
+        }
+
+        .node input.mark {
+            width: 14px;
+            height: 14px;
+            flex: none;
+            margin: 0 1px;
+            cursor: pointer;
+            accent-color: #61afef
+        }
+
         .hcol {
             width: 68px;
             text-align: center;
@@ -543,10 +558,6 @@
             font-variant-numeric: tabular-nums;
             font-size: 12px;
             color: var(--dim);
-            white-space: nowrap
-        }
-
-        #summary {
             white-space: nowrap
         }
 
@@ -1225,13 +1236,16 @@
     <symbol id="hum-image" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><rect x="11.25" y="12.6" width="8.1" height="5.85" rx="1.05" fill="none" stroke="#12290f" stroke-width="1.4"/><circle cx="13.2" cy="14.4" r="0.75" fill="#12290f"/><path d="M12 17.85l2.25-2.4 1.5 1.8 1.2-1.35 2.55 3z" fill="#12290f"/></symbol>
 </defs></svg>
 <header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button></span></div>
-    <div class="hgrp center" id="grp-filter"><button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">Filter</button>
-    <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">ctx highlight warn/crit, k</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="hlapplylabel" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight.">apply threshold</span></label>
-    <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent sessions only</span></label>
-    <span id="summary" class="num"></span></div>
+    <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
+    <label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">threshold</span><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."></label>
+    <label class="hlbox" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
+    <label class="hlbox" id="chkbox" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><input type="checkbox" id="chkonly" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chklabel" title="Keep in the tree only the sessions marked with a checkbox (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this.">check-mark</span></label>
+    <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
     <div class="hgrp right" id="grp-meta"><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
         <div class="grow"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></div>
         <div class="grow"><span id="langsw" class="langsw" title="Language"></span></div>
+        <div class="sect" id="gearstats">statistics</div>
+        <div class="grow" id="statrows"></div>
         <div class="sect" id="gearcost">cost formula</div>
         <div class="grow cost"><input type="checkbox" id="ck-in" checked><label for="ck-in" id="lbl-in">fresh input</label><span class="cur">$</span><input type="number" id="pr-in" step="0.01" min="0" value="4" title="$/1M"></div>
         <div class="grow cost"><input type="checkbox" id="ck-out" checked><label for="ck-out" id="lbl-out">output</label><span class="cur">$</span><input type="number" id="pr-out" step="0.01" min="0" value="20" title="$/1M"></div>
@@ -1374,6 +1388,10 @@
         return presetRange(f.datePreset, now);
     }
 
+    function nodeDir(n) {
+        return n.dir || '(unknown)';
+    }
+
     function treeMatchesNode(n, f) {
         if (f.text) {
             const hay = (n.title + ' ' + n.agent + ' ' + modelName(n.model)).toLowerCase();
@@ -1381,6 +1399,7 @@
         }
         if (f.models.size && !f.models.has(modelName(n.model))) return false;
         if (f.providers.size && !f.providers.has(nodeProvider(n))) return false;
+        if (f.dirs.size && !f.dirs.has(nodeDir(n))) return false;
         if (!inRange(n.order || 0, f.numMin, f.numMax)) return false;
         if (!inRange(n.created || 0, f.dateMin, f.dateMax)) return false;
         if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
@@ -1405,6 +1424,19 @@
 
     function treeActiveVisible(n) {
         return !!n.active || n.children.some(c => treeActiveVisible(c));
+    }
+
+    function treeCheckedVisible(n, marked) {
+        return marked.has(n.id) || n.children.some(c => treeCheckedVisible(c, marked));
+    }
+
+    function treeFilterCount(f) {
+        const set = (a, b) => a != null || b != null;
+        return [
+            !!f.text, f.models.size > 0, f.providers.size > 0, f.dirs.size > 0, set(f.numMin, f.numMax),
+            f.datePreset != null && (f.datePreset !== 'custom' || !!f.dateFrom || !!f.dateTo),
+            set(f.ctxMin, f.ctxMax), set(f.spentMin, f.spentMax), set(f.durMin, f.durMax)
+        ].filter(Boolean).length;
     }
 
     function heartSizes(roots) {
@@ -1474,15 +1506,6 @@
         return m && m[1] === agent && m.index > 0 ? t.slice(0, m.index) : t;
     }
 
-    function treeFilterCount(f) {
-        const set = (a, b) => a != null || b != null;
-        return [
-            !!f.text, f.models.size > 0, f.providers.size > 0, set(f.numMin, f.numMax),
-            f.datePreset != null && (f.datePreset !== 'custom' || !!f.dateFrom || !!f.dateTo),
-            set(f.ctxMin, f.ctxMax), set(f.spentMin, f.spentMax), set(f.durMin, f.durMax)
-        ].filter(Boolean).length;
-    }
-
     function callFilterCount(f) {
         const set = (a, b) => a != null || b != null;
         return [
@@ -1499,7 +1522,7 @@
 
     if (typeof module !== 'undefined' && module.exports) module.exports = {
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
-        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, heartSizes, ecgPoints,
+        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeCheckedVisible, nodeDir, heartSizes, ecgPoints,
         callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel,
         COST_DEF, COST, costOf, tokEqOf, resetCost
     };
@@ -1510,7 +1533,7 @@
     const pricesTip = () => COST_FIELDS.map(k => `${tr(costKey(k))}: $${COST[k].price}/1M${COST[k].on ? '' : ' ✕'}`).join(' · ');
 
     const newTreeFilter = () => ({
-        text: '', models: new Set(), providers: new Set(),
+        text: '', models: new Set(), providers: new Set(), dirs: new Set(),
         numMin: null, numMax: null,
         datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
         ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null
@@ -1522,6 +1545,7 @@
     let treeFilter = newTreeFilter(), callFilter = newCallFilter();
     let HOT = { warn: 100, crit: 120, apply: false };
     let REC = { only: false };
+    let CHK = { only: false, marked: new Set() };
 
     const SET_KEY = 'ttree-settings';
 
@@ -1529,9 +1553,10 @@
         if (typeof localStorage === 'undefined') return;
         try {
             const tree = Object.assign({}, treeFilter, {
-                models: [...treeFilter.models], providers: [...treeFilter.providers]
+                models: [...treeFilter.models], providers: [...treeFilter.providers], dirs: [...treeFilter.dirs]
             });
-            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC, cost: COST}));
+            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC,
+                chk: {only: CHK.only, marked: [...CHK.marked]}, cost: COST}));
         } catch (e) { /* storage unavailable — ignore */ }
     }
 
@@ -1553,15 +1578,17 @@
         if (!s || (s.v !== 1 && s.v !== 2)) return;
         try {
             if (s.tree) treeFilter = Object.assign(newTreeFilter(), s.tree,
-                {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || [])});
+                {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || []), dirs: new Set(s.tree.dirs || [])});
             if (s.call) callFilter = Object.assign(newCallFilter(), s.call);
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
             if (s.rec) REC = Object.assign({only: false}, s.rec);
+            if (s.chk) CHK = Object.assign({only: false, marked: new Set(s.chk.marked || [])}, {only: !!s.chk.only});
             if (s.cost) Object.assign(COST, mergeCost(s.cost));
             document.querySelector('#hlwarn').value = HOT.warn ?? '';
             document.querySelector('#hlcrit').value = HOT.crit ?? '';
             document.querySelector('#hlapply').checked = !!HOT.apply;
             document.querySelector('#reconly').checked = !!REC.only;
+            document.querySelector('#chkonly').checked = !!CHK.only;
         } catch (e) { /* corrupt — keep defaults */ }
     }
 
@@ -1586,7 +1613,7 @@
     }
 
     function updateFilterBtns() {
-        const lbl = n => tr('filter.btn') + (n ? ' · ' + n : '');
+        const lbl = n => tr('filter.extra') + (n ? ' · ' + n : '');
         const tb = document.querySelector('#tree-fbtn');
         const tn = treeFilterCount(treeFilter);
         tb.classList.toggle('on', tn > 0);
@@ -1734,6 +1761,34 @@
         saveSettings();
     });
 
+    document.querySelector('#chkonly').addEventListener('change', e => {
+        CHK.only = e.target.checked;
+        render();
+        saveSettings();
+    });
+
+    function chkToggle(e) {
+        e.stopPropagation();
+        const id = e.target.dataset.id;
+        const on = !CHK.marked.has(id);
+        const find = ns => {
+            for (const n of ns) {
+                if (n.id === id) return n;
+                const f = find(n.children);
+                if (f) return f;
+            }
+            return null;
+        };
+        const s = find(TREE);
+        if (!s) return;
+        (function walk(n) {
+            if (on) CHK.marked.add(n.id); else CHK.marked.delete(n.id);
+            n.children.forEach(walk);
+        })(s);
+        render();
+        saveSettings();
+    }
+
     function syncGearFormula() {
         const parts = COST_FIELDS.filter(k => COST[k].on).map(k => `${k}×$${+COST[k].price}`);
         document.querySelector('#gearformula').textContent = parts.length ? `$ = (${parts.join(' + ')}) / 1M` : '$ = 0';
@@ -1751,6 +1806,7 @@
         const m = document.querySelector('#gearmenu');
         if (m.hidden) {
             syncGearInputs();
+            syncGearStats();
             m.hidden = false;
         } else m.hidden = true;
     }
@@ -1797,6 +1853,8 @@
         ${ckList('ft-models', collectValues(n => modelName(n.model)), f.models)}
         <div class="fsect">${tr('fmod.provider')}${ckAllNone('ft-provs')}</div>
         ${ckList('ft-provs', collectValues(nodeProvider), f.providers)}
+        <div class="fsect">${tr('fmod.folder')}${ckAllNone('ft-dirs')}</div>
+        ${ckList('ft-dirs', collectValues(nodeDir), f.dirs)}
         <div class="fsect">${tr('fmod.ranges')}</div>
         ${rangeRow(tr('calls.th.num'), 'ft-nummin', 'ft-nummax', f, 'numMin', 'numMax')}
         ${rangeRow(tr('ftree.ctx'), 'ft-ctxmin', 'ft-ctxmax', f, 'ctxMin', 'ctxMax')}
@@ -1814,6 +1872,7 @@
         });
         bindCk('ft-models', f.models, apply);
         bindCk('ft-provs', f.providers, apply);
+        bindCk('ft-dirs', f.dirs, apply);
         bindNum('ft-nummin', f, 'numMin', apply);
         bindNum('ft-nummax', f, 'numMax', apply);
         bindNum('ft-ctxmin', f, 'ctxMin', apply);
@@ -1934,7 +1993,8 @@
         let h = '';
         const roots = sorted(TREE.filter(s => matches(s)
             && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
-            && (!REC.only || treeActiveVisible(s))));
+            && (!REC.only || treeActiveVisible(s))
+            && (!CHK.only || treeCheckedVisible(s, CHK.marked))));
         const HEARTS = heartSizes(roots);
         let mc = 0, mt = 0, mm = 0;
         (function scan(ns) {
@@ -1949,7 +2009,7 @@
         VMAX = {ctx: mc, tok: mt, money: mm};
         const th = (k, lbl, tip) => `<span class="val${k === 'time' ? ' v-idx' : k === 'ctx' ? ' v-ctx' : k === 'tok' ? ' v-tok' : k === 'money' ? ' v-money' : ''} th${sortKey === k ? ' active' + (sortAsc ? ' asc' : '') : ''}" title="${tip}" onclick="setSort('${k}')"><span class="thl">${lbl}</span></span>`;
         const thc = (cls, lbl, tip) => `<span class="thc ${cls}" title="${esc(tip)}">${lbl}</span>`;
-        h += `<div class="thead">${thc('hcol', tr('tree.th.ekg'), tr('tree.th.ekg.tip'))}<span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}${thc('grow', tr('tree.th.session'), tr('tree.th.session.tip'))}${thc('', tr('tree.th.agent'), tr('tree.th.agent.tip'))}${thc('', tr('tree.th.model'), tr('tree.th.model.tip'))}<span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}<span class="hsp"></span>${th('money', tr('tree.th.money'), tr('tree.th.money.tip'))}</span></div>`;
+        h += `<div class="thead"><span class="chkcol"></span>${thc('hcol', tr('tree.th.ekg'), tr('tree.th.ekg.tip'))}<span class="hlead"></span>${th('time', tr('tree.th.time'), tr('tree.th.time.tip'))}${thc('grow', tr('tree.th.session'), tr('tree.th.session.tip'))}${thc('', tr('tree.th.agent'), tr('tree.th.agent.tip'))}${thc('', tr('tree.th.model'), tr('tree.th.model.tip'))}<span class="vals">${th('dur', tr('tree.th.dur'), tr('tree.th.dur.tip'))}<span class="hsp"></span>${th('ctx', tr('tree.th.ctx'), tr('tree.th.ctx.tip'))}<span class="hsp"></span>${th('tok', tr('tree.th.spent'), tr('tree.th.spent.tip'))}<span class="hsp"></span>${th('money', tr('tree.th.money'), tr('tree.th.money.tip'))}</span></div>`;
         let groups = 0;
         SHOWN = {roots: 0, total: TREE.length};
         for (const [dirName, sessions] of docmap(roots)) {
@@ -1967,10 +2027,16 @@
         }
         if (!groups) h += `<div class="empty">${tr('tree.empty')}</div>`;
         document.querySelector('#tree').innerHTML = h;
+        updateFilterCount();
+        syncGearStats();
+    }
+
+    function syncGearStats() {
+        const el = document.querySelector('#statrows');
+        if (!el) return;
         const allTok = TREE.reduce((a, s) => a + tokEqOf(s.subtree), 0);
         const allMoney = TREE.reduce((a, s) => a + costOf(s.subtree), 0);
-        document.querySelector('#summary').textContent = tr('summary', {n: TREE.length, spent: fmt(allTok), money: fmtMoney(allMoney)});
-        updateFilterCount();
+        el.textContent = tr('stats.rows', {n: TREE.length, spent: fmt(allTok), money: fmtMoney(allMoney)});
     }
 
     const DEFAULT_AGENT = 'build';
@@ -1978,7 +2044,9 @@
     function node(s, depth, HEARTS) {
         const t = s.subtree;
         const kids = sorted(s.children).filter(k =>
-            (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit)) && (!REC.only || treeActiveVisible(k)));
+            (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit))
+            && (!REC.only || treeActiveVisible(k))
+            && (!CHK.only || treeCheckedVisible(k, CHK.marked)));
         const hasSub = kids.length > 0;
         const spent = tokEqOf(t);
         const money = costOf(t);
@@ -1997,6 +2065,7 @@
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
             const agentBadge = s.agent && s.agent === DEFAULT_AGENT ? '' : `<span class="badge agent">${esc(s.agent || '—')}</span>`;
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}${sel === s.id ? ' sel' : ''}" data-id="${s.id}">
+    <input type="checkbox" class="mark" data-id="${esc(s.id)}"${CHK.marked.has(s.id) ? ' checked' : ''} onclick="chkToggle(event)" title="${esc(tr('checkmark.only.title'))}">
     ${heart}
     ${caret}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
@@ -2429,19 +2498,24 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const fb = document.querySelector('#tree-fbtn');
         fb.title = tr('filter.btn.title');
         updateFilterBtns();
+        document.querySelector('#fbymark').textContent = tr('filter.by');
         document.querySelector('#hlbox').title = tr('hl.title');
-        document.querySelector('#hllabel').textContent = tr('hl.label');
+        document.querySelector('#hllabel').textContent = tr('filter.threshold');
         document.querySelector('#hlwarn').title = tr('hl.warn.title');
         document.querySelector('#hlcrit').title = tr('hl.crit.title');
         document.querySelector('#hlapply').title = tr('hl.apply.title');
-        document.querySelector('#hlapplylabel').title = tr('hl.apply.title');
-        document.querySelector('#hlapplylabel').textContent = tr('hl.apply.label');
         document.querySelector('#recbox').title = tr('recent.only.title');
         document.querySelector('#reconly').title = tr('recent.only.title');
         document.querySelector('#reclabel').title = tr('recent.only.title');
-        document.querySelector('#reclabel').textContent = tr('recent.only.label');
+        document.querySelector('#reclabel').textContent = tr('filter.recent');
+        document.querySelector('#chkbox').title = tr('checkmark.only.title');
+        document.querySelector('#chkonly').title = tr('checkmark.only.title');
+        document.querySelector('#chklabel').title = tr('checkmark.only.title');
+        document.querySelector('#chklabel').textContent = tr('filter.checkmark');
         document.querySelector('#version').title = tr('version.title');
         document.querySelector('#gearbtn').title = tr('gear.title');
+        document.querySelector('#gearstats').textContent = tr('gear.stats');
+        syncGearStats();
         document.querySelector('#gearcost').textContent = tr('gear.cost');
         COST_FIELDS.forEach(k => document.querySelector('#lbl-' + k).textContent = tr(costKey(k)));
         COST_FIELDS.forEach(k => document.querySelector('#pr-' + k).title = tr('gear.price.ph'));
@@ -2488,8 +2562,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
                 TREE = [];
                 computeOrder();
                 document.querySelector('#tree').innerHTML = `<div class="empty">${esc(tr('db.notfound'))}</div>`;
-                const sum = document.querySelector('#summary');
-                if (sum) sum.textContent = '';
+                syncGearStats();
                 await refreshDbState();
                 return;
             }
