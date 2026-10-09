@@ -46,6 +46,8 @@ type claudeMsg struct {
 	toolResults []claudeToolResult
 }
 
+const claudeTitleMaxRunes = 80
+
 // claudeFile is a parsed transcript (main session or subagent).
 type claudeFile struct {
 	path      string
@@ -490,6 +492,27 @@ func (f *claudeFile) prompt() []string {
 	return texts
 }
 
+// promptTitle derives a fallback title from the first human prompt: its first
+// non-empty line, clipped to claudeTitleMaxRunes. Empty when there is none.
+func (f *claudeFile) promptTitle() string {
+	for _, m := range f.messages {
+		if m.role != "user" || m.human == "" {
+			continue
+		}
+		for _, line := range strings.Split(m.human, "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			if r := []rune(line); len(r) > claudeTitleMaxRunes {
+				line = string(r[:claudeTitleMaxRunes]) + "…"
+			}
+			return line
+		}
+	}
+	return ""
+}
+
 func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats []int64, byModel map[string]*provider.SubtreeSums) {
 	byModel = map[string]*provider.SubtreeSums{}
 	for _, m := range f.messages {
@@ -591,6 +614,9 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 	idx := c.scanIndex()
 	nodes := map[string]*provider.SessionNode{}
 	for sid, s := range idx.sessions {
+		if s.file.promptTitle() == "" {
+			continue // no user request (opened and closed): hide
+		}
 		nodes[sid] = claudeNode(s, nil, nowMS)
 	}
 	for _, a := range idx.agents {
@@ -693,6 +719,9 @@ func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode
 				n.Title = agent
 			}
 		}
+	}
+	if n.Title == "" {
+		n.Title = s.file.promptTitle()
 	}
 	if n.Title == "" {
 		n.Title = "(untitled)"
