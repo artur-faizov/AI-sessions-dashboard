@@ -2180,7 +2180,7 @@
         const q = document.querySelector('#projsearch').value.trim().toLowerCase();
         const shown = q ? vals.filter(v => v.toLowerCase().includes(q)) : vals;
         document.querySelector('#projsearch').placeholder = tr('filter.project.search');
-        document.querySelector('#projlist').innerHTML = !shown.length ? `<div class="projnone">${esc(tr('filter.project.none'))}</div>` : shown.map(v => `<label title="${esc(v)}"><input type="checkbox" value="${esc(v)}"${sel.has(v) ? ' checked' : ''}>${esc(shortDir(v))}</label>`).join('');
+        document.querySelector('#projlist').innerHTML = !shown.length ? `<div class="projnone">${esc(tr('filter.project.none'))}</div>` : shown.map(v => `<label title="${esc(v)}"><input type="checkbox" value="${esc(v)}"${sel.has(v) ? ' checked' : ''}>${esc(q && !shortDir(v).toLowerCase().includes(q) ? v : shortDir(v))}</label>`).join('');
         const btn = document.querySelector('#projbtn');
         btn.textContent = tr('filter.project.n', {n: sel.size});
         btn.title = tr('fmod.folder');

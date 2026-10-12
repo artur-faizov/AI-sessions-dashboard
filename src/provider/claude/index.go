@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -119,7 +120,33 @@ func claudeParseMS(ts string) int64 {
 var claudeNoisePrefixes = []string{
 	"<system-reminder>", "<command-name>", "<command-message>", "<command-args>",
 	"<local-command-caveat", "<local-command-stdout", "<bash-input>", "<bash-stdout>",
-	"<bash-stderr>",
+	"<bash-stderr>", "<task-notification>", "<agent-message",
+	"Another Claude session sent a message:",
+}
+
+var (
+	claudeCmdNameRe = regexp.MustCompile(`(?s)<command-name>(.*?)</command-name>`)
+	claudeCmdArgsRe = regexp.MustCompile(`(?s)<command-args>(.*?)</command-args>`)
+)
+
+// claudeSlashCommand renders a slash command that carries arguments (e.g.
+// "/openspec-explore <question>") as human text; bare commands such as
+// "/model" stay noise.
+func claudeSlashCommand(t string) string {
+	name := claudeCmdNameRe.FindStringSubmatch(t)
+	args := claudeCmdArgsRe.FindStringSubmatch(t)
+	if name == nil || args == nil {
+		return ""
+	}
+	a := strings.TrimSpace(args[1])
+	if a == "" {
+		return ""
+	}
+	n := strings.TrimSpace(name[1])
+	if !strings.HasPrefix(n, "/") {
+		n = "/" + n
+	}
+	return n + " " + a
 }
 
 // claudeHumanText returns the real human text of a plain-string user content.
@@ -127,6 +154,9 @@ func claudeHumanText(s string) string {
 	t := strings.TrimSpace(s)
 	if t == "" {
 		return ""
+	}
+	if cmd := claudeSlashCommand(t); cmd != "" {
+		return cmd
 	}
 	for _, p := range claudeNoisePrefixes {
 		if strings.HasPrefix(t, p) {
@@ -614,7 +644,7 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 	idx := c.scanIndex()
 	nodes := map[string]*provider.SessionNode{}
 	for sid, s := range idx.sessions {
-		if s.file.promptTitle() == "" {
+		if s.file.title == "" && s.file.promptTitle() == "" {
 			continue // no user request (opened and closed): hide
 		}
 		nodes[sid] = claudeNode(s, nil, nowMS)
@@ -625,6 +655,8 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 			continue // orphan subagent: skip
 		}
 		n := claudeNode(a, a.parent, nowMS)
+		// group with the parent's project even if the agent ran in a subdir
+		n.Dir = parent.Dir
 		nodes[a.id] = n
 		parent.Children = append(parent.Children, n)
 	}

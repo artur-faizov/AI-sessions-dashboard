@@ -557,3 +557,61 @@ func TestPromptTitleFallback(t *testing.T) {
 		t.Fatalf("want empty, got %q", got)
 	}
 }
+
+func TestClaudeSlashCommandWithArgsIsPrompt(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "<command-name>/model</command-name>\n<command-message>model</command-message>\n<command-args></command-args>"),
+		userLine("u2", "2026-09-03T13:28:28.000Z", "<command-message>openspec-explore</command-message>\n<command-name>/openspec-explore</command-name>\n<command-args>revise the change</command-args>"),
+		userLine("u3", "2026-09-03T13:28:29.000Z", "Another Claude session sent a message:\n<agent-message from=\"a1\">report</agent-message>"),
+		userLine("u4", "2026-09-03T13:28:30.000Z", "<task-notification>\n<task-id>a1</task-id>\n</task-notification>"),
+	)
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := findNode(roots, "s1")
+	if n == nil {
+		t.Fatal("session started by a slash command with args must be shown")
+	}
+	if n.Title != "/openspec-explore revise the change" {
+		t.Fatalf("title %q", n.Title)
+	}
+	texts, _ := p.SessionPrompt("s1")
+	if len(texts) != 1 {
+		t.Fatalf("prompt texts: %s", jdump(texts))
+	}
+}
+
+func TestClaudeAITitleKeepsSessionVisible(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		`{"type":"ai-title","aiTitle":"Named session"}`,
+		userLine("u1", "2026-09-03T13:28:27.000Z", "<command-name>/clear</command-name>"),
+	)
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := findNode(roots, "s1"); n == nil || n.Title != "Named session" {
+		t.Fatalf("ai-titled session: %s", jdump(n))
+	}
+}
+
+func TestClaudeSubagentInheritsParentDir(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "main.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "explore"),
+	)
+	writeLines(t, filepath.Join(dir, "main", "subagents", "agent-x.jsonl"),
+		`{"type":"user","uuid":"u9","timestamp":"2026-09-03T13:28:29.000Z","cwd":"/home/x/proj/sub/dir","message":{"role":"user","content":"sub prompt"}}`,
+	)
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := findNode(roots, "agent-x")
+	if a == nil || a.Dir != "/home/x/proj" {
+		t.Fatalf("subagent dir: %s", jdump(a))
+	}
+}
