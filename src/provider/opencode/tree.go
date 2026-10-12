@@ -208,8 +208,17 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 	}
 
 	provider.DropClosed(roots, provider.ProcDirs("opencode"))
+	var children map[string][]int64
 	for _, n := range nodes {
 		if n.Active {
+			if children == nil {
+				children = provider.ProcChildren("opencode")
+			}
+			state, err := sessionState(pool, n.ID, nowMS, children[n.Dir])
+			if err != nil {
+				return nil, err
+			}
+			n.State = state
 			beats, err := sessionBeats(pool, n.ID, nowMS-provider.ActiveWindowMS)
 			if err != nil {
 				return nil, err

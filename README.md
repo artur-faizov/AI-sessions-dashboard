@@ -139,6 +139,34 @@ make build-all   # all five targets, cross-compiled from any host OS
   (`Filter · 2`); the dialog header shows a live "N of M shown" count, and the
   model / provider lists have `all` / `none` shortcuts
 
+### Attention alerts
+
+For the Claude Code and opencode providers the dashboard tells you when an agent
+needs you. Within one refresh (5 s) of the moment a session
+
+- **asks you a question** (question tool, plan approval) — `ask` sound, amber blinking row
+- **waits for a tool permission** — `perm` sound, red blinking row
+- **finished its job** — the root session and all its subagents went idle —
+  `done` sound, green blinking row
+
+a sound plays once and the row blinks until you click it (a collapsed parent
+blinks for a session hidden inside it). The mark also goes away by itself once
+its reason is gone — you answered in the terminal, or a new turn started. The
+two header buttons (speaker, blink) turn sound and blinking off; both are on by
+default and remembered in the browser. Browsers allow sound only after you have
+interacted with the page: until then the speaker button turns amber.
+
+How the state is read, without any hooks or plugins:
+
+- **Claude Code** keeps a live status per running process in
+  `~/.claude/sessions/<pid>.json` (`busy` / `idle` / `waiting`); a pending
+  `AskUserQuestion` / `ExitPlanMode` in the transcript tells a question from a
+  permission prompt. This file is Claude Code internals and may change between versions
+- **opencode** does not store pending permission prompts, so they are inferred:
+  a running `bash` tool with no child process started since it began, or a fast
+  tool (`edit`, `write`, `read`, …) still running after 3 s. A pending `question`
+  tool and finished turns come straight from the database
+
 ### Interpreting numbers
 
 - Tree rows show an **agent badge** (e.g. `explore`, `general`, `vision`, `plan`) for
@@ -294,7 +322,8 @@ To add a provider:
 - `src/dashboard/assets.go` — serves the frontend: `{{VERSION}}` substitution
   and dev-mode disk reads for `src/index.html` / `src/i18n.js`
 - `src/dashboard/browser.go` — opens the dashboard in the default browser
-- `src/embed.go` — go:embed of the frontend (`src/index.html`, `src/i18n.js`)
+- `src/embed.go` — go:embed of the frontend (`src/index.html`, `src/i18n.js`, `src/sounds/`)
+- `src/sounds/` — alert sounds from the freedesktop sound theme (see `src/sounds/CREDITS`)
 - `go.mod` / `go.sum` — Go module (modernc.org/sqlite pure-Go SQLite
   driver — no CGO)
 - `src/index.html` — the UI (HTML/CSS/JS), embedded into the binary via

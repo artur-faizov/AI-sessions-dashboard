@@ -272,6 +272,27 @@ func TestI18nServedWithJSContentType(t *testing.T) {
 	}
 }
 
+func TestAlertSoundsServed(t *testing.T) {
+	srv := apiServer(t)
+	for _, name := range []string{"ask", "perm", "done"} {
+		r, body := httpGetRaw(t, srv.URL+"/sounds/"+name+".oga")
+		if r.StatusCode != 200 {
+			t.Fatalf("%s: status %d", name, r.StatusCode)
+		}
+		if ct := r.Header.Get("Content-Type"); ct != "audio/ogg" {
+			t.Fatalf("%s: content type %q", name, ct)
+		}
+		if !strings.HasPrefix(body, "OggS") {
+			t.Fatalf("%s: not an ogg file", name)
+		}
+	}
+	for _, p := range []string{"/sounds/nope.oga", "/sounds/../index.html", "/sounds/CREDITS"} {
+		if r, _ := httpGetRaw(t, srv.URL+p); r.StatusCode != 404 {
+			t.Fatalf("%s: status %d", p, r.StatusCode)
+		}
+	}
+}
+
 func TestUnknownPath404(t *testing.T) {
 	srv := apiServer(t)
 	r, _ := httpGetRaw(t, srv.URL+"/nope.html")

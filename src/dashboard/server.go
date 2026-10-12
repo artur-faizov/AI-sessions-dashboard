@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	webui "github.com/artur-faizov/token-monitor/src"
 	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
@@ -151,6 +153,16 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(loadI18n(s.dev)))
+	case strings.HasPrefix(path, "/sounds/") && !strings.Contains(path[len("/sounds/"):], "/"):
+		b, ok := webui.Sound(path[len("/sounds/"):])
+		if !ok {
+			http.Error(w, "404 Not Found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/ogg")
+		w.Header().Set("Cache-Control", "max-age=86400")
+		// ServeContent: Content-Length and Range requests, which media elements use
+		http.ServeContent(w, r, path, time.Time{}, bytes.NewReader(b))
 	case path == "/":
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")

@@ -20,11 +20,20 @@ type SessionNode struct {
 	Active   bool                    `json:"active"`
 	Dur      int64                   `json:"dur"`
 	Beats    []int64                 `json:"beats"`
+	State    string                  `json:"state,omitempty"`
 	Children []*SessionNode          `json:"children"`
 	Subtree  *SubtreeSums            `json:"subtree"`
 	ByModel  map[string]*SubtreeSums `json:"bymodel,omitempty"`
 	Source   string                  `json:"source"`
 }
+
+// Live states of an active session (SessionNode.State); empty when unknown.
+const (
+	StateBusy = "busy" // the agent is working
+	StateAsk  = "ask"  // the agent asked the human a question
+	StatePerm = "perm" // the agent waits for the human to approve a tool
+	StateIdle = "idle" // the agent finished its turn
+)
 
 // SubtreeSums are token totals over a node and all its descendants.
 type SubtreeSums struct {

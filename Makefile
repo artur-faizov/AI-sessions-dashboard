@@ -52,7 +52,7 @@ build-all:
 
 test:
 	$(GO) test ./...
-	node --test test/filter.test.mjs test/i18n.test.mjs test/refresh.test.mjs test/dbfield.test.mjs test/provider.test.mjs
+	node --test test/filter.test.mjs test/i18n.test.mjs test/refresh.test.mjs test/dbfield.test.mjs test/provider.test.mjs test/alerts.test.mjs
 
 dev:
 	$(GO) run ./cmd/dashboard -dev
