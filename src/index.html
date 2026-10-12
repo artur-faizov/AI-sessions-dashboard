@@ -3015,12 +3015,15 @@
 
     const DEFAULT_AGENT = 'build';
 
-    function node(s, depth, HEARTS) {
+    // favIn: an ancestor is a favourite, so the whole subtree stays visible —
+    // including subagents spawned after the star was set (not in CHK.marked).
+    function node(s, depth, HEARTS, favIn) {
         const t = s.subtree;
+        const fav = favIn || CHK.marked.has(s.id);
         const kids = sorted(s.children).filter(k =>
             (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit))
             && (!REC.only || treeActiveVisible(k))
-            && (!CHK.only || treeCheckedVisible(k, CHK.marked)));
+            && (!CHK.only || fav || treeCheckedVisible(k, CHK.marked)));
         const hasSub = kids.length > 0;
         const spent = tokEqOf(t);
         const hasKids = s.children.length > 0;
@@ -3049,7 +3052,7 @@
     ${subBadges}
     ${s.model ? `<span class="badge">${esc(modelName(s.model))}</span>` : ''}
     <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${s.dur < 0 ? '' : dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : ''}</span></span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b>${hasKids ? `<span class="own-part">(${fmt(own)})</span>` : ''}</span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b>${hasKids ? `<span class="own-part">(${fmtMoney(ownMoney)})</span>` : ''}</span></span></div>`;
-        if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS)).join('')}</ul>`;
+        if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS, fav)).join('')}</ul>`;
         return h + '</li>';
     }
 

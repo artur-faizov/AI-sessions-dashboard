@@ -229,6 +229,18 @@ test('favourite star only on roots, filled when marked', async () => {
     assert.ok(/class="star on"[^>]*>★</.test(tree), 'marked root shows filled star');
 });
 
+test('favourites filter shows subagents spawned after the root was starred', async () => {
+    const ctx = boot({
+        '/api/tree': [sess({id: 'r1', children: [sess({id: 'k1', children: [sess({id: 'g1'})]})]}), sess({id: 'r2'})],
+    });
+    await settle();
+    vm.runInNewContext("CHK.marked.add('r1'); CHK.only = true; render();", ctx);
+    const tree = ctx.els.get('#tree').innerHTML;
+    assert.ok(tree.includes('data-id="k1"'), 'new subagent of a favourite is visible');
+    assert.ok(tree.includes('data-id="g1"'), 'nested new subagent is visible');
+    assert.ok(!tree.includes('data-id="r2"'), 'non-favourite root is dropped');
+});
+
 test('active sessions render an ECG sparkline across the heart', async () => {
     const now = Date.now();
     const ctx = boot({
