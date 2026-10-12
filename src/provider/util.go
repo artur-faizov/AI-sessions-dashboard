@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -32,6 +33,25 @@ func ActiveDur(dur int64, calls []CallRec) int64 {
 		return 0
 	}
 	return dur
+}
+
+// askNoise matches spans whose question marks are not questions: fenced and
+// inline code, and URLs.
+var askNoise = regexp.MustCompile("(?s)```.*?```|`[^`\n]*`|https?://\\S+")
+
+// askMark matches a question mark that ends a sentence.
+var askMark = regexp.MustCompile(`[?？]+(?:$|[\s*_)"'»:])`)
+
+// AsksInText reports whether an assistant text puts a question to the human:
+// a sentence-ending question mark anywhere outside code and URLs.
+func AsksInText(texts []string) bool {
+	return askMark.MatchString(askNoise.ReplaceAllString(strings.Join(texts, "\n"), " "))
+}
+
+// IsAskTool reports whether a tool name is a question-to-the-human tool
+// (opencode question, Claude AskUserQuestion, Copilot ask_user).
+func IsAskTool(name string) bool {
+	return name == "question" || name == "AskUserQuestion" || name == "ask_user"
 }
 
 // TriggerMax is the per-value character cap on trigger part text.

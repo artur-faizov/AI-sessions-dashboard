@@ -486,10 +486,37 @@ func (f *claudeFile) humanTrig(m *claudeMsg) provider.Trig {
 	return provider.TrigNone
 }
 
+// asksHuman reports whether an assistant line calls AskUserQuestion.
+func (m *claudeMsg) asksHuman() bool {
+	for _, tu := range m.toolUses {
+		if provider.IsAskTool(tu.name) {
+			return true
+		}
+	}
+	return false
+}
+
 func (f *claudeFile) calls() []provider.CallRec {
 	calls := []provider.CallRec{}
 	var prev *claudeMsg
+	// A request spans several assistant lines (one per content block) and
+	// only its first line carries usage, so a question on a later line still
+	// belongs to the last call. A call also asks when it ends the turn (a
+	// human message or the transcript end follows) with a question in its text.
+	last := -1
+	var texts []string
+	endTurn := func() {
+		if last >= 0 && provider.AsksInText(texts) {
+			calls[last].Ask = true
+		}
+	}
 	for _, m := range f.messages {
+		if m.role == "user" && !m.meta {
+			if t := f.humanTrig(m); t == provider.TrigText || t == provider.TrigImage {
+				endTurn()
+			}
+			last, texts = -1, nil
+		}
 		if m.role == "assistant" && m.hasUsage {
 			calls = append(calls, provider.CallRec{
 				Mid: m.mid, Time: m.timeMS,
@@ -499,9 +526,17 @@ func (f *claudeFile) calls() []provider.CallRec {
 				Hu:    f.humanTrig(prev),
 				Model: m.model,
 			})
+			last, texts = len(calls)-1, nil
+		}
+		if m.role == "assistant" && last >= 0 {
+			texts = append(texts, m.texts...)
+			if m.asksHuman() {
+				calls[last].Ask = true
+			}
 		}
 		prev = m
 	}
+	endTurn()
 	return calls
 }
 
@@ -576,10 +611,10 @@ func (f *claudeFile) trigger(mid string) (*provider.TriggerResp, bool) {
 			continue
 		}
 		if i == 0 {
-			return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}}, true
+			return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}, Reply: f.reply(i)}, true
 		}
 		prev := f.messages[i-1]
-		res := &provider.TriggerResp{Time: prev.timeMS, Parts: []any{}}
+		res := &provider.TriggerResp{Time: prev.timeMS, Parts: []any{}, Reply: f.reply(i)}
 		if prev.role == "user" {
 			res.Case = "user"
 			res.Parts = f.userParts(prev)
@@ -590,6 +625,33 @@ func (f *claudeFile) trigger(mid string) (*provider.TriggerResp, bool) {
 		return res, true
 	}
 	return nil, false
+}
+
+// reply collects what the call starting at messages[i] showed the human: the
+// text and AskUserQuestion blocks of its request lines (the call's line and
+// the usage-less lines after it), or nil when there are none.
+func (f *claudeFile) reply(i int) []any {
+	var parts []any
+	for j := i; j < len(f.messages); j++ {
+		m := f.messages[j]
+		if m.role != "assistant" || (j > i && m.hasUsage) {
+			break
+		}
+		for _, txt := range m.texts {
+			if strings.TrimSpace(txt) == "" {
+				continue
+			}
+			t, cut := provider.Clip(txt)
+			parts = append(parts, provider.TriggerPartText{Kind: "text", Text: t, Cut: cut})
+		}
+		for _, tu := range m.toolUses {
+			if provider.IsAskTool(tu.name) {
+				in, cutI := provider.Clip(tu.input)
+				parts = append(parts, provider.TriggerPartTool{Kind: "tool", Tool: tu.name, Input: in, CutI: cutI})
+			}
+		}
+	}
+	return parts
 }
 
 func (f *claudeFile) userParts(m *claudeMsg) []any {

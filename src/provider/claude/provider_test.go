@@ -280,6 +280,41 @@ func TestClaudeCallsTriggerKinds(t *testing.T) {
 		if c.Hu != wantHu[i] {
 			t.Fatalf("call %s hu=%q, want %q", c.Mid, c.Hu, wantHu[i])
 		}
+		// only a1 asks: its AskUserQuestion block sits on a later, usage-less line
+		if c.Ask != (c.Mid == "a1") {
+			t.Fatalf("call %s ask=%v", c.Mid, c.Ask)
+		}
+	}
+}
+
+func TestClaudeCallsAskInText(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	q := `{"type":"text","text":"Done. Which ticket should I use?"}`
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "start"),
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, q), // mid-turn: a tool follows
+		assistantLine("t1", "2026-09-03T13:28:29.000Z", "m1", 0, 0, 0, 0,
+			`{"type":"tool_use","id":"call_b","name":"Bash","input":{"command":"ls"}}`),
+		userToolResultLine("u2", "2026-09-03T13:28:30.000Z", "call_b", "file list"),
+		assistantLine("a2", "2026-09-03T13:28:31.000Z", "m1", 20, 6, 0, 0, textBlock),
+		assistantLine("x2", "2026-09-03T13:28:32.000Z", "m1", 0, 0, 0, 0, q), // later line of a2's request
+		userLine("u3", "2026-09-03T13:28:33.000Z", "PLN-1"),
+		assistantLine("a3", "2026-09-03T13:28:34.000Z", "m1", 15, 3, 0, 0, textBlock), // turn end, no question
+		userLine("u4", "2026-09-03T13:28:35.000Z", "thanks"),
+		assistantLine("a4", "2026-09-03T13:28:36.000Z", "m1", 12, 2, 0, 0, q), // transcript end: still waiting
+	)
+	calls, err := p.SessionCalls("s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{"a1": false, "a2": true, "a3": false, "a4": true}
+	if len(calls) != len(want) {
+		t.Fatalf("calls %s", jdump(calls))
+	}
+	for _, c := range calls {
+		if c.Ask != want[c.Mid] {
+			t.Fatalf("call %s ask=%v", c.Mid, c.Ask)
+		}
 	}
 }
 

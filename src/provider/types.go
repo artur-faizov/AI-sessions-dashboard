@@ -48,7 +48,8 @@ const (
 	TrigImage    Trig = "image"
 )
 
-// CallRec is one AI call in the /api/calls payload.
+// CallRec is one AI call in the /api/calls payload. Ask marks a call whose
+// response asks the human a question (question tool).
 type CallRec struct {
 	Mid    string `json:"mid"`
 	Time   int64  `json:"time"`
@@ -59,6 +60,7 @@ type CallRec struct {
 	Reason int64  `json:"reason"`
 	Ctx    int64  `json:"ctx"`
 	Hu     Trig   `json:"hu"`
+	Ask    bool   `json:"ask,omitempty"`
 	Model  string `json:"model,omitempty"`
 }
 
@@ -80,9 +82,12 @@ type TriggerPartTool struct {
 	CutO   bool   `json:"cut_o"`
 }
 
-// TriggerResp is the /api/trigger payload: what preceded an AI call.
+// TriggerResp is the /api/trigger payload: what preceded an AI call. Reply
+// is what the call itself showed the human: its text parts and the questions
+// it asked through a question tool.
 type TriggerResp struct {
 	Case  string `json:"case"`
 	Time  any    `json:"time"`
 	Parts []any  `json:"parts"`
+	Reply []any  `json:"reply,omitempty"`
 }

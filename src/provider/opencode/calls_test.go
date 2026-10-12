@@ -108,6 +108,109 @@ func TestSessionCallsTriggerKinds(t *testing.T) {
 	}
 }
 
+func TestSessionCallsAskFlag(t *testing.T) {
+	pool, path := fixturePool(t)
+	defer pool.Close()
+	tok := `"tokens":{"input":10,"output":5,"cache":{"read":0,"write":0},"reasoning":0}`
+	for _, m := range []struct {
+		mid  string
+		tc   int64
+		data string
+	}{
+		{"a1", 1000, `{"role":"assistant",` + tok + `}`},
+		{"a2", 2000, `{"role":"assistant",` + tok + `}`},
+		{"a3", 3000, `{"role":"assistant",` + tok + `}`},
+	} {
+		if _, err := pool.Exec(`INSERT INTO message VALUES (?,?,?,?,?)`, m.mid, "s1", m.tc, m.tc, m.data); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, p := range []struct {
+		pid, mid string
+		tc       int64
+		data     string
+	}{
+		{"p1", "a1", 1100, `{"type":"tool","tool":"question","state":{"status":"running","input":{}}}`},
+		{"p2", "a2", 2100, `{"type":"tool","tool":"bash","state":{"status":"completed"}}`},
+		{"p3", "a3", 3100, `{"type":"tool","tool":"question","state":{"status":"completed","output":"yes"}}`},
+	} {
+		if _, err := pool.Exec(`INSERT INTO part VALUES (?,?,?,?,?,?)`, p.pid, p.mid, "s1", p.tc, p.tc, p.data); err != nil {
+			t.Fatal(err)
+		}
+	}
+	p := activateDB(t, path)
+	_, poolRO := p.poolFor()
+	calls, err := sessionCalls(poolRO, "s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []bool{true, false, true}
+	if len(calls) != len(want) {
+		t.Fatalf("calls %+v", calls)
+	}
+	for i, c := range calls {
+		if c.Ask != want[i] {
+			t.Fatalf("call %s ask=%v, want %v", c.Mid, c.Ask, want[i])
+		}
+	}
+}
+
+func TestSessionCallsAskInText(t *testing.T) {
+	pool, path := fixturePool(t)
+	defer pool.Close()
+	tok := `"tokens":{"input":10,"output":5,"cache":{"read":0,"write":0},"reasoning":0}`
+	for _, m := range []struct {
+		mid  string
+		tc   int64
+		data string
+	}{
+		{"u1", 1000, `{"role":"user"}`},
+		{"a1", 2000, `{"role":"assistant",` + tok + `}`}, // question mid-turn: a2 follows
+		{"a2", 3000, `{"role":"assistant",` + tok + `}`}, // turn end with a question
+		{"u2", 4000, `{"role":"user"}`},
+		{"a3", 5000, `{"role":"assistant",` + tok + `}`}, // turn end, no question
+		{"u3", 6000, `{"role":"user"}`},
+		{"a4", 7000, `{"role":"assistant",` + tok + `}`}, // session end: still waiting
+	} {
+		if _, err := pool.Exec(`INSERT INTO message VALUES (?,?,?,?,?)`, m.mid, "s1", m.tc, m.tc, m.data); err != nil {
+			t.Fatal(err)
+		}
+	}
+	q := `{"type":"text","text":"Done. Which ticket should I use?"}`
+	for _, p := range []struct {
+		pid, mid string
+		tc       int64
+		data     string
+	}{
+		{"p1", "u1", 1100, `{"type":"text","text":"start"}`},
+		{"p2", "a1", 2100, q},
+		{"p3", "a2", 3100, `{"type":"text","text":"Plan ready. Which option?"}`},
+		{"p4", "u2", 4100, `{"type":"text","text":"B"}`},
+		{"p5", "a3", 5100, `{"type":"text","text":"Done."}`},
+		{"p6", "u3", 6100, `{"type":"text","text":"thanks"}`},
+		{"p7", "a4", 7100, q},
+	} {
+		if _, err := pool.Exec(`INSERT INTO part VALUES (?,?,?,?,?,?)`, p.pid, p.mid, "s1", p.tc, p.tc, p.data); err != nil {
+			t.Fatal(err)
+		}
+	}
+	p := activateDB(t, path)
+	_, poolRO := p.poolFor()
+	calls, err := sessionCalls(poolRO, "s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []bool{false, true, false, true}
+	if len(calls) != len(want) {
+		t.Fatalf("calls %+v", calls)
+	}
+	for i, c := range calls {
+		if c.Ask != want[i] {
+			t.Fatalf("call %s ask=%v, want %v", c.Mid, c.Ask, want[i])
+		}
+	}
+}
+
 func TestCallTriggerCasesAndClipping(t *testing.T) {
 	pool, path := fixturePool(t)
 	defer pool.Close()

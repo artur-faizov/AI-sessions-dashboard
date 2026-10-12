@@ -108,9 +108,18 @@ make build-all   # all five targets, cross-compiled from any host OS
     the session's own-token counters; Σ delta = final context size
   - rows triggered by a **human message** (your typed input — not tool
     results or synthetic context) are highlighted green with a 👤 icon
+  - calls where the **AI asked you a question** (opencode `question`, Claude
+    `AskUserQuestion`, Copilot `ask_user` tool) are highlighted purple with a
+    speech-bubble ❓ icon; for Claude Code and opencode, so is the last call of a
+    turn (right before your next message) whose text asks a question — a
+    sentence-ending `?` anywhere outside code blocks, inline code and URLs
+  - a color legend under the calls table explains the row highlights (your
+    input, AI question, context warn / crit thresholds)
   - **click a call row** → popup with the message that triggered that call:
     the user prompt (if it was the first call of a turn) or the previous
-    call's tool command + result. Long parts are truncated at 60k chars.
+    call's tool command + result; for a purple (AI question) row the AI's
+    reply in that call (its text and the question asked) comes first. Long
+    parts are truncated at 60k chars.
     System prompt / tool schemas are not stored in the DB and not shown
   - popup header shows **context now** (session's current context window) vs
     **this request** (size of the viewed call), plus delta (growth vs the

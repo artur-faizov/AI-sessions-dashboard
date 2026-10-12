@@ -69,3 +69,23 @@ func TestActiveDurExcludesHumanWaits(t *testing.T) {
 		t.Fatalf("must clamp at 0, got %d", got)
 	}
 }
+
+func TestAsksInText(t *testing.T) {
+	for _, c := range []struct {
+		text string
+		want bool
+	}{
+		{"Which ticket should I use?", true},
+		{"**Which ticket should I use?**\n1. A\n2. B\n\nPlan once you answer: a long plan.", true},
+		{"Pick one (A or B?) please", true},
+		{"Done. Tests pass.", false},
+		{"Use `a ?: b` here.", false},
+		{"```\nx = a ? b : c\n```\nDone.", false},
+		{"See https://x.io/p?q=1 for details.", false},
+		{"Match `foo?bar` with the regex.", false},
+	} {
+		if got := AsksInText([]string{c.text}); got != c.want {
+			t.Errorf("AsksInText(%q) = %v, want %v", c.text, got, c.want)
+		}
+	}
+}
