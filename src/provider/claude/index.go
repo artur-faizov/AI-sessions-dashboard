@@ -20,6 +20,10 @@ func (u claudeUsage) nonzero() bool {
 	return u.in != 0 || u.out != 0 || u.cr != 0 || u.cw != 0
 }
 
+func (u claudeUsage) max(o claudeUsage) claudeUsage {
+	return claudeUsage{max(u.in, o.in), max(u.out, o.out), max(u.cr, o.cr), max(u.cw, o.cw)}
+}
+
 type claudeToolUse struct {
 	id    string
 	name  string
@@ -230,13 +234,24 @@ func parseClaudeFile(path string) *claudeFile {
 				seen[raw.UUID] = true
 			}
 			// One API request is written as multiple assistant lines (one per
-			// content block), each repeating the same usage block. Count usage
-			// only on the first line of a request to avoid overcounting.
+			// content block), each repeating the usage block. Count usage once
+			// per request, on its first line, to avoid overcounting. Early lines
+			// may carry a partial streaming output count (e.g. 8 instead of 3020),
+			// so keep the max of each field seen across the request's lines.
 			if raw.RequestID != "" {
 				if first := seenReq[raw.RequestID]; first != nil {
 					dupReq = true
 					if ts > first.endMS {
 						first.endMS = ts
+					}
+					if u := raw.Message.Usage; u != nil {
+						first.usage = first.usage.max(claudeUsage{
+							in:  u.InputTokens,
+							out: u.OutputTokens,
+							cr:  u.CacheReadInputTokens,
+							cw:  u.CacheCreationInputTokens,
+						})
+						first.hasUsage = first.usage.nonzero() && first.model != "<synthetic>"
 					}
 				} else {
 					seenReq[raw.RequestID] = m

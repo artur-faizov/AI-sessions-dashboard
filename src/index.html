@@ -2040,7 +2040,7 @@
         <input type="text" class="namesel" id="namesel" autocomplete="off">
         <span class="projwrap"><input type="checkbox" id="projon" checked><span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span></span>
         <label class="hlbox fchip" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
-        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
+        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this.">recent</span></label>
         <span class="hlbox favbox fchip" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
         <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
         </div>
@@ -3087,6 +3087,8 @@
 
     const DEFAULT_AGENT = 'build';
 
+    // The recent filter applies to roots only: once a session is shown, its
+    // whole subagent tree stays visible, including subagents no longer recent.
     // favIn: an ancestor is a favourite, so the whole subtree stays visible —
     // including subagents spawned after the star was set (not in CHK.marked).
     function node(s, depth, HEARTS, favIn) {
@@ -3094,7 +3096,6 @@
         const fav = favIn || CHK.marked.has(s.id);
         const kids = sorted(s.children).filter(k =>
             (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit))
-            && (!REC.only || treeActiveVisible(k))
             && (!CHK.only || fav || treeCheckedVisible(k, CHK.marked)));
         const hasSub = kids.length > 0;
         const spent = tokEqOf(t);

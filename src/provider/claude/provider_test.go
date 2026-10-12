@@ -147,6 +147,40 @@ func TestClaudeDedupAndZeroUsageExcluded(t *testing.T) {
 	}
 }
 
+func TestClaudeSplitRequestKeepsFinalUsage(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	// One request streamed as three lines: early lines carry a partial
+	// output count, the last one the final count.
+	req := func(uuid, ts string, out int64) string {
+		l := assistantLine(uuid, ts, "m1", 2, out, 100, 50, textBlock)
+		return strings.Replace(l, `"type":"assistant",`, `"type":"assistant","requestId":"r1",`, 1)
+	}
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.679Z", "hi"),
+		req("a1", "2026-09-03T13:28:28.000Z", 8),
+		req("a2", "2026-09-03T13:28:29.000Z", 8),
+		req("a3", "2026-09-03T13:28:30.000Z", 3020),
+	)
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := findNode(roots, "s1")
+	if n == nil {
+		t.Fatal("session node missing")
+	}
+	if n.In != 2 || n.Out != 3020 || n.Cr != 100 || n.Cw != 50 {
+		t.Fatalf("totals in=%d out=%d cr=%d cw=%d, want 2/3020/100/50", n.In, n.Out, n.Cr, n.Cw)
+	}
+	calls, err := p.SessionCalls("s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 1 || calls[0].Mid != "a1" {
+		t.Fatalf("calls %s", jdump(calls))
+	}
+}
+
 func TestClaudeSubagentParenting(t *testing.T) {
 	p, dir := claudeFixture(t, "-home-x-proj")
 	writeLines(t, filepath.Join(dir, "main.jsonl"),
