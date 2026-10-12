@@ -155,6 +155,10 @@ its reason is gone — you answered in the terminal, or a new turn started. The
 two header buttons (speaker, blink) turn sound and blinking off; both are on by
 default and remembered in the browser. Browsers allow sound only after you have
 interacted with the page: until then the speaker button turns amber.
+In settings (gear) → **alert sound** pick the sound from a list, softest at the
+top: the original chimes (default) or one of 16 sounds synthesized in the
+browser, from a quiet whisper to an alarm beep. Picking one plays a sample. The
+**volume** slider below it sets the loudness for any sound (default 60%).
 
 How the state is read, without any hooks or plugins:
 

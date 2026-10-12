@@ -152,3 +152,55 @@ test('toggles: off by choice silences sound and hides blinking; marks survive a 
     assert.ok(r.row().includes('attn attn-ask'), 'an unanswered question still blinks after reload');
     assert.deepEqual(r.played, []);
 });
+
+const fakeAudioContext = notes => class {
+    constructor() { this.state = 'running'; this.currentTime = 0; this.destination = {}; this.sampleRate = 8000; }
+    createOscillator() {
+        const p = () => {};
+        const o = {frequency: {setValueAtTime: f => notes.push({wave: o.type, f}), exponentialRampToValueAtTime: p}, connect: g => g, start: p, stop: p};
+        return o;
+    }
+    createGain() {
+        const g = {gain: {setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}}, connect: d => d};
+        return g;
+    }
+};
+
+test('a synthesized sound plays its pattern at the chosen volume instead of the chime file', async () => {
+    const notes = [];
+    const b = boot([sess({state: 'busy'})], {alerts: JSON.stringify({tone: 'alarm', vol: 30})});
+    let master = null;
+    const AC = fakeAudioContext(notes);
+    b.ctx.AudioContext = class extends AC {
+        createGain() { const g = super.createGain(); master = master || g; return g; }
+    };
+    await settle();
+    await b.poll([sess({state: 'perm'})]);
+    assert.deepEqual(b.played, [], 'no chime file played');
+    assert.equal(notes.length, 3, 'perm rings three notes');
+    assert.ok(notes.every(x => x.wave === 'square'));
+    assert.equal(master.gain.value, .3);
+});
+
+test('chimes play the file at the chosen volume; unknown and old settings map onto the list', async () => {
+    const b = boot([sess({state: 'busy'})], {alerts: JSON.stringify({tone: 'chimes', vol: 40})});
+    await settle();
+    await b.poll([sess({state: 'ask'})]);
+    assert.deepEqual(b.played, ['/sounds/ask.oga']);
+    assert.equal(b.run("SOUNDS.ask.volume"), .4);
+
+    for (const [old, now] of [['sharp', 'alarm'], ['soft', 'chimes'], [1, 'chimes'], [3, 'beep'], ['bogus', 'chimes']]) {
+        const r = boot([sess({state: 'busy'})], {alerts: JSON.stringify({tone: old})});
+        assert.equal(r.run('ALERT.tone'), now, `tone ${old}`);
+        assert.equal(r.run('ALERT.vol'), 60, 'default volume');
+    }
+});
+
+test('every sound in the list has a label and the picker shows them all', () => {
+    const b = boot([sess()]);
+    b.run('buildSoundPicker()');
+    const ids = b.run('SND.map(x => x.id)');
+    const html = b.els.get('#sndsel').innerHTML;
+    for (const id of ids) assert.ok(html.includes(`value="${id}"`), id);
+    assert.deepEqual(Object.keys(b.run('SND_LABEL')).sort(), [...ids].sort());
+});
