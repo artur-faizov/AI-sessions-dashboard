@@ -4,6 +4,12 @@
 // and it imports neither.
 package provider
 
+// SegmentProvider is implemented by providers that can tell what a session
+// did between its AI calls (tools, subagents, waiting for the human).
+type SegmentProvider interface {
+	SessionSegments(sid string) ([]Seg, error)
+}
+
 // Provider is a data source behind the dashboard API (opencode sqlite DB,
 // Claude Code projects dir, ...).
 type Provider interface {

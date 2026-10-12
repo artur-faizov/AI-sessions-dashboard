@@ -168,6 +168,14 @@ func (p *Provider) SessionCalls(sid string) (out []provider.CallRec, err error) 
 	return out, err
 }
 
+func (p *Provider) SessionSegments(sid string) (out []provider.Seg, err error) {
+	err = p.withPool(func(pool *sql.DB) error {
+		out, err = sessionSegments(pool, sid)
+		return err
+	})
+	return out, err
+}
+
 func (p *Provider) CallTrigger(mid string) (out *provider.TriggerResp, err error) {
 	err = p.withPool(func(pool *sql.DB) error {
 		out, err = callTrigger(pool, mid)

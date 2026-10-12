@@ -49,7 +49,9 @@ const (
 )
 
 // CallRec is one AI call in the /api/calls payload. Ask marks a call whose
-// response asks the human a question (question tool).
+// response asks the human a question (question tool). Dur is how long the call
+// took to execute in ms, 0 when unknown. End is when it finished, set only
+// when Time is not already the finish time (opencode records the start).
 type CallRec struct {
 	Mid    string `json:"mid"`
 	Time   int64  `json:"time"`
@@ -62,6 +64,31 @@ type CallRec struct {
 	Hu     Trig   `json:"hu"`
 	Ask    bool   `json:"ask,omitempty"`
 	Model  string `json:"model,omitempty"`
+	Dur    int64  `json:"dur,omitempty"`
+	End    int64  `json:"end,omitempty"`
+}
+
+// Seg kinds of time a session spent besides its own AI calls.
+const (
+	SegTool  = "tool"  // a tool ran
+	SegHuman = "human" // waiting for the human (question tool, plan approval)
+	SegSub   = "sub"   // waiting for a subagent
+)
+
+// Seg is one span of the /api/calls "segs" payload. Spans of different kinds
+// may overlap; the dashboard decides which one wins. Mid is the AI call that
+// issued the span (empty when unknown), Name the tool or subagent type, Sub
+// the subagent's session id, Input the tool's command or input, Err marks a
+// tool that failed.
+type Seg struct {
+	Kind  string `json:"kind"`
+	Start int64  `json:"start"`
+	End   int64  `json:"end"`
+	Mid   string `json:"mid,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Sub   string `json:"sub,omitempty"`
+	Input string `json:"input,omitempty"`
+	Err   bool   `json:"err,omitempty"`
 }
 
 // TriggerPartText is a text part of a /api/trigger payload.

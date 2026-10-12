@@ -89,3 +89,18 @@ func TestAsksInText(t *testing.T) {
 		}
 	}
 }
+
+func TestToolInput(t *testing.T) {
+	if got := ToolInput(map[string]any{"command": "ls -la", "description": "list"}); got != "ls -la" {
+		t.Fatalf("command: %q", got)
+	}
+	if got := ToolInput(map[string]any{"file_path": "/a"}); got != "{\n \"file_path\": \"/a\"\n}" {
+		t.Fatalf("json: %q", got)
+	}
+	if got := ToolInput(nil); got != "" {
+		t.Fatalf("nil: %q", got)
+	}
+	if got := []rune(ToolInput(strings.Repeat("x", SegInputMax+10))); len(got) != SegInputMax+1 {
+		t.Fatalf("cut: %d", len(got))
+	}
+}

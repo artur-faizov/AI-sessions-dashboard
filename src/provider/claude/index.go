@@ -29,12 +29,14 @@ type claudeToolUse struct {
 type claudeToolResult struct {
 	id      string
 	content string
+	isErr   bool
 }
 
 type claudeMsg struct {
 	mid         string // top-level line uuid
 	role        string // "user" or "assistant"
 	timeMS      int64
+	endMS       int64 // first line of a request: timestamp of its last line
 	usage       claudeUsage
 	model       string
 	hasUsage    bool
@@ -96,6 +98,7 @@ type claudeRawBlock struct {
 	Input     any             `json:"input"`
 	ToolUseID string          `json:"tool_use_id"`
 	Content   json.RawMessage `json:"content"`
+	IsError   bool            `json:"is_error"`
 }
 
 type claudeAgentMeta struct {
@@ -190,7 +193,7 @@ func parseClaudeFile(path string) *claudeFile {
 		return f
 	}
 	seen := map[string]bool{}
-	seenReq := map[string]bool{}
+	seenReq := map[string]*claudeMsg{}
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -230,10 +233,14 @@ func parseClaudeFile(path string) *claudeFile {
 			// content block), each repeating the same usage block. Count usage
 			// only on the first line of a request to avoid overcounting.
 			if raw.RequestID != "" {
-				if seenReq[raw.RequestID] {
+				if first := seenReq[raw.RequestID]; first != nil {
 					dupReq = true
+					if ts > first.endMS {
+						first.endMS = ts
+					}
 				} else {
-					seenReq[raw.RequestID] = true
+					seenReq[raw.RequestID] = m
+					m.endMS = ts
 				}
 			}
 			m.model = raw.Message.Model
@@ -295,6 +302,7 @@ func parseClaudeFile(path string) *claudeFile {
 						m.toolResults = append(m.toolResults, claudeToolResult{
 							id:      b.ToolUseID,
 							content: claudeBlockContentString(b.Content),
+							isErr:   b.IsError,
 						})
 					}
 				}
@@ -498,7 +506,7 @@ func (m *claudeMsg) asksHuman() bool {
 
 func (f *claudeFile) calls() []provider.CallRec {
 	calls := []provider.CallRec{}
-	var prev *claudeMsg
+	var prev, lastIn *claudeMsg // lastIn: last line not written by the assistant
 	// A request spans several assistant lines (one per content block) and
 	// only its first line carries usage, so a question on a later line still
 	// belongs to the last call. A call also asks when it ends the turn (a
@@ -518,13 +526,19 @@ func (f *claudeFile) calls() []provider.CallRec {
 			last, texts = -1, nil
 		}
 		if m.role == "assistant" && m.hasUsage {
+			// The request runs from the last input line (user text or tool
+			// result) to the last line of its streamed response.
+			var dur, end int64
+			if lastIn != nil && m.endMS > lastIn.timeMS {
+				dur, end = m.endMS-lastIn.timeMS, m.endMS
+			}
 			calls = append(calls, provider.CallRec{
 				Mid: m.mid, Time: m.timeMS,
 				In: m.usage.in, Cr: m.usage.cr, Cw: m.usage.cw,
 				Out: m.usage.out, Reason: 0,
 				Ctx:   m.usage.in + m.usage.cr + m.usage.cw,
 				Hu:    f.humanTrig(prev),
-				Model: m.model,
+				Model: m.model, Dur: dur, End: end,
 			})
 			last, texts = len(calls)-1, nil
 		}
@@ -535,9 +549,71 @@ func (f *claudeFile) calls() []provider.CallRec {
 			}
 		}
 		prev = m
+		if m.role != "assistant" {
+			lastIn = m
+		}
 	}
 	endTurn()
 	return calls
+}
+
+// issuers maps tool_use id -> the AI call (its first line's mid) whose
+// response carried that tool_use. A request spans several assistant lines and
+// only the first carries usage, so later lines belong to the last call.
+func (f *claudeFile) issuers() map[string]string {
+	out := map[string]string{}
+	cur := ""
+	for _, m := range f.messages {
+		if m.role != "assistant" {
+			continue
+		}
+		if m.hasUsage {
+			cur = m.mid
+		}
+		for _, tu := range m.toolUses {
+			out[tu.id] = cur
+		}
+	}
+	return out
+}
+
+// segments lists the spans a transcript spent in tools and waiting for the
+// human, from a tool_use line to its tool_result line. Subagent launches are
+// left out: the launch returns at once, the run itself is a child transcript.
+func (f *claudeFile) segments() []provider.Seg {
+	segs := []provider.Seg{}
+	starts := map[string]int64{}
+	inputs := map[string]any{}
+	mids := f.issuers()
+	for _, m := range f.messages {
+		for _, tu := range m.toolUses {
+			starts[tu.id] = m.timeMS
+			inputs[tu.id] = tu.input
+		}
+		if m.role != "user" {
+			continue
+		}
+		for _, tr := range m.toolResults {
+			st, ok := starts[tr.id]
+			if !ok || m.timeMS <= st {
+				continue
+			}
+			name := f.toolNames[tr.id]
+			kind := provider.SegTool
+			switch name {
+			case "AskUserQuestion", "ExitPlanMode":
+				kind = provider.SegHuman
+			case "Agent", "Task":
+				continue
+			}
+			segs = append(segs, provider.Seg{
+				Kind: kind, Start: st, End: m.timeMS,
+				Mid: mids[tr.id], Name: name, Err: tr.isErr,
+				Input: provider.ToolInput(inputs[tr.id]),
+			})
+		}
+	}
+	return segs
 }
 
 func (f *claudeFile) prompt() []string {

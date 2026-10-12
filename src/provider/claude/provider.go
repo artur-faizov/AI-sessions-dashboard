@@ -70,6 +70,31 @@ func (c *Provider) SessionCalls(sid string) ([]provider.CallRec, error) {
 	return f.calls(), nil
 }
 
+// SessionSegments returns the session's tool and human-wait spans plus one
+// subagent span per child transcript.
+func (c *Provider) SessionSegments(sid string) ([]provider.Seg, error) {
+	idx := c.scanIndex()
+	s := idx.lookup(sid)
+	if s == nil {
+		return nil, fmt.Errorf("session not found: %s", sid)
+	}
+	segs := s.file.segments()
+	mids := s.file.issuers()
+	for _, a := range idx.agents {
+		if a.parent == sid && a.file.firstMS > 0 && a.file.lastMS > a.file.firstMS {
+			name := a.meta.AgentType
+			if name == "" {
+				name = a.meta.Description
+			}
+			segs = append(segs, provider.Seg{
+				Kind: provider.SegSub, Start: a.file.firstMS, End: a.file.lastMS,
+				Mid: mids[a.meta.ToolUseID], Name: name, Sub: a.id,
+			})
+		}
+	}
+	return segs, nil
+}
+
 func (c *Provider) SessionPrompt(sid string) ([]string, error) {
 	f := c.findSessionFile(sid)
 	if f == nil {

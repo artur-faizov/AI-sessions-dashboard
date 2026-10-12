@@ -1138,26 +1138,231 @@
             background: #1d2026
         }
 
-        table.calls tbody tr.wait {
+        .dchart {
+            margin: 0 10px 8px;
+            padding: 6px 10px 4px;
+            background: #1b1f27;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            font-size: 11px;
+            color: var(--dim)
+        }
+
+        .dchart.full {
+            position: fixed;
+            inset: 20px;
+            z-index: 60;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            font-size: 13px;
+            box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .6)
+        }
+
+        .dchart .dax {
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .dchart .dplot {
+            position: relative;
+            height: 56px;
+            margin-top: 4px;
+            border-left: 1px solid var(--line);
+            border-bottom: 1px solid var(--line)
+        }
+
+        .dchart.full .dplot {
+            flex: 1;
+            height: auto
+        }
+
+        .dchart .dbar {
+            position: absolute;
+            bottom: 0;
+            min-width: 2px;
+            min-height: 1px;
+            box-sizing: border-box;
+            border: 1px solid #0f1217;
+            border-radius: 1px 1px 0 0
+        }
+
+        .dchart .dbar[data-go] {
+            cursor: pointer
+        }
+
+        .dchart .dbar:hover {
+            background: #fff
+        }
+
+        .dchart .dlegs {
+            display: flex;
+            gap: 14px
+        }
+
+        .dchart .dleg {
+            cursor: pointer;
+            user-select: none
+        }
+
+        .dchart .dleg.off {
+            opacity: .4;
+            text-decoration: line-through
+        }
+
+        .dchart .dtools {
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .dchart .dzoom {
+            background: none;
+            border: 0;
+            padding: 2px;
+            color: var(--fg);
+            cursor: pointer;
+            line-height: 0
+        }
+
+        .dchart .dzoom:disabled {
+            opacity: .3;
             cursor: default
         }
 
-        table.calls tbody tr.wait:hover {
-            background: none
+        .dsq {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            margin-right: 5px;
+            border-radius: 2px
         }
 
-        table.calls tbody tr.wait td {
-            padding: 2px 10px;
+        .dchart .dbar.ai, .dsq.ai, table.calls .dvbar .ai {
+            background: #5aa9ff
+        }
+
+        .dchart .dbar.tool, .dsq.tool, table.calls .dvbar .tool {
+            background: #4fb3a3
+        }
+
+        .dchart .dbar.human, .dsq.human, table.calls .dvbar .human {
+            background: #f08a24
+        }
+
+        .dchart .dbar.sub, .dsq.sub, table.calls .dvbar .sub {
+            background: #9b7fd9
+        }
+
+        .dchart .dbar.unk, .dsq.unk, table.calls .dvbar .unk {
+            background: #6b7280
+        }
+
+        .segbar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+            margin: 0 10px 4px;
             font-size: 11px;
-            color: var(--dim);
-            text-align: center;
-            border-top: 1px dashed var(--line);
-            border-bottom: 1px dashed var(--line)
+            color: var(--dim)
         }
 
-        table.calls .wbar {
-            width: 120px;
-            margin: 0 0 0 8px
+        .segsw {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none
+        }
+
+        .segsw .segsec {
+            width: 46px;
+            font-size: 11px
+        }
+
+        table.calls tbody tr.segrow td {
+            padding-top: 1px;
+            padding-bottom: 1px;
+            font-size: 11px;
+            color: var(--dim)
+        }
+
+        table.calls tbody tr.segrow td:last-child {
+            padding-left: 22px;
+            text-align: left
+        }
+
+        /* the call number comes first, its human / ask icons after it */
+        table.calls tbody td:first-child .human-ic {
+            margin: 0 0 0 6px;
+            vertical-align: -4px
+        }
+
+        /* indented so the call numbers stay a clean column on the left */
+        table.calls .seg-ic {
+            margin-left: 22px;
+            color: var(--dim);
+            vertical-align: -3px
+        }
+
+        table.calls .dvbar {
+            display: inline-block;
+            width: 70px;
+            height: 6px;
+            margin-right: 6px;
+            border-radius: 3px;
+            background: #232730;
+            vertical-align: middle;
+            overflow: hidden
+        }
+
+        table.calls .dvbar span {
+            display: block;
+            height: 100%;
+            border-radius: 3px
+        }
+
+        table.calls .segerr, .segkv .segerr {
+            margin-left: 6px;
+            color: #e5534b
+        }
+
+        table.calls tbody tr.flash td {
+            animation: rowflash 1.6s ease-out
+        }
+
+        @keyframes rowflash {
+            from {
+                background: #3d4f7a
+            }
+            to {
+                background: transparent
+            }
+        }
+
+        .segkv {
+            display: flex;
+            gap: 12px;
+            font-size: 12px
+        }
+
+        .segkv span:first-child {
+            width: 110px;
+            color: var(--dim)
+        }
+
+        .segpre {
+            margin: 0;
+            padding: 8px 10px;
+            max-height: 50vh;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #14171d;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            font-size: 12px
         }
 
         table.calls .sep {
@@ -1727,6 +1932,9 @@
     <symbol id="hum-approval" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><path d="M11.7 15.45l2.55 2.55 4.95-5.55" fill="none" stroke="#12290f" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="hum-image" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><rect x="11.25" y="12.6" width="8.1" height="5.85" rx="1.05" fill="none" stroke="#12290f" stroke-width="1.4"/><circle cx="13.2" cy="14.4" r="0.75" fill="#12290f"/><path d="M12 17.85l2.25-2.4 1.5 1.8 1.2-1.35 2.55 3z" fill="#12290f"/></symbol>
     <symbol id="ai-ask" viewBox="0 0 24 24"><path d="M4 3h16a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 20 17h-8.5L6 21.5V17H4a2.5 2.5 0 0 1-2.5-2.5v-9A2.5 2.5 0 0 1 4 3z" fill="#9d7cd8"/><path d="M9.3 8.1a2.7 2.7 0 1 1 3.9 2.4c-.8.4-1.2.9-1.2 1.7v.3" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="14.6" r="1.1" fill="#fff"/></symbol>
+    <symbol id="seg-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a4.5 4.5 0 0 0-5.9 5.9L3.3 17.7a1.9 1.9 0 0 0 2.7 2.7l5.5-5.5a4.5 4.5 0 0 0 5.9-5.9l-2.8 2.8-2.4-.3-.3-2.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="seg-wait" viewBox="0 0 24 24"><circle cx="6.5" cy="7" r="3.2" fill="currentColor"/><path d="M1 20.5c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6z" fill="currentColor"/><path d="M14 3h8M14 21h8M15 3c0 4.5 6 4.5 6 9s-6 4.5-6 9M21 3c0 4.5-6 4.5-6 9s6 4.5 6 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="seg-sub" viewBox="0 0 24 24"><path d="M12 2.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="2.3" r="1.3" fill="currentColor"/><rect x="4" y="6" width="16" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="11.5" r="1.6" fill="currentColor"/><circle cx="15" cy="11.5" r="1.6" fill="currentColor"/><path d="M9.5 15h5M1.5 10.5v3M22.5 10.5v3M8 18v3.5M16 18v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 </defs></svg>
 <header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button><button class="fbtn" id="dbbrowse" hidden></button></span></div>
     <div class="hgrp center" id="grp-hl"><label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">highlight context size</span><i class="hlsq warn"></i><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><i class="hlsq crit"></i><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"></label></div>
@@ -1783,6 +1991,13 @@
             <div class="ovl-msg" id="expmsg"></div>
             <div class="ovl-row"><button class="fbtn" id="expgo"></button></div>
         </div>
+    </div>
+</div>
+<div class="ovl" id="segdlg" hidden>
+    <div class="ovl-bg" onclick="segDlgClose()"></div>
+    <div class="ovl-box">
+        <div class="ovl-head"><span id="seghead"></span><button class="ovl-x" onclick="segDlgClose()">✕</button></div>
+        <div class="ovl-body" id="segbody"></div>
     </div>
 </div>
 <div class="ovl" id="browsedlg" hidden>
@@ -2123,7 +2338,7 @@
                 models: [...treeFilter.models], providers: [...treeFilter.providers], dirs: [...treeFilter.dirs]
             });
             localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC,
-                chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST}));
+                chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST, segc: SEG_COLLAPSED, segmin: SEG_MIN}));
         } catch (e) { /* storage unavailable — ignore */ }
     }
 
@@ -2164,6 +2379,8 @@
             if (s.call) callFilter = Object.assign(newCallFilter(), s.call);
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
             if (s.rec) REC = Object.assign({only: false}, s.rec);
+            SEG_COLLAPSED = s.segc === true;
+            if (s.segmin && typeof s.segmin.sec === 'number') SEG_MIN = {on: s.segmin.on !== false, sec: s.segmin.sec};
             if (s.chk) CHK = Object.assign({only: false, marked: new Set(s.chk.marked || [])}, {only: !!s.chk.only});
             if (s.names && typeof s.names === 'object') {
                 SNAME = {};
@@ -2905,17 +3122,21 @@
         const mCtx = mx('ctx'), mD = Math.max(1, ...vis.map(r => r.delta)),
             mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr'), mTq = mx('tokeq'), mMon = mx('money');
         const bar = (v, m, cls) => `<span class="vbar${cls ? ' ' + cls : ''}"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
-        const waitOf = r => r.hu && r.n > 1 ? calls[r.n - 1].time - calls[r.n - 2].time : 0;
-        const mWait = Math.max(1, ...vis.map(waitOf));
+        const kids = segsByCall(), segMax = Math.max(1, ...SEGS.map(x => x.end - x.start), ...calls.map(c => c.dur || 0), ...calls.map((c, i) => {
+            const w = waitSpan(calls, i);
+            return w ? w.end - w.start : 0;
+        }));
         let rows = '';
         vis.forEach(r => {
-            const wait = waitOf(r);
-            if (wait > 0) rows += `<tr class="wait"><td colspan="9" title="${tr('calls.wait.tip')}">${tr('calls.wait', {t: dur(wait)})}<span class="vbar wbar"><span style="width:${Math.max(2, wait / mWait * 100)}%"></span></span></td></tr>`;
+            const w = waitSpan(calls, r.n - 1);
+            if (w && segIsOpen(calls[r.n - 2].mid) && segShown(w)) rows += waitRow(r.n - 1, w, segMax);
             const cls = r.ask ? 'ask' : r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
             const tip = [r.hu ? humTip(r.hu) : '', r.ask ? tr('calls.ask.tip') : ''].filter(Boolean).join('\n');
-            rows += `<tr${cls ? ` class="${cls}"` : ''}${tip ? ` title="${tip}"` : ''} onclick="callPick('${esc(r.mid)}')">
-  <td class="num">${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}${r.n}</td>
-  <td class="num">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
+            const ks = kids[r.mid] || [], open = segIsOpen(r.mid);
+            rows += `<tr data-mid="${esc(r.mid)}" data-go="c:${esc(r.mid)}"${cls ? ` class="${cls}"` : ''}${tip ? ` title="${tip}"` : ''} onclick="callPick('${esc(r.mid)}')">
+  <td class="num">${r.n}${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}</td>
+  <td class="num sep">${durCell(calls[r.n - 1].dur || 0, segMax, 'ai')}</td>
+  <td class="num sep">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
   <td class="num">${bar(r.delta, mD)}${fmt(r.delta)}</td>
   <td class="num">${bar(r.out, mOut)}${fmt(r.out)}</td>
   <td class="num">${bar(r.reason, mRn)}${fmt(r.reason)}</td>
@@ -2923,10 +3144,12 @@
   <td class="num">${bar(r.cr, mCr)}${fmt(r.cr)}</td>
   <td class="num sep">${bar(r.tokeq, mTq, 'amber')}${fmt(r.tokeq)}</td>
   <td class="num">${bar(r.money, mMon, 'green')}${fmtMoney(r.money)}</td></tr>`;
+            if (open) rows += ks.map(i => segRow(i, segMax)).join('');
         });
         const heads = [
             [tr('calls.th.num'), tr('calls.th.num.tip'), ''],
-            [tr('calls.th.ctx'), tr('calls.th.ctx.tip'), ''],
+            [tr('calls.th.dur'), tr('calls.th.dur.tip'), 'sep'],
+            [tr('calls.th.ctx'), tr('calls.th.ctx.tip'), 'sep'],
             [tr('calls.th.delta'), tr('calls.th.delta.tip'), ''],
             [tr('calls.th.out'), tr('calls.th.out.tip'), ''],
             [tr('calls.th.reason'), tr('calls.th.reason.tip'), ''],
@@ -2935,9 +3158,233 @@
             [tr('calls.th.tokeq'), tr('calls.th.tokeq.tip'), 'sep'],
             [tr('calls.th.money'), tr('calls.th.money.tip'), '']
         ];
-        return `<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
-  <tbody><tr class="gap"><td colspan="9"></td></tr>${rows}</tbody>
+        return `${durChart(calls)}${segSwitch()}<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
+  <tbody><tr class="gap"><td colspan="10"></td></tr>${rows}</tbody>
 </table>${callsLegend()}`;
+    }
+
+    // segsByCall groups the indexes into SEGS by the AI call that issued them,
+    // in time order.
+    function segsByCall() {
+        const out = {};
+        SEGS.forEach((x, i) => {
+            if (x.mid && segShown(x)) (out[x.mid] = out[x.mid] || []).push(i);
+        });
+        Object.values(out).forEach(l => l.sort((a, b) => SEGS[a].start - SEGS[b].start));
+        return out;
+    }
+
+    const callEnd = c => c.end || c.time;
+
+    // segIcon marks a sub-row in the # column: an hourglass with a person for
+    // waiting on the human, a robot for a subagent, a wrench for a tool.
+    const SEG_IC = {human: 'seg-wait', sub: 'seg-sub'};
+    const segIcon = kind => `<svg class="seg-ic" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="#${SEG_IC[kind] || 'seg-tool'}"/></svg>`;
+
+    // durCell is the duration column: a bar on the scale shared by the calls,
+    // their sub-rows and the waits, then the duration.
+    const durCell = (d, mx, kind) => d > 0
+        ? `<span class="dvbar"><span class="${kind}" style="width:${Math.max(2, d / mx * 100).toFixed(1)}%"></span></span>${dur(d)}` : '';
+
+    // waitSpan is the time calls[i] waited for the human: from the previous
+    // call's end to its own start, when the human triggered it; else null.
+    function waitSpan(calls, i) {
+        const c = calls[i];
+        if (!c || !c.hu || i < 1 || callEnd(c) <= 0) return null;
+        const start = callEnd(calls[i - 1]), end = callEnd(c) - (c.dur || 0);
+        return end > start ? {kind: 'human', start, end} : null;
+    }
+
+    const segShown = x => !SEG_MIN.on || x.end - x.start >= SEG_MIN.sec * 1000;
+
+    // waitRow is the wait before calls[i] drawn like a tool sub-row, at the
+    // end of the previous call's sub-rows.
+    function waitRow(i, w, mx) {
+        const d = w.end - w.start;
+        return `<tr class="segrow" data-go="w:${esc(CALLS[i].mid)}" onclick="waitDlg(${i}, event)" title="${tr('calls.wait.tip')}"><td class="num">${segIcon('human')}</td><td class="num sep">${durCell(d, mx, 'human')}</td><td colspan="8" class="sep">${tr('calls.chart.human')}</td></tr>`;
+    }
+
+    function waitDlg(i, ev) {
+        const w = waitSpan(CALLS, i);
+        if (w) segDlgShow(Object.assign({mid: CALLS[i].mid, name: tr('calls.chart.human')}, w), -1, ev);
+    }
+
+    // segRow is the sub-row under an AI call for one tool, wait or subagent it
+    // issued: its name and a bar as long as its duration. Clicking it opens
+    // segDlg with the details.
+    function segRow(i, mx) {
+        const x = SEGS[i], d = x.end - x.start;
+        return `<tr class="segrow" data-go="s:${i}" onclick="segDlg(${i}, event)" title="${tr('calls.seg.details')}"><td class="num">${segIcon(x.kind)}</td><td class="num sep">${durCell(d, mx, x.kind)}</td><td colspan="8" class="sep">${esc(x.name || chartLabel(x.kind))}${x.err ? '<span class="segerr">✕</span>' : ''}</td></tr>`;
+    }
+
+    function segDlg(i, ev) {
+        if (SEGS[i]) segDlgShow(SEGS[i], i, ev);
+    }
+
+    // segDlgShow opens the details popup of a span; i is its SEGS index, or -1
+    // for a wait before a call (whose call row then names the call it led to).
+    function segDlgShow(x, i, ev) {
+        if (ev) ev.stopPropagation();
+        const call = CALLS.find(c => c.mid === x.mid);
+        const open = i >= 0 && x.sub && find(TREE, x.sub);
+        const row = (k, v) => `<div class="segkv"><span>${k}</span><span>${v}</span></div>`;
+        document.querySelector('#seghead').innerHTML = `<i class="dsq ${x.kind}"></i>${esc(x.name || chartLabel(x.kind))}`;
+        document.querySelector('#segbody').innerHTML = [
+            row(tr('calls.seg.kind'), esc(chartLabel(x.kind))),
+            x.err ? row(tr('calls.seg.status'), `<span class="segerr">${tr('calls.seg.err')}</span>`) : '',
+            row(tr('calls.seg.dur'), dur(x.end - x.start)),
+            row(tr('calls.seg.from'), esc(when(x.start))),
+            row(tr('calls.seg.to'), esc(when(x.end))),
+            call ? row(i < 0 ? tr('calls.seg.led') : tr('calls.seg.call'), `#${call.n}`) : '',
+            x.input ? `<div class="segkv"><span>${tr('calls.seg.cmd')}</span></div><pre class="segpre">${esc(x.input)}</pre>` : '',
+            open ? `<div class="ovl-row"><button class="fbtn" onclick="segDlgClose(); segOpen(${i})">${tr('calls.seg.open')} ↗</button></div>` : ''
+        ].join('');
+        document.querySelector('#segdlg').hidden = false;
+    }
+
+    function segDlgClose() {
+        document.querySelector('#segdlg').hidden = true;
+    }
+
+    // Sub-rows follow SEG_COLLAPSED (the switch above the table, saved with the
+    // settings); SEG_FLIP holds the calls opened anyway to show a chart click.
+    // SEG_MIN hides sub-rows shorter than sec seconds from the table (the chart
+    // still draws them); saved with the settings.
+    let SEG_COLLAPSED = false, SEG_FLIP = new Set(), SEG_MIN = {on: true, sec: 5};
+
+    function segMinSet(on, sec) {
+        SEG_MIN = {on, sec: sec >= 0 ? sec : SEG_MIN.sec};
+        saveSettings();
+        refreshCalls();
+    }
+
+    const segIsOpen = mid => SEG_COLLAPSED === SEG_FLIP.has(mid);
+
+    function segSetOpen(mid, on) {
+        if (segIsOpen(mid) !== on) SEG_FLIP.has(mid) ? SEG_FLIP.delete(mid) : SEG_FLIP.add(mid);
+    }
+
+    function segAll(collapsed) {
+        SEG_COLLAPSED = collapsed;
+        SEG_FLIP = new Set();
+        saveSettings();
+        refreshCalls();
+    }
+
+    function segSwitch() {
+        if (!SEGS.some(x => x.mid)) return '';
+        return `<div class="segbar"><label class="segsw" title="${tr('calls.seg.collapse.tip')}"><input type="checkbox"${SEG_COLLAPSED ? ' checked' : ''} onchange="segAll(this.checked)">${tr('calls.seg.collapse')}</label><label class="segsw" title="${tr('calls.seg.short.tip')}"><input type="checkbox"${SEG_MIN.on ? ' checked' : ''} onchange="segMinSet(this.checked, SEG_MIN.sec)">${tr('calls.seg.short')}<input type="number" class="segsec" min="0" step="1" value="${SEG_MIN.sec}" onclick="event.stopPropagation()" onchange="segMinSet(SEG_MIN.on, parseFloat(this.value))">${tr('calls.seg.short.unit')}</label></div>`;
+    }
+
+    function segOpen(i, ev) {
+        if (ev) ev.stopPropagation();
+        selectSession(SEGS[i].sub, {reveal: true, scroll: true, push: true});
+    }
+
+    // Timeline of what a session did, as rectangles: x = the time a span took,
+    // height = its duration. Every moment gets one category, the first that
+    // applies: AI call, tool, waiting for the human, waiting for a subagent;
+    // whatever nothing explains is "unknown". Each category is toggled from the
+    // legend (a hidden category stays hidden, it does not turn into unknown).
+    const CHART_KINDS = ['ai', 'tool', 'human', 'sub', 'unk'];
+    const chartLabel = k => ({
+        ai: tr('calls.chart.ai'), tool: tr('calls.chart.tool'), human: tr('calls.chart.human'),
+        sub: tr('calls.chart.sub'), unk: tr('calls.chart.unk')
+    }[k]);
+    const CHART_ON = {ai: true, tool: true, human: true, sub: true, unk: true};
+    let CHART_FULL = false, SEGS = [];
+
+    function chartToggle(k, ev) {
+        ev.stopPropagation();
+        CHART_ON[k] = !CHART_ON[k];
+        refreshCalls();
+    }
+
+    function chartFull(on, ev) {
+        if (ev) ev.stopPropagation();
+        CHART_FULL = on;
+        refreshCalls();
+    }
+
+    // chartGo scrolls the calls table to the row behind a chart rectangle and
+    // flashes it: "c:<mid>" an AI call, "w:<mid>" the wait before it, "s:<i>"
+    // the sub-row of SEGS[i] (its call is expanded first).
+    function chartGo(go) {
+        const seg = go.startsWith('s:') ? SEGS[+go.slice(2)] : null;
+        let host = seg && seg.mid;
+        if (go.startsWith('w:')) {
+            const i = CALLS.findIndex(c => c.mid === go.slice(2));
+            host = i > 0 ? CALLS[i - 1].mid : '';
+        }
+        if (CHART_FULL || (host && !segIsOpen(host))) {
+            CHART_FULL = false;
+            if (host) segSetOpen(host, true);
+            refreshCalls();
+        }
+        const row = [...document.querySelectorAll('table.calls tbody tr[data-go]')].find(r => r.dataset.go === go);
+        if (!row) return;
+        row.scrollIntoView({block: 'center', behavior: 'smooth'});
+        row.classList.remove('flash');
+        void row.offsetWidth;
+        row.classList.add('flash');
+    }
+
+    const zoomIc = plus => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6M7 10h6${plus ? 'M10 7v6' : ''}"/></svg>`;
+
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        if (!document.querySelector('#segdlg').hidden) segDlgClose();
+        else if (CHART_FULL) chartFull(false);
+    });
+
+    // chartSegments splits [t0, t1] into non-overlapping spans, each moment
+    // taken by the highest-ranked span covering it; spans are {kind, start,
+    // end, n?, go?} where go is the table row a rectangle points to.
+    function chartSegments(spans, t0, t1) {
+        const cuts = [...new Set([t0, t1, ...spans.flatMap(x => [x.start, x.end])])].filter(t => t >= t0 && t <= t1).sort((a, b) => a - b);
+        const rank = {ai: 0, tool: 1, human: 2, sub: 3};
+        const out = [];
+        for (let i = 0; i + 1 < cuts.length; i++) {
+            const a = cuts[i], b = cuts[i + 1];
+            let best = null;
+            for (const x of spans) if (x.start <= a && x.end >= b && (!best || rank[x.kind] < rank[best.kind])) best = x;
+            const kind = best ? best.kind : 'unk', n = best && best.n || 0, go = best && best.go || '';
+            const last = out[out.length - 1];
+            if (last && last.kind === kind && last.n === n && last.go === go && last.end === a) last.end = b;
+            else out.push({kind, start: a, end: b, n, go});
+        }
+        return out;
+    }
+
+    function durChart(calls) {
+        const endOf = c => c.end || c.time;
+        const spans = [];
+        calls.forEach((c, i) => {
+            const e = endOf(c), d = c.dur || 0;
+            if (e <= 0) return;
+            const st = d > 0 ? e - d : e;
+            if (d > 0) spans.push({kind: 'ai', start: st, end: e, n: i + 1, go: 'c:' + c.mid});
+            const w = waitSpan(calls, i);
+            if (w) spans.push(Object.assign({go: 'w:' + c.mid}, w));
+        });
+        if (!spans.length) return '';
+        const known = new Set(calls.map(c => c.mid));
+        SEGS.forEach((x, i) => {
+            if (x.end > x.start) spans.push({kind: x.kind, start: x.start, end: x.end, go: known.has(x.mid) ? 's:' + i : ''});
+        });
+        const t0 = Math.min(...spans.map(x => x.start)), t1 = Math.max(...spans.map(x => x.end)), span = Math.max(1, t1 - t0);
+        const segs = chartSegments(spans, t0, t1).filter(x => CHART_ON[x.kind]);
+        const mD = Math.max(1, ...segs.map(x => x.end - x.start));
+        const bars = segs.map(x => {
+            const d = x.end - x.start;
+            const sg = x.go.startsWith('s:') ? SEGS[+x.go.slice(2)] : null;
+            const tip = x.n ? tr('calls.chart.tip', {n: x.n, t: when(x.end), d: dur(d)}) : tr('calls.chart.tip2', {k: sg && sg.name ? sg.name : chartLabel(x.kind), t: when(x.end), d: dur(d)});
+            return `<span class="dbar ${x.kind}"${x.go ? ` data-go="1" onclick="chartGo('${esc(x.go)}')"` : ''} style="left:${((x.start - t0) / span * 100).toFixed(3)}%;width:${(d / span * 100).toFixed(3)}%;height:${Math.max(2, d / mD * 100).toFixed(1)}%" title="${esc(tip)}"></span>`;
+        }).join('');
+        const leg = k => `<span class="dleg${CHART_ON[k] ? '' : ' off'}" onclick="chartToggle('${k}', event)"><i class="dsq ${k}"></i>${chartLabel(k)}</span>`;
+        return `<div class="dchart${CHART_FULL ? ' full' : ''}"><div class="dax"><span class="dlegs">${CHART_KINDS.map(leg).join('')}</span><span class="dtools">max ${dur(mD)}<button class="dzoom" ${CHART_FULL ? '' : 'disabled'} onclick="chartFull(false, event)" title="${tr('calls.chart.zoomout')}">${zoomIc(false)}</button><button class="dzoom" ${CHART_FULL ? 'disabled' : ''} onclick="chartFull(true, event)" title="${tr('calls.chart.zoomin')}">${zoomIc(true)}</button></span></div>
+  <div class="dplot">${bars}</div>
+  <div class="dax"><span>${when(t0)}</span><span>${when(t1)}</span></div></div>`;
     }
 
     function callsLegend() {
@@ -3097,6 +3544,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         }
         if (cj) {
             CALLS = (cj.calls || []).map((c, i) => Object.assign({}, c, {n: i + 1}));
+            SEGS = cj.segs || [];
+            SEG_FLIP = new Set();
             document.querySelector('#calls').innerHTML = callsTable(CALLS);
         }
         updateFilterBtns();

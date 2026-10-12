@@ -121,7 +121,13 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 				return
 			}
-			writeJSON(w, http.StatusOK, map[string]any{"calls": calls})
+			resp := map[string]any{"calls": calls}
+			if sp, ok := active.(provider.SegmentProvider); ok {
+				if segs, err := sp.SessionSegments(sid); err == nil && segs != nil {
+					resp["segs"] = segs
+				}
+			}
+			writeJSON(w, http.StatusOK, resp)
 		case strings.HasPrefix(path, "/api/trigger/"):
 			mid := strings.TrimPrefix(path, "/api/trigger/")
 			res, err := active.CallTrigger(mid)

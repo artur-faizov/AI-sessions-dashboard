@@ -54,6 +54,24 @@ func IsAskTool(name string) bool {
 	return name == "question" || name == "AskUserQuestion" || name == "ask_user"
 }
 
+// SegInputMax is the character cap on a Seg's tool input.
+const SegInputMax = 4000
+
+// ToolInput renders a tool's input for a Seg: the shell command when the
+// input carries one, else the input as JSON, cut at SegInputMax characters.
+func ToolInput(v any) string {
+	if m, ok := v.(map[string]any); ok {
+		if c, ok := m["command"].(string); ok && c != "" {
+			v = c
+		}
+	}
+	s, _ := Clip(v)
+	if r := []rune(s); len(r) > SegInputMax {
+		s = string(r[:SegInputMax]) + "…"
+	}
+	return s
+}
+
 // TriggerMax is the per-value character cap on trigger part text.
 const TriggerMax = 60000
 

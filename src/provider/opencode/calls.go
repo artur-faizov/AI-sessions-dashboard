@@ -195,10 +195,15 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 					hu = mp.human[prev.id]
 				}
 				mdl, _ := d["modelID"].(string)
+				tm := sub(d, "time")
+				var dur, end int64
+				if c, e := num(tm["created"]), num(tm["completed"]); c > 0 && e > c {
+					dur, end = e-c, e
+				}
 				calls = append(calls, provider.CallRec{
 					Mid: m.id, Time: m.created, In: in, Cr: cr, Cw: cw,
 					Out: out, Reason: reason, Ctx: in + cr + cw,
-					Hu: hu, Ask: mp.asks[m.id], Model: mdl,
+					Hu: hu, Ask: mp.asks[m.id], Model: mdl, Dur: dur, End: end,
 				})
 				last, texts = len(calls)-1, nil
 			}
@@ -211,6 +216,49 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 	}
 	endTurn()
 	return calls, nil
+}
+
+// sessionSegments lists the spans a session spent in tools (state start to
+// end), waiting for the human (question tool) and waiting for a subagent (task
+// tool, whose span covers the child session's run).
+func sessionSegments(pool *sql.DB, sessionID string) ([]provider.Seg, error) {
+	rows, err := pool.Query(`SELECT message_id, data FROM part WHERE session_id = ? AND data LIKE '%"type":"tool"%'`, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	segs := []provider.Seg{}
+	for rows.Next() {
+		var mid, data string
+		if err := rows.Scan(&mid, &data); err != nil {
+			return nil, err
+		}
+		d := decodeData(data)
+		if d == nil || d["type"] != "tool" {
+			continue
+		}
+		st := sub(d, "state")
+		tm := sub(st, "time")
+		start, end := num(tm["start"]), num(tm["end"])
+		if start <= 0 || end <= start {
+			continue
+		}
+		tool, _ := d["tool"].(string)
+		seg := provider.Seg{Kind: provider.SegTool, Start: start, End: end, Mid: mid, Name: tool, Err: st["status"] == "error",
+			Input: provider.ToolInput(st["input"])}
+		switch {
+		case tool == "task":
+			seg.Kind = provider.SegSub
+			seg.Sub, _ = sub(st, "metadata")["sessionId"].(string)
+			if t, _ := sub(st, "input")["subagent_type"].(string); t != "" {
+				seg.Name = t
+			}
+		case provider.IsAskTool(tool):
+			seg.Kind = provider.SegHuman
+		}
+		segs = append(segs, seg)
+	}
+	return segs, rows.Err()
 }
 
 // callReply collects what an assistant message showed the human: its text
