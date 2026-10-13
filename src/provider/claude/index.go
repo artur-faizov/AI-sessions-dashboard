@@ -624,7 +624,8 @@ func (f *claudeFile) segments() []provider.Seg {
 			segs = append(segs, provider.Seg{
 				Kind: kind, Start: st, End: m.timeMS,
 				Mid: mids[tr.id], Name: name, Err: tr.isErr,
-				Input: provider.ToolInput(inputs[tr.id]),
+				Input:  provider.ToolInput(inputs[tr.id]),
+				Output: provider.ToolOutput(tr.content),
 			})
 		}
 	}

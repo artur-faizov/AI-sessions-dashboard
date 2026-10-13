@@ -87,17 +87,18 @@ const (
 // Seg is one span of the /api/calls "segs" payload. Spans of different kinds
 // may overlap; the dashboard decides which one wins. Mid is the AI call that
 // issued the span (empty when unknown), Name the tool or subagent type, Sub
-// the subagent's session id, Input the tool's command or input, Err marks a
-// tool that failed.
+// the subagent's session id, Input the tool's command or input, Output its
+// reply, Err marks a tool that failed.
 type Seg struct {
-	Kind  string `json:"kind"`
-	Start int64  `json:"start"`
-	End   int64  `json:"end"`
-	Mid   string `json:"mid,omitempty"`
-	Name  string `json:"name,omitempty"`
-	Sub   string `json:"sub,omitempty"`
-	Input string `json:"input,omitempty"`
-	Err   bool   `json:"err,omitempty"`
+	Kind   string `json:"kind"`
+	Start  int64  `json:"start"`
+	End    int64  `json:"end"`
+	Mid    string `json:"mid,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Sub    string `json:"sub,omitempty"`
+	Input  string `json:"input,omitempty"`
+	Output string `json:"output,omitempty"`
+	Err    bool   `json:"err,omitempty"`
 }
 
 // TriggerPartText is a text part of a /api/trigger payload.

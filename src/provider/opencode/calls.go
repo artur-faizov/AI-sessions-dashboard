@@ -245,7 +245,7 @@ func sessionSegments(pool *sql.DB, sessionID string) ([]provider.Seg, error) {
 		}
 		tool, _ := d["tool"].(string)
 		seg := provider.Seg{Kind: provider.SegTool, Start: start, End: end, Mid: mid, Name: tool, Err: st["status"] == "error",
-			Input: provider.ToolInput(st["input"])}
+			Input: provider.ToolInput(st["input"]), Output: provider.ToolOutput(st["output"])}
 		switch {
 		case tool == "task":
 			seg.Kind = provider.SegSub

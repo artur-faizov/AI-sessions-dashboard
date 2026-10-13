@@ -337,3 +337,21 @@ func TestCallTriggerNonStringRenderedAsIndentedJSON(t *testing.T) {
 		t.Fatalf("unexpected cut flags: %+v", tool)
 	}
 }
+
+func TestSessionSegmentsCarryToolInputAndOutput(t *testing.T) {
+	pool, path := fixturePool(t)
+	defer pool.Close()
+	if _, err := pool.Exec(`INSERT INTO part VALUES (?,?,?,?,?,?)`, "p1", "a1", "s1", 150, 150,
+		`{"type":"tool","tool":"bash","state":{"status":"completed","input":{"command":"ls"},"output":"a\nb","time":{"start":100,"end":200}}}`); err != nil {
+		t.Fatal(err)
+	}
+	p := activateDB(t, path)
+	_, poolRO := p.poolFor()
+	segs, err := sessionSegments(poolRO, "s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(segs) != 1 || segs[0].Input != "ls" || segs[0].Output != "a\nb" {
+		t.Fatalf("segs = %+v", segs)
+	}
+}

@@ -54,7 +54,7 @@ func IsAskTool(name string) bool {
 	return name == "question" || name == "AskUserQuestion" || name == "ask_user"
 }
 
-// SegInputMax is the character cap on a Seg's tool input.
+// SegInputMax is the character cap on a Seg's tool input and output.
 const SegInputMax = 4000
 
 // ToolInput renders a tool's input for a Seg: the shell command when the
@@ -65,6 +65,15 @@ func ToolInput(v any) string {
 			v = c
 		}
 	}
+	return segClip(v)
+}
+
+// ToolOutput renders a tool's reply for a Seg, cut at SegInputMax characters.
+func ToolOutput(v any) string {
+	return segClip(v)
+}
+
+func segClip(v any) string {
 	s, _ := Clip(v)
 	if r := []rune(s); len(r) > SegInputMax {
 		s = string(r[:SegInputMax]) + "…"

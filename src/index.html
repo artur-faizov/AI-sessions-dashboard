@@ -1472,6 +1472,23 @@
             color: var(--dim)
         }
 
+        /* hover tooltip of the timeline bars: keeps the command one per line */
+        #dtip {
+            position: fixed;
+            z-index: 1000;
+            pointer-events: none;
+            margin: 0;
+            padding: 6px 9px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow: hidden;
+            white-space: pre-wrap;
+            background: #14171d;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            font-size: 12px
+        }
+
         .segpre {
             margin: 0;
             padding: 8px 10px;
@@ -2116,6 +2133,7 @@
         </div>
     </div>
 </div>
+<pre id="dtip" hidden></pre>
 <div class="ovl" id="segdlg" hidden>
     <div class="ovl-bg" onclick="segDlgClose()"></div>
     <div class="ovl-box">
@@ -3315,8 +3333,8 @@
 
     // durCell is the duration column: a bar on the scale shared by the calls,
     // their sub-rows and the waits, then the duration.
-    const durCell = (d, mx, kind) => d > 0
-        ? `<span class="dvbar"><span class="${kind}" style="width:${Math.max(2, d / mx * 100).toFixed(1)}%"></span></span>${dur(d)}` : '';
+    const durCell = (d, mx, kind, tip) => d > 0
+        ? `<span class="dvbar"${tip ? ` data-tip="${esc(tip)}"` : ''}><span class="${kind}" style="width:${Math.max(2, d / mx * 100).toFixed(1)}%"></span></span>${dur(d)}` : '';
 
     // waitSpan is the time calls[i] waited for the human: from the previous
     // call's end to its own start, when the human triggered it; else null.
@@ -3346,16 +3364,59 @@
         if (w) segDlgShow(Object.assign({mid: CALLS[i].mid, name: tr('calls.chart.human')}, w), -1, ev);
     }
 
+    const SEG_TIP_LINES = 15;
+
+    // segTip is the hover text of a span's bar: name, end, duration, the
+    // command one per line and the head of the reply.
+    function segTip(x) {
+        let t = tr('calls.chart.tip2', {k: x.name || chartLabel(x.kind), t: when(x.end), d: dur(x.end - x.start)});
+        if (x.input) t += `\n\n${tr('calls.seg.cmd')}:\n${cmdLines(x.input)}`;
+        if (x.output) {
+            const ls = x.output.split('\n');
+            t += `\n\n${tr('calls.seg.reply')}:\n${ls.slice(0, SEG_TIP_LINES).join('\n')}${ls.length > SEG_TIP_LINES ? '\n…' : ''}`;
+        }
+        return t;
+    }
+
     // segRow is the sub-row under an AI call for one tool, wait or subagent it
     // issued: its name and a bar as long as its duration. Clicking it opens
     // segDlg with the details.
     function segRow(i, mx) {
-        const x = SEGS[i], d = x.end - x.start;
-        return `<tr class="segrow" data-go="s:${i}" onclick="segDlg(${i}, event)" title="${tr('calls.seg.details')}"><td class="num">${segIcon(x.kind)}</td><td class="num sep">${durCell(d, mx, x.kind)}</td><td colspan="8" class="sep">${esc(x.name || chartLabel(x.kind))}${x.err ? '<span class="segerr">✕</span>' : ''}</td></tr>`;
+        const x = SEGS[i], d = x.end - x.start, rt = ` title="${tr('calls.seg.details')}"`;
+        return `<tr class="segrow" data-go="s:${i}" onclick="segDlg(${i}, event)"><td class="num"${rt}>${segIcon(x.kind)}</td><td class="num sep">${durCell(d, mx, x.kind, segTip(x))}</td><td colspan="8" class="sep"${rt}>${esc(x.name || chartLabel(x.kind))}${x.err ? '<span class="segerr">✕</span>' : ''}</td></tr>`;
     }
 
     function segDlg(i, ev) {
         if (SEGS[i]) segDlgShow(SEGS[i], i, ev);
+    }
+
+    // cmdLines puts every command chained with ;, && or || on its own line and
+    // every pipe stage on an indented line of its own; separators inside quotes
+    // or escaped (find … \;) are left alone.
+    function cmdLines(s) {
+        let out = '', q = '';
+        for (let i = 0; i < s.length; i++) {
+            const c = s[i];
+            if (c === '\\' && q !== "'") {
+                out += c + (s[++i] ?? '');
+                continue;
+            }
+            if (q) {
+                if (c === q) q = '';
+            } else if (c === '"' || c === "'") q = c;
+            else if (c === ';' || ((c === '&' || c === '|') && s[i + 1] === c)) {
+                out = out.trimEnd() + (c === ';' ? ';\n' : ` ${c}${c}\n`);
+                if (c !== ';') i++;
+                while (s[i + 1] === ' ' || s[i + 1] === '\t') i++;
+                continue;
+            } else if (c === '|') {
+                out = out.trimEnd() + '\n  | ';
+                while (s[i + 1] === ' ' || s[i + 1] === '\t') i++;
+                continue;
+            }
+            out += c;
+        }
+        return out;
     }
 
     // segDlgShow opens the details popup of a span; i is its SEGS index, or -1
@@ -3373,7 +3434,8 @@
             row(tr('calls.seg.from'), esc(when(x.start))),
             row(tr('calls.seg.to'), esc(when(x.end))),
             call ? row(i < 0 ? tr('calls.seg.led') : tr('calls.seg.call'), `#${call.n}`) : '',
-            x.input ? `<div class="segkv"><span>${tr('calls.seg.cmd')}</span></div><pre class="segpre">${esc(x.input)}</pre>` : '',
+            x.input ? `<div class="segkv"><span>${tr('calls.seg.cmd')}</span></div><pre class="segpre">${esc(cmdLines(x.input))}</pre>` : '',
+            x.output ? `<div class="segkv"><span>${tr('calls.seg.reply')}</span></div><pre class="segpre">${esc(x.output)}</pre>` : '',
             open ? `<div class="ovl-row"><button class="fbtn" onclick="segDlgClose(); segOpen(${i})">${tr('calls.seg.open')} ↗</button></div>` : ''
         ].join('');
         document.querySelector('#segdlg').hidden = false;
@@ -3592,14 +3654,30 @@
         const bars = segs.map(x => {
             const d = x.end - x.start;
             const sg = x.go.startsWith('s:') ? SEGS[+x.go.slice(2)] : null;
-            const tip = x.n ? tr('calls.chart.tip', {n: x.n, t: when(x.end), d: dur(d)}) : tr('calls.chart.tip2', {k: sg && sg.name ? sg.name : chartLabel(x.kind), t: when(x.end), d: dur(d)});
-            return `<span class="dbar ${x.kind}"${x.go ? ` data-go="1" onclick="chartGo('${esc(x.go)}')"` : ''} style="left:${((x.start - t0) / span * 100).toFixed(3)}%;width:${(d / span * 100).toFixed(3)}%;height:${Math.max(2, d / mD * 100).toFixed(1)}%" title="${esc(tip)}"></span>`;
+            const tip = x.n ? tr('calls.chart.tip', {n: x.n, t: when(x.end), d: dur(d)}) : segTip({kind: x.kind, start: x.start, end: x.end, name: sg && sg.name, input: sg && sg.input, output: sg && sg.output});
+            return `<span class="dbar ${x.kind}"${x.go ? ` data-go="1" onclick="chartGo('${esc(x.go)}')"` : ''} style="left:${((x.start - t0) / span * 100).toFixed(3)}%;width:${(d / span * 100).toFixed(3)}%;height:${Math.max(2, d / mD * 100).toFixed(1)}%" data-tip="${esc(tip)}"></span>`;
         }).join('');
         const leg = k => `<span class="dleg${CHART_ON[k] ? '' : ' off'}" onclick="chartToggle('${k}', event)"><i class="dsq ${k}"></i>${chartLabel(k)}</span>`;
         return `<div class="dchart${CHART_FULL ? ' full' : ''}"><div class="dax"><span class="dlegs">${CHART_KINDS.map(leg).join('')}</span><span class="dtools">max ${dur(mD)}<button class="dzoom" ${CHART_FULL ? '' : 'disabled'} onclick="chartFull(false, event)" title="${tr('calls.chart.zoomout')}">${zoomIc(false)}</button><button class="dzoom" ${CHART_FULL ? 'disabled' : ''} onclick="chartFull(true, event)" title="${tr('calls.chart.zoomin')}">${zoomIc(true)}</button></span></div>
   <div class="dplot">${bars}</div>
   <div class="dax"><span>${when(t0)}</span><span>${when(t1)}</span></div></div>`;
     }
+
+    // dtipMove shows the data-tip of the bar under the mouse in #dtip,
+    // kept inside the window.
+    function dtipMove(e) {
+        const t = document.querySelector('#dtip');
+        const b = e.target.closest && e.target.closest('[data-tip]');
+        if (!b) return void (t.hidden = true);
+        if (t.textContent !== b.dataset.tip) t.textContent = b.dataset.tip;
+        t.hidden = false;
+        const x = Math.min(e.clientX + 12, innerWidth - t.offsetWidth - 4);
+        const y = e.clientY + 16 + t.offsetHeight > innerHeight ? e.clientY - 8 - t.offsetHeight : e.clientY + 16;
+        t.style.left = Math.max(4, x) + 'px';
+        t.style.top = Math.max(4, y) + 'px';
+    }
+
+    if (typeof document.addEventListener === 'function') document.addEventListener('mousemove', dtipMove);
 
     function callsLegend() {
         const item = (sq, ic, txt) => `<span><i class="hlsq ${sq}"></i>${ic}${txt}</span>`;
