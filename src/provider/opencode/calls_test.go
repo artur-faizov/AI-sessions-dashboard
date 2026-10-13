@@ -347,11 +347,29 @@ func TestSessionSegmentsCarryToolInputAndOutput(t *testing.T) {
 	}
 	p := activateDB(t, path)
 	_, poolRO := p.poolFor()
-	segs, err := sessionSegments(poolRO, "s1")
+	segs, err := sessionSegments(poolRO, "s1", 1000)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(segs) != 1 || segs[0].Input != "ls" || segs[0].Output != "a\nb" {
+		t.Fatalf("segs = %+v", segs)
+	}
+}
+
+func TestSessionSegmentsRunningToolEndsNow(t *testing.T) {
+	pool, path := fixturePool(t)
+	defer pool.Close()
+	if _, err := pool.Exec(`INSERT INTO part VALUES (?,?,?,?,?,?)`, "p1", "a1", "s1", 150, 150,
+		`{"type":"tool","tool":"bash","state":{"status":"running","input":{"command":"sleep 60"},"time":{"start":100}}}`); err != nil {
+		t.Fatal(err)
+	}
+	p := activateDB(t, path)
+	_, poolRO := p.poolFor()
+	segs, err := sessionSegments(poolRO, "s1", 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(segs) != 1 || !segs[0].Run || segs[0].Start != 100 || segs[0].End != 1000 || segs[0].Input != "sleep 60" {
 		t.Fatalf("segs = %+v", segs)
 	}
 }

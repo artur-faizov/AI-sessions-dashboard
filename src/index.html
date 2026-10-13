@@ -1448,6 +1448,11 @@
             color: #e5534b
         }
 
+        table.calls .segrun, .segkv .segrun {
+            margin-left: 6px;
+            color: #d29922
+        }
+
         table.calls tbody tr.flash td {
             animation: rowflash 1.6s ease-out
         }
@@ -3296,6 +3301,7 @@
   <td class="num">${bar(r.money, mMon, 'green')}${fmtMoney(r.money)}</td></tr>`;
             if (open) rows += ks.map(i => segRow(i, segMax)).join('');
         });
+        rows += (kids[''] || []).map(i => segRow(i, segMax)).join('');
         const heads = [
             [tr('calls.th.num'), tr('calls.th.num.tip'), ''],
             [tr('calls.th.dur'), tr('calls.th.dur.tip'), 'sep'],
@@ -3314,11 +3320,14 @@
     }
 
     // segsByCall groups the indexes into SEGS by the AI call that issued them,
-    // in time order.
+    // in time order. Spans of a call not listed yet (opencode records a call
+    // once its step ends, after its tools ran) go under '', drawn after the
+    // last call.
     function segsByCall() {
-        const out = {};
+        const out = {}, known = new Set(CALLS.map(c => c.mid));
         SEGS.forEach((x, i) => {
-            if (x.mid && segShown(x)) (out[x.mid] = out[x.mid] || []).push(i);
+            const k = known.has(x.mid) ? x.mid : '';
+            if (x.mid && segShown(x)) (out[k] = out[k] || []).push(i);
         });
         Object.values(out).forEach(l => l.sort((a, b) => SEGS[a].start - SEGS[b].start));
         return out;
@@ -3383,7 +3392,7 @@
     // segDlg with the details.
     function segRow(i, mx) {
         const x = SEGS[i], d = x.end - x.start, rt = ` title="${tr('calls.seg.details')}"`;
-        return `<tr class="segrow" data-go="s:${i}" onclick="segDlg(${i}, event)"><td class="num"${rt}>${segIcon(x.kind)}</td><td class="num sep">${durCell(d, mx, x.kind, segTip(x))}</td><td colspan="8" class="sep"${rt}>${esc(x.name || chartLabel(x.kind))}${x.err ? '<span class="segerr">✕</span>' : ''}</td></tr>`;
+        return `<tr class="segrow" data-go="s:${i}" onclick="segDlg(${i}, event)"><td class="num"${rt}>${segIcon(x.kind)}</td><td class="num sep">${durCell(d, mx, x.kind, segTip(x))}</td><td colspan="8" class="sep"${rt}>${esc(x.name || chartLabel(x.kind))}${x.err ? '<span class="segerr">✕</span>' : ''}${x.run ? `<span class="segrun">${tr('calls.seg.run')}</span>` : ''}</td></tr>`;
     }
 
     function segDlg(i, ev) {
@@ -3430,9 +3439,10 @@
         document.querySelector('#segbody').innerHTML = [
             row(tr('calls.seg.kind'), esc(chartLabel(x.kind))),
             x.err ? row(tr('calls.seg.status'), `<span class="segerr">${tr('calls.seg.err')}</span>`) : '',
+            x.run ? row(tr('calls.seg.status'), `<span class="segrun">${tr('calls.seg.run')}</span>`) : '',
             row(tr('calls.seg.dur'), dur(x.end - x.start)),
             row(tr('calls.seg.from'), esc(when(x.start))),
-            row(tr('calls.seg.to'), esc(when(x.end))),
+            x.run ? '' : row(tr('calls.seg.to'), esc(when(x.end))),
             call ? row(i < 0 ? tr('calls.seg.led') : tr('calls.seg.call'), `#${call.n}`) : '',
             x.input ? `<div class="segkv"><span>${tr('calls.seg.cmd')}</span></div><pre class="segpre">${esc(cmdLines(x.input))}</pre>` : '',
             x.output ? `<div class="segkv"><span>${tr('calls.seg.reply')}</span></div><pre class="segpre">${esc(x.output)}</pre>` : '',

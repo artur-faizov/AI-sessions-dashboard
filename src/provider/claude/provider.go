@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/artur-faizov/token-monitor/src/provider"
 )
@@ -71,14 +72,23 @@ func (c *Provider) SessionCalls(sid string) ([]provider.CallRec, error) {
 }
 
 // SessionSegments returns the session's tool and human-wait spans plus one
-// subagent span per child transcript.
+// subagent span per child transcript. Tools still running are included while
+// a Claude Code process runs the session.
 func (c *Provider) SessionSegments(sid string) ([]provider.Seg, error) {
 	idx := c.scanIndex()
 	s := idx.lookup(sid)
 	if s == nil {
 		return nil, fmt.Errorf("session not found: %s", sid)
 	}
-	segs := s.file.segments()
+	root := sid // a subagent runs in its root session's process
+	for a, ok := idx.agents[root]; ok && a.parent != ""; a, ok = idx.agents[root] {
+		root = a.parent
+	}
+	var nowMS int64
+	if _, ok := c.liveStatuses()[root]; ok {
+		nowMS = time.Now().UnixMilli()
+	}
+	segs := s.file.segments(nowMS)
 	mids := s.file.issuers()
 	for _, a := range idx.agents {
 		if a.parent == sid && a.file.firstMS > 0 && a.file.lastMS > a.file.firstMS {

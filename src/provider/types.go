@@ -88,7 +88,8 @@ const (
 // may overlap; the dashboard decides which one wins. Mid is the AI call that
 // issued the span (empty when unknown), Name the tool or subagent type, Sub
 // the subagent's session id, Input the tool's command or input, Output its
-// reply, Err marks a tool that failed.
+// reply, Err marks a tool that failed, Run one still running (End is then
+// the time the span was read).
 type Seg struct {
 	Kind   string `json:"kind"`
 	Start  int64  `json:"start"`
@@ -99,6 +100,7 @@ type Seg struct {
 	Input  string `json:"input,omitempty"`
 	Output string `json:"output,omitempty"`
 	Err    bool   `json:"err,omitempty"`
+	Run    bool   `json:"run,omitempty"`
 }
 
 // TriggerPartText is a text part of a /api/trigger payload.

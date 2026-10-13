@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/artur-faizov/token-monitor/src/provider"
 )
@@ -170,7 +171,7 @@ func (p *Provider) SessionCalls(sid string) (out []provider.CallRec, err error) 
 
 func (p *Provider) SessionSegments(sid string) (out []provider.Seg, err error) {
 	err = p.withPool(func(pool *sql.DB) error {
-		out, err = sessionSegments(pool, sid)
+		out, err = sessionSegments(pool, sid, time.Now().UnixMilli())
 		return err
 	})
 	return out, err

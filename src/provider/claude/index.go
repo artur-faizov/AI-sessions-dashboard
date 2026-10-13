@@ -595,38 +595,56 @@ func (f *claudeFile) issuers() map[string]string {
 // segments lists the spans a transcript spent in tools and waiting for the
 // human, from a tool_use line to its tool_result line. Subagent launches are
 // left out: the launch returns at once, the run itself is a child transcript.
-func (f *claudeFile) segments() []provider.Seg {
+// When the session is live (nowMS > 0), a tool_use still without its
+// tool_result is running and its span ends at nowMS.
+func (f *claudeFile) segments(nowMS int64) []provider.Seg {
 	segs := []provider.Seg{}
 	starts := map[string]int64{}
 	inputs := map[string]any{}
+	var open []string
 	mids := f.issuers()
+	add := func(id string, end int64, isErr bool, out any) {
+		st := starts[id]
+		if end <= st {
+			return
+		}
+		name := f.toolNames[id]
+		kind := provider.SegTool
+		switch name {
+		case "AskUserQuestion", "ExitPlanMode":
+			kind = provider.SegHuman
+		case "Agent", "Task":
+			return
+		}
+		segs = append(segs, provider.Seg{
+			Kind: kind, Start: st, End: end,
+			Mid: mids[id], Name: name, Err: isErr, Run: out == nil,
+			Input:  provider.ToolInput(inputs[id]),
+			Output: provider.ToolOutput(out),
+		})
+	}
 	for _, m := range f.messages {
 		for _, tu := range m.toolUses {
 			starts[tu.id] = m.timeMS
 			inputs[tu.id] = tu.input
+			open = append(open, tu.id)
 		}
 		if m.role != "user" {
 			continue
 		}
 		for _, tr := range m.toolResults {
-			st, ok := starts[tr.id]
-			if !ok || m.timeMS <= st {
+			if _, ok := starts[tr.id]; !ok {
 				continue
 			}
-			name := f.toolNames[tr.id]
-			kind := provider.SegTool
-			switch name {
-			case "AskUserQuestion", "ExitPlanMode":
-				kind = provider.SegHuman
-			case "Agent", "Task":
-				continue
+			add(tr.id, m.timeMS, tr.isErr, tr.content)
+			delete(starts, tr.id)
+		}
+	}
+	if nowMS > 0 {
+		for _, id := range open {
+			if _, ok := starts[id]; ok {
+				add(id, nowMS, false, nil)
 			}
-			segs = append(segs, provider.Seg{
-				Kind: kind, Start: st, End: m.timeMS,
-				Mid: mids[tr.id], Name: name, Err: tr.isErr,
-				Input:  provider.ToolInput(inputs[tr.id]),
-				Output: provider.ToolOutput(tr.content),
-			})
 		}
 	}
 	return segs

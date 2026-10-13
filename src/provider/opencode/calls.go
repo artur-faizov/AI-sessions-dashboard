@@ -220,8 +220,9 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 
 // sessionSegments lists the spans a session spent in tools (state start to
 // end), waiting for the human (question tool) and waiting for a subagent (task
-// tool, whose span covers the child session's run).
-func sessionSegments(pool *sql.DB, sessionID string) ([]provider.Seg, error) {
+// tool, whose span covers the child session's run). A tool still running
+// ends at nowMS.
+func sessionSegments(pool *sql.DB, sessionID string, nowMS int64) ([]provider.Seg, error) {
 	rows, err := pool.Query(`SELECT message_id, data FROM part WHERE session_id = ? AND data LIKE '%"type":"tool"%'`, sessionID)
 	if err != nil {
 		return nil, err
@@ -240,12 +241,16 @@ func sessionSegments(pool *sql.DB, sessionID string) ([]provider.Seg, error) {
 		st := sub(d, "state")
 		tm := sub(st, "time")
 		start, end := num(tm["start"]), num(tm["end"])
+		run := st["status"] == "running" && end <= 0
+		if run {
+			end = nowMS
+		}
 		if start <= 0 || end <= start {
 			continue
 		}
 		tool, _ := d["tool"].(string)
 		seg := provider.Seg{Kind: provider.SegTool, Start: start, End: end, Mid: mid, Name: tool, Err: st["status"] == "error",
-			Input: provider.ToolInput(st["input"]), Output: provider.ToolOutput(st["output"])}
+			Input: provider.ToolInput(st["input"]), Output: provider.ToolOutput(st["output"]), Run: run}
 		switch {
 		case tool == "task":
 			seg.Kind = provider.SegSub

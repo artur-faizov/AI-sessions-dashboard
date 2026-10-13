@@ -68,3 +68,29 @@ func TestClaudeLiveStateNeedsActiveAndLiveFile(t *testing.T) {
 		t.Fatalf("inactive session: state %q, want empty", n.State)
 	}
 }
+
+func TestClaudeRunningToolSegOnlyWhileLive(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "do it"),
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0,
+			`{"type":"tool_use","id":"call_r","name":"Read","input":{"path":"x"}}`),
+		userToolResultLine("u2", "2026-09-03T13:28:29.000Z", "call_r", "body"),
+		assistantLine("a2", "2026-09-03T13:28:30.000Z", "m1", 10, 5, 0, 0,
+			`{"type":"tool_use","id":"call_b","name":"Bash","input":{"command":"sleep 60"}}`))
+	segs, err := p.SessionSegments("s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(segs) != 1 || segs[0].Name != "Read" || segs[0].Run {
+		t.Fatalf("not live: segs = %+v", segs)
+	}
+	writeLive(t, p, "busy", "")
+	segs, err = p.SessionSegments("s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(segs) != 2 || !segs[1].Run || segs[1].Input != "sleep 60" || segs[1].Start != claudeParseMS("2026-09-03T13:28:30.000Z") {
+		t.Fatalf("live: segs = %+v", segs)
+	}
+}
