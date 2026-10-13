@@ -1179,6 +1179,23 @@
             border-bottom: 1px solid var(--line)
         }
 
+        table.calls th.srt {
+            cursor: pointer;
+            white-space: nowrap
+        }
+
+        table.calls th.srt:hover, table.calls th.srt.active {
+            color: var(--acc)
+        }
+
+        table.calls th.srt.active::after {
+            content: ' ▾'
+        }
+
+        table.calls th.srt.active.asc::after {
+            content: ' ▴'
+        }
+
         table.calls td {
             padding: 3px 6px;
             border-bottom: 1px solid #1f2229
@@ -1505,6 +1522,26 @@
             border: 1px solid var(--line);
             border-radius: 6px;
             font-size: 12px
+        }
+
+        /* a here-document body (e.g. a python script fed via <<'E') inside a command */
+        .segpre .heredoc {
+            display: block;
+            margin: 4px 0 4px 12px;
+            padding: 6px 10px;
+            background: #1c2230;
+            border-left: 3px solid var(--acc);
+            border-radius: 4px;
+            color: #c8d3f5
+        }
+
+        .segpre .heredoc[data-prog]::before {
+            content: attr(data-prog);
+            float: right;
+            margin-left: 8px;
+            font-size: 10px;
+            color: var(--dim);
+            text-transform: uppercase
         }
 
         table.calls .sep {
@@ -2474,6 +2511,7 @@
     let REC = { only: false };
     let CHK = { only: false, marked: new Set() };
     let SNAME = {}; // local session names: id -> text (replaces the title in the UI)
+    let CSORT = {key: null, asc: false}; // AI calls table sort; key null = chronological
 
     const SET_KEY = 'ttree-settings';
 
@@ -2484,7 +2522,7 @@
                 models: [...treeFilter.models], providers: [...treeFilter.providers], dirs: [...treeFilter.dirs]
             });
             localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC,
-                chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST, segc: SEG_COLLAPSED, segmin: SEG_MIN}));
+                chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST, segc: SEG_COLLAPSED, segmin: SEG_MIN, csort: CSORT}));
         } catch (e) { /* storage unavailable — ignore */ }
     }
 
@@ -2527,6 +2565,7 @@
             if (s.rec) REC = Object.assign({only: false}, s.rec);
             SEG_COLLAPSED = s.segc === true;
             if (s.segmin && typeof s.segmin.sec === 'number') SEG_MIN = {on: s.segmin.on !== false, sec: s.segmin.sec};
+            if (s.csort && typeof s.csort.key === 'string') CSORT = {key: s.csort.key, asc: !!s.csort.asc};
             if (s.chk) CHK = Object.assign({only: false, marked: new Set(s.chk.marked || [])}, {only: !!s.chk.only});
             if (s.names && typeof s.names === 'object') {
                 SNAME = {};
@@ -3262,6 +3301,13 @@
         }
         const kids = segsByCall(), found = visibleCallRows(calls, callFilter, c => when(c.time));
         const vis = found.filter(r => callShown(calls[r.n - 1], kids));
+        vis.forEach(r => {
+            r.dur = calls[r.n - 1].dur || 0;
+            r.tokeq = tokEqOf(r);
+            r.money = costT(r, r.model);
+        });
+        const k = CSORT.key;
+        if (k) vis.sort((a, b) => (CSORT.asc ? a[k] - b[k] : b[k] - a[k]) || a.n - b.n);
         VISIBLE = vis.map(r => r.n - 1);
         if (!found.length) return `<div class="empty">${tr('calls.empty_filtered')}</div>`;
         if (!vis.length) return `${callsCharts(calls)}${segSwitch()}<div class="empty">${tr('calls.empty_filtered')}</div>`;
@@ -3269,10 +3315,6 @@
             n: i + 1, ctx: c.ctx, delta: callDeltaAt(calls, i),
             out: c.out, reason: c.reason, in: c.in, cr: c.cr, cw: c.cw || 0
         }));
-        vis.forEach(r => {
-            r.tokeq = tokEqOf(r);
-            r.money = costT(r, r.model);
-        });
         const mx = k => vis.reduce((m, r) => Math.max(m, r[k]), 1);
         const mCtx = mx('ctx'), mD = Math.max(1, ...vis.map(r => r.delta)),
             mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr'), mTq = mx('tokeq'), mMon = mx('money');
@@ -3281,10 +3323,13 @@
             const w = waitSpan(calls, i);
             return w ? w.end - w.start : 0;
         }));
-        let rows = '';
+        // newest first: the wait before a call goes under it, unlisted spans on top
+        const rev = k === 'num' && !CSORT.asc, tail = (kids[''] || []).map(i => segRow(i, segMax)).join('');
+        let rows = rev ? tail : '';
         vis.forEach(r => {
             const w = waitSpan(calls, r.n - 1);
-            if (w && segIsOpen(calls[r.n - 2].mid) && segShown(w)) rows += waitRow(r.n - 1, w, segMax);
+            const wr = w && segIsOpen(calls[r.n - 2].mid) && segShown(w) ? waitRow(r.n - 1, w, segMax) : '';
+            if (!rev) rows += wr;
             const cls = r.ask ? 'ask' : r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
             const tip = [r.hu ? humTip(r.hu) : '', r.ask ? tr('calls.ask.tip') : ''].filter(Boolean).join('\n');
             const ks = kids[r.mid] || [], open = segIsOpen(r.mid);
@@ -3300,23 +3345,32 @@
   <td class="num sep">${bar(r.tokeq, mTq, 'amber')}${fmt(r.tokeq)}</td>
   <td class="num">${bar(r.money, mMon, 'green')}${fmtMoney(r.money)}</td></tr>`;
             if (open) rows += ks.map(i => segRow(i, segMax)).join('');
+            if (rev) rows += wr;
         });
-        rows += (kids[''] || []).map(i => segRow(i, segMax)).join('');
+        if (!rev) rows += tail;
         const heads = [
-            [tr('calls.th.num'), tr('calls.th.num.tip'), ''],
-            [tr('calls.th.dur'), tr('calls.th.dur.tip'), 'sep'],
-            [tr('calls.th.ctx'), tr('calls.th.ctx.tip'), 'sep'],
-            [tr('calls.th.delta'), tr('calls.th.delta.tip'), ''],
-            [tr('calls.th.out'), tr('calls.th.out.tip'), ''],
-            [tr('calls.th.reason'), tr('calls.th.reason.tip'), ''],
-            [tr('calls.th.in'), tr('calls.th.in.tip'), 'sep'],
-            [tr('calls.th.cr'), tr('calls.th.cr.tip'), ''],
-            [tr('calls.th.tokeq'), tr('calls.th.tokeq.tip'), 'sep'],
-            [tr('calls.th.money'), tr('calls.th.money.tip'), '']
+            ['num', tr('calls.th.num'), tr('calls.th.num.tip'), ''],
+            ['dur', tr('calls.th.dur'), tr('calls.th.dur.tip'), 'sep'],
+            ['ctx', tr('calls.th.ctx'), tr('calls.th.ctx.tip'), 'sep'],
+            ['delta', tr('calls.th.delta'), tr('calls.th.delta.tip'), ''],
+            ['out', tr('calls.th.out'), tr('calls.th.out.tip'), ''],
+            ['reason', tr('calls.th.reason'), tr('calls.th.reason.tip'), ''],
+            ['in', tr('calls.th.in'), tr('calls.th.in.tip'), 'sep'],
+            ['cr', tr('calls.th.cr'), tr('calls.th.cr.tip'), ''],
+            ['tokeq', tr('calls.th.tokeq'), tr('calls.th.tokeq.tip'), 'sep'],
+            ['money', tr('calls.th.money'), tr('calls.th.money.tip'), '']
         ];
-        return `${callsCharts(calls)}${segSwitch()}<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
+        const thCls = h => ['srt', h[3], k === h[0] ? 'active' + (CSORT.asc ? ' asc' : '') : ''].filter(Boolean).join(' ');
+        return `${callsCharts(calls)}${segSwitch()}<table class="calls"><thead><tr>${heads.map(h => `<th class="${thCls(h)}" title="${h[2]}\n${tr('calls.th.sort.tip')}" onclick="setCallSort('${h[0]}')">${h[1]}</th>`).join('')}</tr></thead>
   <tbody><tr class="gap"><td colspan="10"></td></tr>${rows}</tbody>
 </table>${callsLegend()}`;
+    }
+
+    // setCallSort cycles a calls column: descending, ascending, chronological.
+    function setCallSort(k) {
+        CSORT = CSORT.key !== k ? {key: k, asc: false} : !CSORT.asc ? {key: k, asc: true} : {key: null, asc: false};
+        saveSettings();
+        refreshCalls();
     }
 
     // segsByCall groups the indexes into SEGS by the AI call that issued them,
@@ -3401,13 +3455,73 @@
 
     // cmdLines puts every command chained with ;, && or || on its own line and
     // every pipe stage on an indented line of its own; separators inside quotes
-    // or escaped (find … \;) are left alone.
+    // or escaped (find … \;) are left alone, here-document bodies are kept as is.
     function cmdLines(s) {
-        let out = '', q = '';
+        return cmdParts(s).map(p => p.doc ? p.text + '\n' : p.text).join('');
+    }
+
+    // cmdHtml is cmdLines for a <pre>: here-document bodies become blocks of
+    // their own labelled with the program reading them.
+    function cmdHtml(s) {
+        const ps = cmdParts(s);
+        return ps.map((p, i) => p.doc
+            ? `<span class="heredoc"${p.prog ? ` data-prog="${esc(p.prog)}"` : ''}>${esc(p.text)}</span>`
+            : esc(ps[i + 1] && ps[i + 1].doc ? p.text.replace(/\n$/, '') : p.text)).join('');
+    }
+
+    // heredocProg names the program a here-document opened at the end of the
+    // shell text cmd is fed to: the first word of its last command, skipping
+    // VAR=value, env and sudo.
+    function heredocProg(cmd) {
+        const ws = cmd.split(/[\n|;&]/).pop().trim().split(/\s+/)
+            .filter(w => w && !/^\w+=/.test(w) && w !== 'env' && w !== 'sudo');
+        return ws.length ? ws[0].split('/').pop() : '';
+    }
+
+    // cmdParts splits a command into shell text laid out by cmdLines and the
+    // bodies of its here-documents ({doc: true, prog}), taken verbatim up to
+    // the line holding only their delimiter.
+    function cmdParts(s) {
+        const parts = [];
+        let out = '', q = '', docs = [];
+        const flush = () => {
+            if (out) parts.push({text: out});
+            out = '';
+        };
         for (let i = 0; i < s.length; i++) {
             const c = s[i];
             if (c === '\\' && q !== "'") {
                 out += c + (s[++i] ?? '');
+                continue;
+            }
+            if (!q && c === '<' && s[i + 1] === '<') {
+                const m = /^<<(-?)[ \t]*(['"]?)([A-Za-z_][\w.-]*)\2/.exec(s.slice(i));
+                if (m) {
+                    docs.push({end: m[3], tab: !!m[1], prog: heredocProg(out)});
+                    out += m[0];
+                    i += m[0].length - 1;
+                    continue;
+                }
+            }
+            if (!q && c === '\n' && docs.length) {
+                out += c;
+                let j = i + 1;
+                docs.forEach((d, k) => {
+                    let body = '', end = null;
+                    while (j < s.length && end === null) {
+                        let e = s.indexOf('\n', j);
+                        if (e < 0) e = s.length;
+                        const line = s.slice(j, e);
+                        j = e + 1;
+                        if ((d.tab ? line.replace(/^\t+/, '') : line) === d.end) end = line;
+                        else body += line + '\n';
+                    }
+                    flush();
+                    parts.push({text: body.replace(/\n$/, ''), doc: true, prog: d.prog});
+                    out += (end ?? '') + (k < docs.length - 1 ? '\n' : '');
+                });
+                docs = [];
+                i = j - 2;
                 continue;
             }
             if (q) {
@@ -3425,7 +3539,8 @@
             }
             out += c;
         }
-        return out;
+        flush();
+        return parts;
     }
 
     // segDlgShow opens the details popup of a span; i is its SEGS index, or -1
@@ -3444,7 +3559,7 @@
             row(tr('calls.seg.from'), esc(when(x.start))),
             x.run ? '' : row(tr('calls.seg.to'), esc(when(x.end))),
             call ? row(i < 0 ? tr('calls.seg.led') : tr('calls.seg.call'), `#${call.n}`) : '',
-            x.input ? `<div class="segkv"><span>${tr('calls.seg.cmd')}</span></div><pre class="segpre">${esc(cmdLines(x.input))}</pre>` : '',
+            x.input ? `<div class="segkv"><span>${tr('calls.seg.cmd')}</span></div><pre class="segpre">${cmdHtml(x.input)}</pre>` : '',
             x.output ? `<div class="segkv"><span>${tr('calls.seg.reply')}</span></div><pre class="segpre">${esc(x.output)}</pre>` : '',
             open ? `<div class="ovl-row"><button class="fbtn" onclick="segDlgClose(); segOpen(${i})">${tr('calls.seg.open')} ↗</button></div>` : ''
         ].join('');
