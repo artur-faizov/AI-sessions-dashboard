@@ -536,6 +536,10 @@
             --attn: 247, 118, 142
         }
 
+        .node.attn-done {
+            --attn: 255, 230, 0
+        }
+
         @keyframes attnblink {
             0%, 100% {
                 background: rgba(var(--attn), .08);
@@ -3724,8 +3728,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const s = find(TREE, id);
         if (!s) return;
         document.querySelector('#detail').innerHTML = `<div class="sect callshead"><span class="callstitle">${tr('detail.calls')} - <span id="dtitle" class="sesname" title="${esc(s.title)}">${esc(SNAME[s.id] || s.title)}</span></span> <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div>
-  <div id="dscroll"><div id="calls">${tr('loading')}</div>
-  <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre></div>`;
+  <div id="dscroll"><div id="calls">${tr('loading')}</div></div>`;
         await fillDetail(id);
     }
 
@@ -3743,15 +3746,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
     }
 
     async function fillDetail(id) {
-        const pP = getJson('/api/prompt/' + encodeURIComponent(id), document.querySelector('#pp'));
-        const pC = getJson('/api/calls/' + encodeURIComponent(id), document.querySelector('#calls'));
-        const pj = await pP;
-        const cj = await pC;
+        const cj = await getJson('/api/calls/' + encodeURIComponent(id), document.querySelector('#calls'));
         if (sel !== id) return;
-        if (pj) {
-            const pp = document.querySelector('#pp');
-            pp.textContent = (pj.texts && pj.texts.length) ? pj.texts.join('\n\n—\n\n') : tr('prompt.empty');
-        }
         if (cj) {
             CALLS = (cj.calls || []).map((c, i) => Object.assign({}, c, {n: i + 1}));
             SEGS = cj.segs || [];
