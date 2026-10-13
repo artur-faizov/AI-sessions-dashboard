@@ -3302,12 +3302,12 @@
         const kids = segsByCall(), found = visibleCallRows(calls, callFilter, c => when(c.time));
         const vis = found.filter(r => callShown(calls[r.n - 1], kids));
         vis.forEach(r => {
-            r.dur = calls[r.n - 1].dur || 0;
+            r.dur = stepDur(calls[r.n - 1]);
             r.tokeq = tokEqOf(r);
             r.money = costT(r, r.model);
         });
-        const k = CSORT.key;
-        if (k) vis.sort((a, b) => (CSORT.asc ? a[k] - b[k] : b[k] - a[k]) || a.n - b.n);
+        const k = CSORT.key, f = k === 'num' ? 'n' : k;
+        if (k) vis.sort((a, b) => (CSORT.asc ? a[f] - b[f] : b[f] - a[f]) || a.n - b.n);
         VISIBLE = vis.map(r => r.n - 1);
         if (!found.length) return `<div class="empty">${tr('calls.empty_filtered')}</div>`;
         if (!vis.length) return `${callsCharts(calls)}${segSwitch()}<div class="empty">${tr('calls.empty_filtered')}</div>`;
@@ -3322,20 +3322,23 @@
         const segMax = Math.max(1, ...SEGS.map(x => x.end - x.start), ...calls.map(c => c.dur || 0), ...calls.map((c, i) => {
             const w = waitSpan(calls, i);
             return w ? w.end - w.start : 0;
-        }));
-        // newest first: the wait before a call goes under it, unlisted spans on top
-        const rev = k === 'num' && !CSORT.asc, tail = (kids[''] || []).map(i => segRow(i, segMax)).join('');
+        }), ...(k === 'dur' ? vis.map(r => r.dur) : []));
+        // newest first: the wait before a call goes under it, unlisted spans on top;
+        // waits sit between calls, so a sort by value drops them
+        const rev = k === 'num' && !CSORT.asc, chrono = !k || k === 'num', tail = (kids[''] || []).map(i => segRow(i, segMax)).join('');
         let rows = rev ? tail : '';
         vis.forEach(r => {
             const w = waitSpan(calls, r.n - 1);
-            const wr = w && segIsOpen(calls[r.n - 2].mid) && segShown(w) ? waitRow(r.n - 1, w, segMax) : '';
+            const wr = w && chrono && segIsOpen(calls[r.n - 2].mid) && segShown(w) ? waitRow(r.n - 1, w, segMax) : '';
             if (!rev) rows += wr;
             const cls = r.ask ? 'ask' : r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
             const tip = [r.hu ? humTip(r.hu) : '', r.ask ? tr('calls.ask.tip') : ''].filter(Boolean).join('\n');
             const ks = kids[r.mid] || [], open = segIsOpen(r.mid);
             rows += `<tr data-mid="${esc(r.mid)}" data-go="c:${esc(r.mid)}"${cls ? ` class="${cls}"` : ''}${tip ? ` title="${tip}"` : ''} onclick="callPick('${esc(r.mid)}')">
   <td class="num">${r.n}${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}</td>
-  <td class="num sep">${durCell(calls[r.n - 1].dur || 0, segMax, 'ai')}</td>
+  <td class="num sep">${k === 'dur' && r.dur !== (calls[r.n - 1].dur || 0)
+        ? durCell(r.dur, segMax, 'ai', tr('calls.dur.step.tip', {t: dur(r.dur), c: dur(calls[r.n - 1].dur || 0)}))
+        : durCell(calls[r.n - 1].dur || 0, segMax, 'ai')}</td>
   <td class="num sep">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
   <td class="num">${bar(r.delta, mD)}${fmt(r.delta)}</td>
   <td class="num">${bar(r.out, mOut)}${fmt(r.out)}</td>
@@ -3388,6 +3391,21 @@
     }
 
     const callEnd = c => c.end || c.time;
+
+    // stepDur is the wall-clock time of an AI call together with the tools,
+    // subagents and waits it issued (its sub-rows); overlaps count once.
+    function stepDur(c) {
+        const iv = SEGS.filter(x => x.mid === c.mid && x.end > x.start).map(x => [x.start, x.end]);
+        if (c.dur > 0) iv.push([callEnd(c) - c.dur, callEnd(c)]);
+        iv.sort((a, b) => a[0] - b[0]);
+        let t = 0, e = -Infinity;
+        for (const [a, b] of iv) {
+            if (b <= e) continue;
+            t += b - Math.max(a, e);
+            e = b;
+        }
+        return t;
+    }
 
     // segIcon marks a sub-row in the # column: an hourglass with a person for
     // waiting on the human, a robot for a subagent, a wrench for a tool.
