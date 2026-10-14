@@ -76,9 +76,8 @@ make mac-app-install  # macOS: also copy it to ~/Applications
 - Dock launcher (macOS): run `make mac-app-install`, open `~/Applications`
   in Finder and drag `TokenMonitor.app` onto the Dock. Clicking it starts
   the dashboard and opens it in your browser; logs go to
-  `~/Library/Logs/TokenMonitor.log`. To stop the dashboard, Option-right-click
-  the Dock icon → Force Quit (it is not a Cocoa app, so plain Quit is
-  ignored). Re-run `make mac-app-install` after rebuilding to update the
+  `~/Library/Logs/TokenMonitor.log`. Clicking the icon again reopens the
+  page; right-click → Quit stops the dashboard. Re-run `make mac-app-install` after rebuilding to update the
   copy in `~/Applications`
 - `make clean` removes build artifacts (`dist/`, `build/`)
 
