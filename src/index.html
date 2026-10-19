@@ -1776,6 +1776,77 @@
             max-height: 40vh
         }
 
+        .ctxwrap {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-top: 8px
+        }
+
+        .ctxpie {
+            width: 200px;
+            height: 200px;
+            flex: none
+        }
+
+        .ctxpie path, .ctxpie circle {
+            cursor: pointer;
+            stroke: var(--bg);
+            stroke-width: 1
+        }
+
+        .ctxpie path:hover, .ctxpie circle:hover {
+            opacity: .8
+        }
+
+        .ctxlegs {
+            flex: 1;
+            min-width: 0;
+            font-size: 13px
+        }
+
+        .ctxgrp > summary {
+            cursor: pointer;
+            padding: 2px 0
+        }
+
+        .ctxgrp b, .ctxitem b {
+            color: var(--fg)
+        }
+
+        .ctxitem {
+            margin: 2px 0 2px 22px;
+            color: var(--dim);
+            font-size: 12px
+        }
+
+        .ctxitem > summary {
+            cursor: pointer
+        }
+
+        .ctxitem pre.prompt {
+            max-height: 30vh
+        }
+
+        .dsq.hatch {
+            background-image: repeating-linear-gradient(45deg, transparent 0 2px, #9aa5ce 2px 4px) !important
+        }
+
+        .ctxic {
+            cursor: pointer;
+            margin-right: 4px
+        }
+
+        .ctxic:hover {
+            filter: brightness(1.3)
+        }
+
+        .ctxnote {
+            color: var(--dim);
+            font-size: 12px;
+            margin-top: 8px
+        }
+
         .tblock.reply pre.prompt {
             border-color: rgba(187, 154, 247, .6);
             background: rgba(187, 154, 247, .10)
@@ -3335,7 +3406,7 @@
             const tip = [r.hu ? humTip(r.hu) : '', r.ask ? tr('calls.ask.tip') : ''].filter(Boolean).join('\n');
             const ks = kids[r.mid] || [], open = segIsOpen(r.mid);
             rows += `<tr data-mid="${esc(r.mid)}" data-go="c:${esc(r.mid)}"${cls ? ` class="${cls}"` : ''}${tip ? ` title="${tip}"` : ''} onclick="callPick('${esc(r.mid)}')">
-  <td class="num">${r.n}${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}</td>
+  <td class="num">${r.n === 1 ? `<span class="ctxic" title="${esc(tr('ctx.btn.tip'))}" onclick="event.stopPropagation(); ctxCall(0)">🥧</span>` : ''}${r.n}${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}</td>
   <td class="num sep">${k === 'dur' && r.dur !== (calls[r.n - 1].dur || 0)
         ? durCell(r.dur, segMax, 'ai', tr('calls.dur.step.tip', {t: dur(r.dur), c: dur(calls[r.n - 1].dur || 0)}))
         : durCell(calls[r.n - 1].dur || 0, segMax, 'ai')}</td>
@@ -3909,9 +3980,110 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             : j.case === 'assistant' ? tr('trig.assistant')
             : tr('trig.start');
         h += `<div class="tblock"><div class="lbl">${c && c.hu ? humIcon(c.hu) : ''}${lbl}</div></div>`;
+        if (c && c.n === 1) h += `<div class="tblock"><button class="fbtn" id="ccompbtn" title="${esc(tr('ctx.btn.tip'))}" onclick="ctxShow(${CALLS.indexOf(c)})">🥧 ${tr('ctx.btn')}</button><div id="ccompbox"></div></div>`;
         for (const p of (j.parts || [])) h += trigPartHtml(p);
         if (!(j.parts || []).length && j.case !== 'start') h += `<div class="empty">${tr('trig.empty')}</div>`;
         document.querySelector('#modal-body').innerHTML = h;
+    }
+
+    // Context composition of a call (/api/context): items of free-form kinds,
+    // grouped by kind into a pie; each kind opens into its items and texts.
+    const CTX_COLORS = {
+        system: '#7aa2f7', hidden: '#565f89', user: '#9ece6a', instructions: '#e0af68',
+        skills: '#bb9af7', agents: '#f7768e', hooks: '#ff9e64', files: '#2ac3de',
+        tools: '#4fb3a3', reminders: '#a9b1d6'
+    };
+    const CTX_SPARE = ['#73daca', '#c0caf5', '#db4b4b', '#b4f9f8', '#cfc9c2'];
+
+    function ctxColor(kind) {
+        if (CTX_COLORS[kind]) return CTX_COLORS[kind];
+        let h = 0;
+        for (const ch of kind) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+        return CTX_SPARE[h % CTX_SPARE.length];
+    }
+
+    function ctxKindName(kind) {
+        const k = 'ctx.kind.' + kind, v = tr(k);
+        return v === k ? kind : v;
+    }
+
+    // ctxPie draws the groups as SVG slices; inferred groups are hatched.
+    function ctxPie(groups, total) {
+        const R = 90, C = 100;
+        let a = -Math.PI / 2, h = '';
+        groups.forEach((g, i) => {
+            const frac = g.tokens / total;
+            if (frac <= 0) return;
+            const fill = g.inferred ? 'url(#ctxhatch)' : g.color;
+            const tip = `<title>${esc(ctxKindName(g.kind))} · ${fmt(g.tokens)} · ${(frac * 100).toFixed(1)}%</title>`;
+            const click = `onclick="ctxOpen(${i})"`;
+            if (frac >= 0.9999) {
+                h += `<circle cx="${C}" cy="${C}" r="${R}" fill="${fill}" ${click}>${tip}</circle>`;
+                return;
+            }
+            const b = a + frac * 2 * Math.PI;
+            const p = t => `${(C + R * Math.cos(t)).toFixed(2)},${(C + R * Math.sin(t)).toFixed(2)}`;
+            h += `<path d="M${C},${C} L${p(a)} A${R},${R} 0 ${frac > 0.5 ? 1 : 0} 1 ${p(b)} Z" fill="${fill}" ${click}>${tip}</path>`;
+            a = b;
+        });
+        return `<svg class="ctxpie" viewBox="0 0 200 200"><defs><pattern id="ctxhatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="${CTX_COLORS.hidden}"/><line x1="0" y1="0" x2="0" y2="8" stroke="#9aa5ce" stroke-width="3"/></pattern></defs>${h}</svg>`;
+    }
+
+    function ctxOpen(i) {
+        const d = document.querySelector('#ctxgrp' + i);
+        if (!d) return;
+        d.open = true;
+        d.scrollIntoView({block: 'nearest'});
+    }
+
+    function renderCtx(j) {
+        const by = {};
+        for (const it of j.items || []) {
+            const g = by[it.kind] || (by[it.kind] = {kind: it.kind, tokens: 0, items: [], inferred: true, color: ctxColor(it.kind)});
+            g.tokens += it.tokens;
+            g.items.push(it);
+            if (it.est !== 'inferred') g.inferred = false;
+        }
+        const groups = Object.values(by).sort((a, b) => b.tokens - a.tokens);
+        const total = Math.max(1, j.ctx);
+        const pct = n => (n / total * 100).toFixed(1) + '%';
+        const rows = groups.map((g, i) => {
+            const sq = `<i class="dsq${g.inferred ? ' hatch' : ''}" style="background:${g.color}"></i>`;
+            const items = g.items.slice().sort((a, b) => b.tokens - a.tokens).map(it => {
+                const head = `${esc(it.label || ctxKindName(it.kind))} · <b>${fmt(it.tokens)}</b> · ${tr(it.est === 'inferred' ? 'ctx.est.inferred' : 'ctx.est.text')}`;
+                return it.text
+                    ? `<details class="ctxitem"><summary>${head}</summary><pre class="prompt">${esc(it.text)}${it.cut ? '\n\n' + tr('trig.trunc') : ''}</pre></details>`
+                    : `<div class="ctxitem">${head}</div>`;
+            }).join('');
+            return `<details class="ctxgrp" id="ctxgrp${i}"><summary>${sq}${esc(ctxKindName(g.kind))} <b>${fmt(g.tokens)}</b> ${pct(g.tokens)}</summary>${items}</details>`;
+        }).join('');
+        return `<div class="lbl">${tr('ctx.title', {ctx: fmt(j.ctx)})}</div><div class="ctxwrap">${ctxPie(groups, total)}<div class="ctxlegs">${rows}</div></div><div class="ctxnote">${tr('ctx.note')}</div>`;
+    }
+
+    // ctxCall opens a call and its context composition at once.
+    async function ctxCall(idx) {
+        await showCall(idx);
+        ctxShow(idx);
+    }
+
+    async function ctxShow(idx) {
+        const c = CALLS[idx], box = document.querySelector('#ccompbox');
+        if (!c || !box) return;
+        document.querySelector('#ccompbtn')?.remove();
+        box.innerHTML = tr('loading');
+        try {
+            const r = await fetch('/api/context/' + encodeURIComponent(c.mid));
+            if (r.status === 404) {
+                const e = await r.json().catch(() => ({}));
+                box.innerHTML = `<div class="empty">${tr(e.error === 'not_supported' ? 'ctx.unsupported' : 'ctx.na')}</div>`;
+                return;
+            }
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const j = await r.json();
+            if (curCall === idx) box.innerHTML = renderCtx(j);
+        } catch (e) {
+            if (curCall === idx) box.innerHTML = `<div class="empty">${tr('load.fail', {msg: esc(e.message)})}</div>`;
+        }
     }
 
     window.addEventListener('keydown', e => {
