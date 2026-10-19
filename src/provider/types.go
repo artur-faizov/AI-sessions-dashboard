@@ -19,13 +19,17 @@ type SessionNode struct {
 	Updated  int64                   `json:"updated"`
 	Active   bool                    `json:"active"`
 	Dur      int64                   `json:"dur"`
-	Beats    []int64                 `json:"beats"`
+	Beats    []Beat                  `json:"beats"`
 	State    string                  `json:"state,omitempty"`
 	Children []*SessionNode          `json:"children"`
 	Subtree  *SubtreeSums            `json:"subtree"`
 	ByModel  map[string]*SubtreeSums `json:"bymodel,omitempty"`
 	Source   string                  `json:"source"`
 }
+
+// Beat is one AI call on the ECG: [request sent, response finished] in ms.
+// End is 0 while the call is still in flight.
+type Beat [2]int64
 
 // Live states of an active session (SessionNode.State); empty when unknown.
 const (

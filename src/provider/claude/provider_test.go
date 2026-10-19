@@ -535,8 +535,9 @@ func TestClaudeActiveBeatsAndDur(t *testing.T) {
 	p, dir := claudeFixture(t, "-home-x-proj")
 	now := time.Now().UnixMilli()
 	ts := time.UnixMilli(now - 60_000).UTC().Format(time.RFC3339Nano)
+	sent := time.UnixMilli(now - 90_000).UTC().Format(time.RFC3339Nano)
 	writeLines(t, filepath.Join(dir, "s1.jsonl"),
-		userLine("u1", "2026-09-03T13:28:27.679Z", "hi"),
+		userLine("u1", sent, "hi"),
 		assistantLine("a1", ts, "m1", 10, 5, 0, 0, textBlock),
 	)
 	roots, err := p.BuildTree(now)
@@ -550,7 +551,8 @@ func TestClaudeActiveBeatsAndDur(t *testing.T) {
 	if !n.Active {
 		t.Fatal("session updated 1min ago must be active")
 	}
-	if len(n.Beats) != 1 {
+	// the beat runs from the prompt that sent the request to the reply
+	if len(n.Beats) != 1 || n.Beats[0] != (provider.Beat{now - 90_000, now - 60_000}) {
 		t.Fatalf("active session beats: %s", jdump(n.Beats))
 	}
 	if n.Dur <= 0 {

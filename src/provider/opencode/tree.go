@@ -85,8 +85,11 @@ func sessionMaxContexts(pool *sql.DB) (map[string]int64, error) {
 	return out, rows.Err()
 }
 
-// sessionBeats returns timestamps (ms) of the session's own AI calls since sinceMs.
-func sessionBeats(pool *sql.DB, sessionID string, sinceMs int64) ([]int64, error) {
+// sessionBeats returns the session's own AI calls (sent, finished) since sinceMs.
+// A call still in flight has no completion time yet and ends at 0; only the
+// last call of an active session can be in flight, other unfinished ones were
+// abandoned and are dropped.
+func sessionBeats(pool *sql.DB, sessionID string, sinceMs int64, active bool) ([]provider.Beat, error) {
 	rows, err := pool.Query(
 		`SELECT time_created, data FROM message
 		 WHERE session_id = ? AND time_created >= ? AND data LIKE '%"role":"assistant"%'`,
@@ -95,7 +98,7 @@ func sessionBeats(pool *sql.DB, sessionID string, sinceMs int64) ([]int64, error
 		return nil, err
 	}
 	defer rows.Close()
-	var beats []int64
+	var beats []provider.Beat
 	for rows.Next() {
 		var tc int64
 		var data string
@@ -108,16 +111,23 @@ func sessionBeats(pool *sql.DB, sessionID string, sinceMs int64) ([]int64, error
 		}
 		t := sub(d, "tokens")
 		cache := sub(t, "cache")
-		if num(t["input"]) != 0 || num(t["output"]) != 0 || num(t["reasoning"]) != 0 ||
+		end := num(sub(d, "time")["completed"])
+		if end == 0 || num(t["input"]) != 0 || num(t["output"]) != 0 || num(t["reasoning"]) != 0 ||
 			num(cache["read"]) != 0 || num(cache["write"]) != 0 {
-			beats = append(beats, tc)
+			beats = append(beats, provider.Beat{tc, end})
 		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	sort.Slice(beats, func(i, j int) bool { return beats[i] < beats[j] })
-	return beats, nil
+	sort.Slice(beats, func(i, j int) bool { return beats[i][0] < beats[j][0] })
+	kept := beats[:0]
+	for i, b := range beats {
+		if b[1] != 0 || active && i == len(beats)-1 {
+			kept = append(kept, b)
+		}
+	}
+	return kept, nil
 }
 
 func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
@@ -172,7 +182,7 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 			Updated:  upd,
 			Active:   upd > 0 && nowMS-upd < provider.ActiveWindowMS,
 			Dur:      upd - created,
-			Beats:    []int64{},
+			Beats:    []provider.Beat{},
 			Children: []*provider.SessionNode{},
 			Source:   "opencode",
 		}
@@ -221,12 +231,12 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 			n.State = state
 		}
 		if n.Active || nowMS-n.Updated < provider.BeatWindowMS {
-			beats, err := sessionBeats(pool, n.ID, nowMS-provider.BeatWindowMS)
+			beats, err := sessionBeats(pool, n.ID, nowMS-provider.BeatWindowMS, n.Active)
 			if err != nil {
 				return nil, err
 			}
 			if beats == nil {
-				beats = []int64{}
+				beats = []provider.Beat{}
 			}
 			n.Beats = beats
 		}

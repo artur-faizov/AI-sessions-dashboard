@@ -34,20 +34,20 @@ func TestGoldenSessionTree(t *testing.T) {
 	child := &SessionNode{
 		ID: "s2", Parent: "s1", Title: "(untitled)", Agent: "general", Model: nil, Dir: "/proj",
 		In: 10, Out: 2, Cr: 100, Cw: 5, Created: 2000, Updated: 3000, Dur: 1000,
-		Beats: []int64{}, Children: []*SessionNode{},
+		Beats: []Beat{}, Children: []*SessionNode{},
 		Subtree: &SubtreeSums{In: 10, Out: 2, Cr: 100, Cw: 5}, Source: "opencode",
 	}
 	root := &SessionNode{
 		ID: "s1", Parent: nil, Title: "root title", Agent: "build",
 		Model: map[string]any{"id": "m", "provider": "p"}, Dir: "/proj", MaxCtx: 320,
 		In: 100, Out: 20, Reason: 3, Cr: 1000, Cw: 50, Created: 1000, Updated: 9000, Dur: 8000,
-		Beats: []int64{}, Children: []*SessionNode{child},
+		Beats: []Beat{}, Children: []*SessionNode{child},
 		Subtree: &SubtreeSums{In: 110, Out: 22, Reason: 3, Cr: 1100, Cw: 55}, Source: "opencode",
 	}
 	other := &SessionNode{
 		ID: "s3", Parent: nil, Title: "other <&> ü", Agent: nil, Model: "plain-model", Dir: "/p2",
 		In: 1, Out: 1, Reason: 1, Cr: 1, Cw: 1, Created: 500, Updated: 600, Dur: 100,
-		Beats: []int64{}, Children: []*SessionNode{},
+		Beats: []Beat{}, Children: []*SessionNode{},
 		Subtree: &SubtreeSums{In: 1, Out: 1, Reason: 1, Cr: 1, Cw: 1}, Source: "opencode",
 	}
 	assertGolden(t, "tree.golden.json", []*SessionNode{root, other})

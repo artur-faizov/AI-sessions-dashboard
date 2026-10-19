@@ -50,17 +50,27 @@ func optString(v string) any {
 	return v
 }
 
-func (st *stream) beats() []int64 {
-	beats := []int64{}
+// beats spans each assistant reply from the event before it (the user message
+// or tool result that sent the request) to the reply itself.
+func (st *stream) beats() []provider.Beat {
+	beats := []provider.Beat{}
 	if st == nil {
 		return beats
 	}
+	var prevMS int64
 	for _, it := range st.items {
 		if it.kind == kindAssistant && it.timeMS > 0 {
-			beats = append(beats, it.timeMS)
+			b := provider.Beat{it.timeMS, it.timeMS}
+			if prevMS > 0 && prevMS < b[0] {
+				b[0] = prevMS
+			}
+			beats = append(beats, b)
+		}
+		if it.timeMS > 0 {
+			prevMS = it.timeMS
 		}
 	}
-	sort.Slice(beats, func(i, j int) bool { return beats[i] < beats[j] })
+	sort.Slice(beats, func(i, j int) bool { return beats[i][0] < beats[j][0] })
 	return beats
 }
 
@@ -171,7 +181,7 @@ func (s *session) rootNode(nowMS int64, locked bool) *provider.SessionNode {
 		Created:  created,
 		Updated:  updated,
 		Active:   locked && s.lastMS > 0 && nowMS-s.lastMS < activeWindowMS,
-		Beats:    []int64{},
+		Beats:    []provider.Beat{},
 		Children: []*provider.SessionNode{},
 		Source:   "copilot",
 	}
@@ -222,7 +232,7 @@ func (s *session) subagentNode(sa *subagent, dir string, nowMS int64, locked boo
 		Created:  created,
 		Updated:  updated,
 		Active:   locked && !sa.completed && st.lastMS > 0 && nowMS-st.lastMS < activeWindowMS,
-		Beats:    []int64{},
+		Beats:    []provider.Beat{},
 		Children: []*provider.SessionNode{},
 		Source:   "copilot",
 	}
