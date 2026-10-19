@@ -295,6 +295,21 @@ test('treeHotVisible: node or any descendant above warn or crit', () => {
     assert.equal(L.treeHotVisible(node({ maxctx: 999999 }), null, null), false);
 });
 
+test('treeRecentVisible: active, or node or any descendant updated since the window start', () => {
+    const since = 1000;
+    assert.equal(L.treeRecentVisible(node({ updated: 999 }), since), false);
+    assert.equal(L.treeRecentVisible(node({ updated: 1000 }), since), true);
+    assert.equal(L.treeRecentVisible(node({ updated: 10, active: true }), since), true);
+    assert.equal(L.treeRecentVisible(node({ updated: 10, children: [node({ updated: 2000 })] }), since), true);
+});
+
+test('recent-window slider: log scale 5 min..24 h, round trip, coarser rounding', () => {
+    assert.equal(L.recWinAt(0), 5);
+    assert.equal(L.recWinAt(1000), 24 * 60);
+    for (const m of [5, 15, 30, 45, 60, 180, 24 * 60]) assert.equal(L.recWinAt(L.recSliderPos(m)), m);
+    assert.equal(L.recWinAt(800) % 15, 0);
+});
+
 test('treeActiveVisible: node or any descendant active', () => {
     const root = node({ children: [node({ active: true })] });
     assert.equal(L.treeActiveVisible(root), true);

@@ -16,7 +16,11 @@
     "updated": 1767265210000,
     "active": false,
     "dur": 9000,
-    "beats": [],
+    "beats": [
+      1767265202000,
+      1767265209000,
+      1767265210000
+    ],
     "children": [
       {
         "id": "otel-0006/call-O",
@@ -35,7 +39,10 @@
         "updated": 1767265207000,
         "active": false,
         "dur": 3000,
-        "beats": [],
+        "beats": [
+          1767265205000,
+          1767265206000
+        ],
         "children": [],
         "subtree": {
           "in": 308,
@@ -73,7 +80,9 @@
     "updated": 1767261607000,
     "active": false,
     "dur": 2000,
-    "beats": [],
+    "beats": [
+      1767261607000
+    ],
     "children": [],
     "subtree": {
       "in": 0,
@@ -101,7 +110,12 @@
     "updated": 1767261611000,
     "active": false,
     "dur": 9000,
-    "beats": [],
+    "beats": [
+      1767261603000,
+      1767261607000,
+      1767261609000,
+      1767261611000
+    ],
     "children": [],
     "subtree": {
       "in": 0,
@@ -129,7 +143,10 @@
     "updated": 1767261609000,
     "active": false,
     "dur": 9000,
-    "beats": [],
+    "beats": [
+      1767261602000,
+      1767261603000
+    ],
     "children": [
       {
         "id": "rows-0005/call-R",
@@ -148,7 +165,9 @@
         "updated": 1767261607000,
         "active": false,
         "dur": 1000,
-        "beats": [],
+        "beats": [
+          1767261606000
+        ],
         "children": [],
         "subtree": {
           "in": 7,
@@ -186,7 +205,10 @@
     "updated": 1767261609000,
     "active": false,
     "dur": 9000,
-    "beats": [],
+    "beats": [
+      1767261602000,
+      1767261608000
+    ],
     "children": [
       {
         "id": "shutdown-0003/call-D",
@@ -205,7 +227,9 @@
         "updated": 1767261606000,
         "active": false,
         "dur": 2000,
-        "beats": [],
+        "beats": [
+          1767261605000
+        ],
         "children": [],
         "subtree": {
           "in": 0,
@@ -243,7 +267,10 @@
     "updated": 1767261620000,
     "active": false,
     "dur": 20000,
-    "beats": [],
+    "beats": [
+      1767261602000,
+      1767261617000
+    ],
     "children": [
       {
         "id": "sub-0002/call-C",
@@ -262,7 +289,9 @@
         "updated": 1767261620000,
         "active": false,
         "dur": 1000,
-        "beats": [],
+        "beats": [
+          1767261620000
+        ],
         "children": [],
         "subtree": {
           "in": 0,
@@ -290,7 +319,10 @@
         "updated": 1767261615000,
         "active": false,
         "dur": 11000,
-        "beats": [],
+        "beats": [
+          1767261605000,
+          1767261614000
+        ],
         "children": [
           {
             "id": "sub-0002/call-B",
@@ -309,7 +341,10 @@
             "updated": 1767261612000,
             "active": false,
             "dur": 5000,
-            "beats": [],
+            "beats": [
+              1767261608000,
+              1767261611000
+            ],
             "children": [],
             "subtree": {
               "in": 0,

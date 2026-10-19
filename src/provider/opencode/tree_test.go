@@ -105,7 +105,7 @@ func TestBeatsListAICallTimesInsideWindow(t *testing.T) {
 	seedSession(t, pool, "fresh", now-5*60*1000, nil, nil, nil, 1)
 	seedMsg(t, pool, "m1", "fresh", now-2*60*1000, "assistant", true)
 	seedMsg(t, pool, "m2", "fresh", now-10*60*1000, "assistant", true)
-	seedMsg(t, pool, "m3", "fresh", now-30*60*1000, "assistant", true)
+	seedMsg(t, pool, "m3", "fresh", now-25*60*60*1000, "assistant", true)
 	seedMsg(t, pool, "m4", "fresh", now-60*1000, "user", true)
 	seedMsg(t, pool, "m5", "fresh", now-70*1000, "assistant", false)
 	p := activateDB(t, path)
@@ -119,19 +119,21 @@ func TestBeatsListAICallTimesInsideWindow(t *testing.T) {
 	}
 }
 
-func TestBeatsEmptyForInactiveSessions(t *testing.T) {
+func TestBeatsForRecentInactiveSessions(t *testing.T) {
 	pool, path := fixturePool(t)
 	defer pool.Close()
 	now := nowMS()
-	seedSession(t, pool, "stale", now-20*60*1000, nil, nil, nil, 1)
-	seedMsg(t, pool, "m6", "stale", now-3*60*1000, "assistant", true)
+	seedSession(t, pool, "recent", now-20*60*1000, nil, nil, nil, 1)
+	seedMsg(t, pool, "m6", "recent", now-25*60*1000, "assistant", true)
+	seedSession(t, pool, "stale", now-25*60*60*1000, nil, nil, nil, 1)
+	seedMsg(t, pool, "m7", "stale", now-25*60*60*1000, "assistant", true)
 	p := activateDB(t, path)
-	n := flatten(mustTree(t, p))["stale"]
-	if len(n.Beats) != 0 {
-		t.Fatalf("beats %v, want empty", n.Beats)
+	nodes := flatten(mustTree(t, p))
+	if n := nodes["recent"]; n.Active || len(n.Beats) != 1 || n.Beats[0] != now-25*60*1000 {
+		t.Fatalf("recent: active %v beats %v, want inactive with one beat", n.Active, n.Beats)
 	}
-	if n.Active {
-		t.Fatal("stale must be inactive")
+	if n := nodes["stale"]; len(n.Beats) != 0 {
+		t.Fatalf("stale beats %v, want empty", n.Beats)
 	}
 }
 

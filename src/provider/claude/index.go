@@ -848,7 +848,7 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 		}
 	}
 	for id, n := range nodes {
-		if n.Active {
+		if n.Active || nowMS-n.Updated < provider.BeatWindowMS {
 			_, _, _, _, _, _, beats, _ := idx.lookup(id).file.stats()
 			sort.Slice(beats, func(i, j int) bool { return beats[i] < beats[j] })
 			n.Beats = beats

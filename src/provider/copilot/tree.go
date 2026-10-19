@@ -87,7 +87,7 @@ func (s *session) tree(nowMS int64, td tokenData) *provider.SessionNode {
 		parent.Children = append(parent.Children, nodes[id])
 	}
 	for _, n := range nodes {
-		if n.Active {
+		if n.Active || nowMS-n.Updated < provider.BeatWindowMS {
 			agent := ""
 			if n != root {
 				_, agent, _ = strings.Cut(n.ID, "/")

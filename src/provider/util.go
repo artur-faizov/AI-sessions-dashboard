@@ -12,6 +12,10 @@ import (
 // ActiveWindowMS is how recently a session must have been updated to count as "active".
 const ActiveWindowMS = 15 * 60 * 1000
 
+// BeatWindowMS is the longest "recent" window the UI offers: sessions updated
+// within it carry beats so the ECG can span the whole selected window.
+const BeatWindowMS = 24 * 60 * 60 * 1000
+
 // WaitBeforeMS is the time the session waited on a human before calls[i]: the
 // gap since the previous call when calls[i] was triggered by human input, else 0.
 func WaitBeforeMS(calls []CallRec, i int) int64 {

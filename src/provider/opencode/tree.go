@@ -219,7 +219,9 @@ func buildTree(pool *sql.DB, nowMS int64) ([]*provider.SessionNode, error) {
 				return nil, err
 			}
 			n.State = state
-			beats, err := sessionBeats(pool, n.ID, nowMS-provider.ActiveWindowMS)
+		}
+		if n.Active || nowMS-n.Updated < provider.BeatWindowMS {
+			beats, err := sessionBeats(pool, n.ID, nowMS-provider.BeatWindowMS)
 			if err != nil {
 				return nil, err
 			}

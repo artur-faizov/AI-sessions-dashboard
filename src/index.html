@@ -750,6 +750,19 @@
             vector-effect: non-scaling-stroke
         }
 
+        #recwin {
+            width: 64px;
+            margin: 0;
+            accent-color: var(--acc);
+            cursor: pointer
+        }
+
+        #recwintxt {
+            min-width: 4.6em;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums
+        }
+
         .hlbox .ecg {
             width: 22px;
             height: 13px;
@@ -1051,11 +1064,16 @@
             background: #323948
         }
 
+        .treehead + .treehead {
+            margin-top: 0
+        }
+
         .treehead #grp-filter {
             gap: 6px;
             flex-wrap: nowrap;
             white-space: nowrap;
-            margin: 0 0 0 auto
+            flex: 1 0 100%;
+            margin: 0
         }
 
         .ptitle {
@@ -2234,12 +2252,12 @@
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></div></header>
 <main>
     <div id="treepane">
-        <div class="treehead"><div class="ptitle" id="treetitle"></div>
-        <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
+        <div class="treehead"><div class="ptitle" id="treetitle"></div></div>
+        <div class="treehead"><div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
         <input type="text" class="namesel" id="namesel" autocomplete="off">
         <span class="projwrap"><input type="checkbox" id="projon" checked><span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span></span>
         <label class="hlbox fchip" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
-        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this.">recent</span></label>
+        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this.">recent</span><input type="range" id="recwin" min="0" max="1000" title="how far back counts as recent"><span id="recwintxt">15m</span></label>
         <span class="hlbox favbox fchip" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
         <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
         </div>
@@ -2471,6 +2489,25 @@
         return !!n.active || n.children.some(c => treeActiveVisible(c));
     }
 
+    // Active, or updated at/after since — the session itself or any subagent.
+    function treeRecentVisible(n, since) {
+        return !!n.active || (n.updated || 0) >= since || n.children.some(c => treeRecentVisible(c, since));
+    }
+
+    // The recent-window slider runs 0..1000 on a log scale from 5 min to 24 h,
+    // so short windows stay precise; minutes are rounded coarser as they grow.
+    const REC_MIN = 5, REC_MAX = 24 * 60;
+
+    function recWinAt(pos) {
+        const m = REC_MIN * Math.pow(REC_MAX / REC_MIN, pos / 1000);
+        const step = m < 60 ? 1 : m < 360 ? 5 : 15;
+        return Math.min(REC_MAX, Math.max(REC_MIN, Math.round(m / step) * step));
+    }
+
+    function recSliderPos(min) {
+        return Math.round(Math.log(min / REC_MIN) / Math.log(REC_MAX / REC_MIN) * 1000);
+    }
+
     function treeCheckedVisible(n, marked) {
         return marked.has(n.id) || n.children.some(c => treeCheckedVisible(c, marked));
     }
@@ -2575,7 +2612,7 @@
 
     if (typeof module !== 'undefined' && module.exports) module.exports = {
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
-        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeCheckedVisible, nodeDir, heartSizes, ecgPoints,
+        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeRecentVisible, recWinAt, recSliderPos, treeCheckedVisible, nodeDir, heartSizes, ecgPoints,
         callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel, exportCandidates,
         COST_DEF, COST, MCOST, costOf, costT, costNode, tokEqOf, resetCost
     };
@@ -2597,7 +2634,7 @@
     });
     let treeFilter = newTreeFilter(), callFilter = newCallFilter();
     let HOT = { warn: 100, crit: 120, apply: false };
-    let REC = { only: false };
+    let REC = { only: false, win: 15 }; // win: minutes that count as recent
     let CHK = { only: false, marked: new Set() };
     let SNAME = {}; // local session names: id -> text (replaces the title in the UI)
     let CSORT = {key: null, asc: false}; // AI calls table sort; key null = chronological
@@ -2651,7 +2688,8 @@
                 {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || []), dirs: new Set(s.tree.dirs || [])});
             if (s.call) callFilter = Object.assign(newCallFilter(), s.call);
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
-            if (s.rec) REC = Object.assign({only: false}, s.rec);
+            if (s.rec) REC = Object.assign({only: false, win: 15}, s.rec);
+            if (!(REC.win >= REC_MIN && REC.win <= REC_MAX)) REC.win = 15;
             SEG_COLLAPSED = s.segc === true;
             if (s.segmin && typeof s.segmin.sec === 'number') SEG_MIN = {on: s.segmin.on !== false, sec: s.segmin.sec};
             if (s.csort && typeof s.csort.key === 'string') CSORT = {key: s.csort.key, asc: !!s.csort.asc};
@@ -2666,6 +2704,8 @@
             document.querySelector('#hlcrit').value = HOT.crit ?? '';
             document.querySelector('#hlapply').checked = !!HOT.apply;
             document.querySelector('#reconly').checked = !!REC.only;
+            document.querySelector('#recwin').value = String(recSliderPos(REC.win));
+            syncRecWin();
             syncFav();
         } catch (e) { /* corrupt — keep defaults */ }
     }
@@ -2911,6 +2951,22 @@
         render();
         saveSettings();
     });
+
+    function recWinText(m) {
+        const h = Math.floor(m / 60), r = m % 60;
+        return !h ? tr('recent.win.m', {n: m}) : tr('recent.win.h', {n: h}) + (r ? ' ' + tr('recent.win.m', {n: r}) : '');
+    }
+
+    function syncRecWin() {
+        document.querySelector('#recwintxt').textContent = recWinText(REC.win);
+    }
+
+    document.querySelector('#recwin').addEventListener('input', e => {
+        REC.win = recWinAt(Number(e.target.value));
+        syncRecWin();
+        render();
+    });
+    document.querySelector('#recwin').addEventListener('change', () => saveSettings());
 
     function syncFav() {
         const b = document.querySelector('#chkbox');
@@ -3242,7 +3298,7 @@
         let h = '';
         const roots = sorted(TREE.filter(s => matches(s)
             && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
-            && (!REC.only || treeActiveVisible(s))
+            && (!REC.only || treeRecentVisible(s, NOW - REC.win * 60 * 1000))
             && (!CHK.only || treeCheckedVisible(s, CHK.marked))));
         const HEARTS = heartSizes(roots);
         let mc = 0, mt = 0, mm = 0;
@@ -3314,8 +3370,9 @@
         const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const heartNow = NOW || Date.now();
-        const heart = s.active
-            ? `<svg class="ttlbg" viewBox="0 0 34 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="${ecgPoints(s.beats, heartNow)}"/></svg>`
+        const recWinMs = REC.win * 60 * 1000;
+        const heart = s.active || s.updated >= heartNow - recWinMs
+            ? `<svg class="ttlbg" viewBox="0 0 34 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="${ecgPoints(s.beats, heartNow, {win: recWinMs})}"/></svg>`
             : '';
         const ttlTip = s.active ? `${s.title} · ${tr('node.active.tip')} · ${tr('node.active.updated', {ago: dur(heartNow - s.updated)})}` : s.title;
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
@@ -4355,6 +4412,9 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#reconly').title = tr('recent.only.title');
         document.querySelector('#reclabel').title = tr('recent.only.title');
         document.querySelector('#reclabel').textContent = tr('filter.recent');
+        document.querySelector('#recwin').title = tr('recent.win.title');
+        document.querySelector('#recwintxt').title = tr('recent.win.title');
+        syncRecWin();
         document.querySelector('#chkbox').title = tr('favourites.only.title');
         document.querySelector('#chklabel').title = tr('favourites.only.title');
         document.querySelector('#chklabel').textContent = tr('filter.favourites');
