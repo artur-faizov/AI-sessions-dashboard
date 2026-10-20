@@ -42,8 +42,8 @@ test('interpolates {n}-style params', () => {
 
 test('english plural arrays pick one/other by n', () => {
     const I = load(makeLS());
-    assert.equal(I.tr('node.children_badge', { n: 1 }), '▾ 1 child');
-    assert.equal(I.tr('node.children_badge', { n: 3 }), '▾ 3 children');
+    assert.equal(I.tr('tree.sessions', { n: 1 }), '1 session');
+    assert.equal(I.tr('tree.sessions', { n: 3 }), '3 sessions');
 });
 
 test('russian plural arrays pick one/few/many by n', () => {

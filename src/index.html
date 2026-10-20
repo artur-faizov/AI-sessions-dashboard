@@ -696,6 +696,31 @@
             text-align: center
         }
 
+        .tgl {
+            width: 12px;
+            height: 12px;
+            flex: none;
+            align-self: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            line-height: 1;
+            border-radius: 3px;
+            color: var(--dim);
+            user-select: none
+        }
+
+        .tgl.on {
+            border: 1px solid #3a3f4a;
+            cursor: pointer
+        }
+
+        .tgl.on:hover {
+            color: var(--fg);
+            border-color: var(--dim)
+        }
+
         .node .star {
             width: 16px;
             flex: none;
@@ -846,10 +871,6 @@
 
         .badge.agent {
             color: var(--user)
-        }
-
-        .badge.sub {
-            color: var(--sub)
         }
 
         .num {
@@ -3394,7 +3415,6 @@
         const totalOwnTip = tr('node.totalown.tip') + ' · ';
         const spentTip = totalOwnTip + tr('node.spent.tip') + ' · ' + pricesTip();
         const moneyTip = totalOwnTip + tr('node.money.tip') + ' · ' + pricesTip();
-        const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const heartNow = NOW || Date.now();
         const recWinMs = REC.win * 60 * 1000;
@@ -3410,8 +3430,8 @@
         let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}${sel === s.id ? ' sel' : ''}${atCls}" data-id="${s.id}"${atTip ? ` title="${esc(atTip)}"` : ''}>
     ${depth === 1 ? `<span class="star${CHK.marked.has(s.id) ? ' on' : ''}" data-id="${esc(s.id)}" onclick="chkToggle(event)" title="${esc(tr('favourites.title'))}">${CHK.marked.has(s.id) ? '★' : '☆'}</span>` : '<span class="chkcol"></span>'}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
+    <span class="tgl${hasSub ? ' on' : ''}"${hasSub ? ` title="${esc(tr('node.toggle.tip'))}"` : ''}>${hasSub ? (open ? '−' : '+') : ''}</span>
     <span class="ttl" title="${esc(ttlTip)}">${heart}${SNAME[s.id] ? `<span class="rnmark" title="${esc(tr('rename.mark'))}">📝</span>` : ''}<span class="tname">${esc(SNAME[s.id] || (hasAgent ? displayTitle(s.title, s.agent) : s.title))}</span><span class="rnbtn" data-id="${esc(s.id)}" onclick="renameSession(event)" title="${esc(tr('rename.title'))}">✎</span></span>
-    ${subBadges}
     ${s.model ? `<span class="badge">${esc(modelName(s.model))}</span>` : ''}
     <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${s.dur < 0 ? '' : dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : ''}</span></span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b>${hasKids ? `<span class="own-part">(${fmt(own)})</span>` : ''}</span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b>${hasKids ? `<span class="own-part">(${fmtMoney(ownMoney)})</span>` : ''}</span></span></div>`;
         if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS, fav)).join('')}</ul>`;
@@ -3433,6 +3453,8 @@
         const ul = li.querySelector(':scope > ul');
         if (!ul) return;
         const id = nd.dataset.id;
+        const tgl = nd.querySelector(':scope > .tgl');
+        if (tgl) tgl.textContent = ul.style.display === 'none' ? '−' : '+';
         if (ul.style.display === 'none') {
             ul.style.display = '';
             EXPANDED.add(id);
@@ -4381,6 +4403,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
 
     document.querySelector('#tree').addEventListener('click', e => {
         const nd = e.target.closest('.node');
+        if (nd && e.target.closest('.tgl.on')) return toggleNode(nd);
         if (nd) {
             dismissAttn(nd.dataset.id);
             if (nd.dataset.id === sel) return;
@@ -4389,7 +4412,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
     });
     document.querySelector('#tree').addEventListener('dblclick', e => {
         const nd = e.target.closest('.node');
-        if (!nd || e.target.closest('.star, .rnbtn')) return;
+        if (!nd || e.target.closest('.star, .rnbtn, .tgl')) return;
         const sel = window.getSelection();
         if (sel) sel.removeAllRanges();
         toggleNode(nd);
