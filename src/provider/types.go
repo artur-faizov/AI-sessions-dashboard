@@ -19,13 +19,17 @@ type SessionNode struct {
 	Updated  int64                   `json:"updated"`
 	Active   bool                    `json:"active"`
 	Dur      int64                   `json:"dur"`
-	Beats    []int64                 `json:"beats"`
+	Beats    []Beat                  `json:"beats"`
 	State    string                  `json:"state,omitempty"`
 	Children []*SessionNode          `json:"children"`
 	Subtree  *SubtreeSums            `json:"subtree"`
 	ByModel  map[string]*SubtreeSums `json:"bymodel,omitempty"`
 	Source   string                  `json:"source"`
 }
+
+// Beat is one AI call on the ECG: [request sent, response finished] in ms.
+// End is 0 while the call is still in flight.
+type Beat [2]int64
 
 // Live states of an active session (SessionNode.State); empty when unknown.
 const (
@@ -129,4 +133,32 @@ type TriggerResp struct {
 	Time  any    `json:"time"`
 	Parts []any  `json:"parts"`
 	Reply []any  `json:"reply,omitempty"`
+}
+
+// How a ContextItem's tokens were obtained.
+const (
+	EstText     = "text"     // the text is stored; tokens are estimated from it
+	EstInferred = "inferred" // nothing is stored; tokens are the rest of the call's context
+)
+
+// ContextItem is one piece of an AI call's input context. Kind is a free-form
+// type name chosen by the provider ("system", "instructions", "skills",
+// "user", "hidden", ...); the dashboard groups items by it. Label tells items
+// of one kind apart (a file path, a hook name). Text is the stored content,
+// clipped at TriggerMax.
+type ContextItem struct {
+	Kind   string `json:"kind"`
+	Label  string `json:"label,omitempty"`
+	Tokens int64  `json:"tokens"`
+	Est    string `json:"est"`
+	Text   string `json:"text,omitempty"`
+	Cut    bool   `json:"cut,omitempty"`
+}
+
+// ContextResp is the /api/context payload: the composition of one AI call's
+// input context. The item tokens add up to Ctx, the call's real context size.
+type ContextResp struct {
+	Mid   string        `json:"mid"`
+	Ctx   int64         `json:"ctx"`
+	Items []ContextItem `json:"items"`
 }

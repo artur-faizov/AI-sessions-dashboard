@@ -743,11 +743,30 @@
             overflow: hidden
         }
 
-        .ttlbg polyline {
+        .ttlbg polyline, .ttlbg path {
             fill: none;
             stroke: #e5484d;
-            stroke-width: 1.3;
+            stroke-width: 2;
+            stroke-linejoin: round;
             vector-effect: non-scaling-stroke
+        }
+
+        .ttlbg path {
+            stroke-width: 3.5;
+            stroke-linecap: round
+        }
+
+        #recwin {
+            width: 64px;
+            margin: 0;
+            accent-color: var(--acc);
+            cursor: pointer
+        }
+
+        #recwintxt {
+            min-width: 4.6em;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums
         }
 
         .hlbox .ecg {
@@ -1051,11 +1070,16 @@
             background: #323948
         }
 
+        .treehead + .treehead {
+            margin-top: 0
+        }
+
         .treehead #grp-filter {
             gap: 6px;
             flex-wrap: nowrap;
             white-space: nowrap;
-            margin: 0 0 0 auto
+            flex: 1 0 100%;
+            margin: 0
         }
 
         .ptitle {
@@ -1350,6 +1374,24 @@
             border-radius: 4px;
             overflow: hidden;
             background: #1b1f27
+        }
+
+        .tstab {
+            display: flex;
+            justify-content: center;
+            margin: 0 10px 3px;
+            height: 12px;
+            line-height: 0;
+            align-items: center;
+            background: #2a2f38;
+            border-radius: 4px;
+            color: var(--dim);
+            cursor: pointer
+        }
+
+        .tstab:hover {
+            color: var(--fg);
+            background: #343a45
         }
 
         .tsplit .tslegs {
@@ -1776,6 +1818,77 @@
             max-height: 40vh
         }
 
+        .ctxwrap {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-top: 8px
+        }
+
+        .ctxpie {
+            width: 200px;
+            height: 200px;
+            flex: none
+        }
+
+        .ctxpie path, .ctxpie circle {
+            cursor: pointer;
+            stroke: var(--bg);
+            stroke-width: 1
+        }
+
+        .ctxpie path:hover, .ctxpie circle:hover {
+            opacity: .8
+        }
+
+        .ctxlegs {
+            flex: 1;
+            min-width: 0;
+            font-size: 13px
+        }
+
+        .ctxgrp > summary {
+            cursor: pointer;
+            padding: 2px 0
+        }
+
+        .ctxgrp b, .ctxitem b {
+            color: var(--fg)
+        }
+
+        .ctxitem {
+            margin: 2px 0 2px 22px;
+            color: var(--dim);
+            font-size: 12px
+        }
+
+        .ctxitem > summary {
+            cursor: pointer
+        }
+
+        .ctxitem pre.prompt {
+            max-height: 30vh
+        }
+
+        .dsq.hatch {
+            background-image: repeating-linear-gradient(45deg, transparent 0 2px, #9aa5ce 2px 4px) !important
+        }
+
+        .ctxic {
+            cursor: pointer;
+            margin-right: 4px
+        }
+
+        .ctxic:hover {
+            filter: brightness(1.3)
+        }
+
+        .ctxnote {
+            color: var(--dim);
+            font-size: 12px;
+            margin-top: 8px
+        }
+
         .tblock.reply pre.prompt {
             border-color: rgba(187, 154, 247, .6);
             background: rgba(187, 154, 247, .10)
@@ -2145,12 +2258,12 @@
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></div></header>
 <main>
     <div id="treepane">
-        <div class="treehead"><div class="ptitle" id="treetitle"></div>
-        <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
+        <div class="treehead"><div class="ptitle" id="treetitle"></div></div>
+        <div class="treehead"><div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
         <input type="text" class="namesel" id="namesel" autocomplete="off">
         <span class="projwrap"><input type="checkbox" id="projon" checked><span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span></span>
         <label class="hlbox fchip" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
-        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the last 15 min; such sessions are shown with all their subagents. The AI calls list is never filtered by this.">recent</span></label>
+        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this.">recent</span><input type="range" id="recwin" min="0" max="1000" title="how far back counts as recent"><span id="recwintxt">15m</span></label>
         <span class="hlbox favbox fchip" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
         <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
         </div>
@@ -2382,6 +2495,25 @@
         return !!n.active || n.children.some(c => treeActiveVisible(c));
     }
 
+    // Active, or updated at/after since — the session itself or any subagent.
+    function treeRecentVisible(n, since) {
+        return !!n.active || (n.updated || 0) >= since || n.children.some(c => treeRecentVisible(c, since));
+    }
+
+    // The recent-window slider runs 0..1000 on a log scale from 5 min to 24 h,
+    // so short windows stay precise; minutes are rounded coarser as they grow.
+    const REC_MIN = 5, REC_MAX = 24 * 60;
+
+    function recWinAt(pos) {
+        const m = REC_MIN * Math.pow(REC_MAX / REC_MIN, pos / 1000);
+        const step = m < 60 ? 1 : m < 360 ? 5 : 15;
+        return Math.min(REC_MAX, Math.max(REC_MIN, Math.round(m / step) * step));
+    }
+
+    function recSliderPos(min) {
+        return Math.round(Math.log(min / REC_MIN) / Math.log(REC_MAX / REC_MIN) * 1000);
+    }
+
     function treeCheckedVisible(n, marked) {
         return marked.has(n.id) || n.children.some(c => treeCheckedVisible(c, marked));
     }
@@ -2409,25 +2541,46 @@
         return m;
     }
 
-    function ecgPoints(beats, now, o) {
+    // Each beat is [sent, finished]: the trace sits at zero and draws a
+    // triangle from sent to finished with its peak halfway between (an
+    // in-flight call, finished = 0, keeps climbing to a peak at now).
+    // Overlapping pulses merge so x keeps increasing.
+    function ecgSpans(beats, now, o) {
         o = o || {};
         const w = o.w || 34, h = o.h || 20, win = o.win || 15 * 60 * 1000;
-        const mid = h / 2, amp = h * 0.45, lo = now - win;
-        const ts = (beats || []).filter(t => t >= lo && t <= now).sort((a, b) => a - b);
+        const lo = now - win, minW = 0.25;
         const x = t => Math.max(0, Math.min(w, (t - lo) / win * w));
+        const spans = [];
+        for (const [s, e] of (beats || []).map(b => [b[0], b[1]]).sort((a, b) => a[0] - b[0])) {
+            if ((e || now) < lo || s > now) continue;
+            const xs = Math.min(x(s), w - minW), xe = Math.max(x(e || now), xs + minW);
+            const last = spans[spans.length - 1];
+            if (last && xs <= last[1]) {
+                last[1] = Math.max(last[1], xe);
+                last[2] = last[2] || !e;
+            } else spans.push([xs, xe, !e]);
+        }
+        return {spans, w, base: h * 0.85, top: h * 0.15};
+    }
+
+    function ecgPoints(beats, now, o) {
+        const {spans, w, base, top} = ecgSpans(beats, now, o);
         // No leading flatline from the past: the trace begins at the first beat.
         const pts = [];
-        for (const t of ts) {
-            const cx = x(t);
-            pts.push([Math.max(0, cx - 4), mid]);        // baseline before spike
-            pts.push([Math.max(0, cx - 1.5), mid + h * 0.1]);  // Q dip
-            pts.push([Math.max(0, cx), mid - amp]);      // R peak
-            pts.push([Math.min(w, cx + 1.5), mid + h * 0.15]); // S dip
-            pts.push([Math.min(w, cx + 4), mid]);        // back to baseline
+        for (const [xs, xe, open] of spans) {
+            if (open) pts.push([xs, base], [xe, top]);
+            else pts.push([xs, base], [(xs + xe) / 2, top], [xe, base]);
         }
         if (!pts.length) return '';
-        pts.push([w, mid]);
+        if (pts[pts.length - 1][0] < w) pts.push([w, base]);
         return pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    }
+
+    // The rising (request) edges alone, drawn bolder on top of the trace.
+    function ecgRises(beats, now, o) {
+        const {spans, base, top} = ecgSpans(beats, now, o);
+        return spans.map(([xs, xe, open]) =>
+            `M${xs.toFixed(1)},${base.toFixed(1)}L${(open ? xe : (xs + xe) / 2).toFixed(1)},${top.toFixed(1)}`).join('');
     }
 
     function callDeltaAt(calls, i) {
@@ -2486,7 +2639,7 @@
 
     if (typeof module !== 'undefined' && module.exports) module.exports = {
         modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
-        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeCheckedVisible, nodeDir, heartSizes, ecgPoints,
+        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeRecentVisible, recWinAt, recSliderPos, treeCheckedVisible, nodeDir, heartSizes, ecgPoints, ecgRises,
         callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel, exportCandidates,
         COST_DEF, COST, MCOST, costOf, costT, costNode, tokEqOf, resetCost
     };
@@ -2508,7 +2661,7 @@
     });
     let treeFilter = newTreeFilter(), callFilter = newCallFilter();
     let HOT = { warn: 100, crit: 120, apply: false };
-    let REC = { only: false };
+    let REC = { only: false, win: 15 }; // win: minutes that count as recent
     let CHK = { only: false, marked: new Set() };
     let SNAME = {}; // local session names: id -> text (replaces the title in the UI)
     let CSORT = {key: null, asc: false}; // AI calls table sort; key null = chronological
@@ -2562,7 +2715,8 @@
                 {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || []), dirs: new Set(s.tree.dirs || [])});
             if (s.call) callFilter = Object.assign(newCallFilter(), s.call);
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
-            if (s.rec) REC = Object.assign({only: false}, s.rec);
+            if (s.rec) REC = Object.assign({only: false, win: 15}, s.rec);
+            if (!(REC.win >= REC_MIN && REC.win <= REC_MAX)) REC.win = 15;
             SEG_COLLAPSED = s.segc === true;
             if (s.segmin && typeof s.segmin.sec === 'number') SEG_MIN = {on: s.segmin.on !== false, sec: s.segmin.sec};
             if (s.csort && typeof s.csort.key === 'string') CSORT = {key: s.csort.key, asc: !!s.csort.asc};
@@ -2577,6 +2731,8 @@
             document.querySelector('#hlcrit').value = HOT.crit ?? '';
             document.querySelector('#hlapply').checked = !!HOT.apply;
             document.querySelector('#reconly').checked = !!REC.only;
+            document.querySelector('#recwin').value = String(recSliderPos(REC.win));
+            syncRecWin();
             syncFav();
         } catch (e) { /* corrupt — keep defaults */ }
     }
@@ -2822,6 +2978,22 @@
         render();
         saveSettings();
     });
+
+    function recWinText(m) {
+        const h = Math.floor(m / 60), r = m % 60;
+        return !h ? tr('recent.win.m', {n: m}) : tr('recent.win.h', {n: h}) + (r ? ' ' + tr('recent.win.m', {n: r}) : '');
+    }
+
+    function syncRecWin() {
+        document.querySelector('#recwintxt').textContent = recWinText(REC.win);
+    }
+
+    document.querySelector('#recwin').addEventListener('input', e => {
+        REC.win = recWinAt(Number(e.target.value));
+        syncRecWin();
+        render();
+    });
+    document.querySelector('#recwin').addEventListener('change', () => saveSettings());
 
     function syncFav() {
         const b = document.querySelector('#chkbox');
@@ -3153,7 +3325,7 @@
         let h = '';
         const roots = sorted(TREE.filter(s => matches(s)
             && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
-            && (!REC.only || treeActiveVisible(s))
+            && (!REC.only || treeRecentVisible(s, NOW - REC.win * 60 * 1000))
             && (!CHK.only || treeCheckedVisible(s, CHK.marked))));
         const HEARTS = heartSizes(roots);
         let mc = 0, mt = 0, mm = 0;
@@ -3225,8 +3397,9 @@
         const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const heartNow = NOW || Date.now();
-        const heart = s.active
-            ? `<svg class="ttlbg" viewBox="0 0 34 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="${ecgPoints(s.beats, heartNow)}"/></svg>`
+        const recWinMs = REC.win * 60 * 1000;
+        const heart = s.active || s.updated >= heartNow - recWinMs
+            ? `<svg class="ttlbg" viewBox="0 0 34 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="${ecgPoints(s.beats, heartNow, {win: recWinMs})}"/><path d="${ecgRises(s.beats, heartNow, {win: recWinMs})}"/></svg>`
             : '';
         const ttlTip = s.active ? `${s.title} · ${tr('node.active.tip')} · ${tr('node.active.updated', {ago: dur(heartNow - s.updated)})}` : s.title;
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
@@ -3335,7 +3508,7 @@
             const tip = [r.hu ? humTip(r.hu) : '', r.ask ? tr('calls.ask.tip') : ''].filter(Boolean).join('\n');
             const ks = kids[r.mid] || [], open = segIsOpen(r.mid);
             rows += `<tr data-mid="${esc(r.mid)}" data-go="c:${esc(r.mid)}"${cls ? ` class="${cls}"` : ''}${tip ? ` title="${tip}"` : ''} onclick="callPick('${esc(r.mid)}')">
-  <td class="num">${r.n}${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}</td>
+  <td class="num">${r.n === 1 ? `<span class="ctxic" title="${esc(tr('ctx.btn.tip'))}" onclick="event.stopPropagation(); ctxCall(0)">🥧</span>` : ''}${r.n}${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}</td>
   <td class="num sep">${k === 'dur' && r.dur !== (calls[r.n - 1].dur || 0)
         ? durCell(r.dur, segMax, 'ai', tr('calls.dur.step.tip', {t: dur(r.dur), c: dur(calls[r.n - 1].dur || 0)}))
         : durCell(calls[r.n - 1].dur || 0, segMax, 'ai')}</td>
@@ -3672,6 +3845,7 @@
         row.classList.add('flash');
     }
 
+    const chevIc = up => `<svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${up ? 'M3 5l4-3 4 3M3 9l4-3 4 3' : 'M3 1l4 3 4-3M3 5l4 3 4-3'}"/></svg>`;
     const zoomIc = plus => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6M7 10h6${plus ? 'M10 7v6' : ''}"/></svg>`;
 
     document.addEventListener('keydown', e => {
@@ -3742,15 +3916,25 @@
         return `<div class="tsplit"><div class="tsbar">${parts}</div><div class="tslegs">${title ? `<span class="tstitle">${title}</span>` : ''}<span>${tr('calls.split.total')} <b>${dur(t1 - t0)}</b></span>${legs}</div></div>`;
     }
 
-    // callsCharts is the time split and the chart above the calls table. The
-    // splits scroll away, the chart sticks to the top (see pinChart). A session
+    // callsCharts is the time split and the chart above the calls table; both
+    // stick to the top (see pinChart). A session
     // with subagents gets two splits: the whole subtree first, then its own.
+    // The splits are folded by default under a thin grey tab on top of the
+    // chart; clicking the tab unfolds them above it or folds them back.
+    let SPLIT_OPEN = false;
+
+    function splitOpen(on) {
+        SPLIT_OPEN = on;
+        refreshCalls();
+    }
+
     function callsCharts(calls) {
         const spans = chartSpans(calls, SEGS);
         const kids = TREE_SPANS && TREE_SPANS.id === sel ? TREE_SPANS.spans : null;
-        const split = kids ? timeSplit([...spans, ...kids], tr('calls.split.all')) + timeSplit(spans, tr('calls.split.own')) : timeSplit(spans);
         const chart = durChart(spans);
-        return split + (chart ? `<div class="dstick">${chart}</div>` : '');
+        const split = !SPLIT_OPEN ? '' : kids ? timeSplit([...spans, ...kids], tr('calls.split.all')) + timeSplit(spans, tr('calls.split.own')) : timeSplit(spans);
+        const tab = spans.length ? `<div class="tstab" onclick="splitOpen(!SPLIT_OPEN)" title="${tr(SPLIT_OPEN ? 'calls.split.close' : 'calls.split.open')}">${chevIc(SPLIT_OPEN)}</div>` : '';
+        return `<div class="dstick">${split}${tab}${chart}</div>`;
     }
 
     // pinChart puts the calls table's sticky header right under the stuck chart.
@@ -3909,9 +4093,110 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             : j.case === 'assistant' ? tr('trig.assistant')
             : tr('trig.start');
         h += `<div class="tblock"><div class="lbl">${c && c.hu ? humIcon(c.hu) : ''}${lbl}</div></div>`;
+        if (c && c.n === 1) h += `<div class="tblock"><button class="fbtn" id="ccompbtn" title="${esc(tr('ctx.btn.tip'))}" onclick="ctxShow(${CALLS.indexOf(c)})">🥧 ${tr('ctx.btn')}</button><div id="ccompbox"></div></div>`;
         for (const p of (j.parts || [])) h += trigPartHtml(p);
         if (!(j.parts || []).length && j.case !== 'start') h += `<div class="empty">${tr('trig.empty')}</div>`;
         document.querySelector('#modal-body').innerHTML = h;
+    }
+
+    // Context composition of a call (/api/context): items of free-form kinds,
+    // grouped by kind into a pie; each kind opens into its items and texts.
+    const CTX_COLORS = {
+        system: '#7aa2f7', hidden: '#565f89', user: '#9ece6a', instructions: '#e0af68',
+        skills: '#bb9af7', agents: '#f7768e', hooks: '#ff9e64', files: '#2ac3de',
+        tools: '#4fb3a3', reminders: '#a9b1d6'
+    };
+    const CTX_SPARE = ['#73daca', '#c0caf5', '#db4b4b', '#b4f9f8', '#cfc9c2'];
+
+    function ctxColor(kind) {
+        if (CTX_COLORS[kind]) return CTX_COLORS[kind];
+        let h = 0;
+        for (const ch of kind) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+        return CTX_SPARE[h % CTX_SPARE.length];
+    }
+
+    function ctxKindName(kind) {
+        const k = 'ctx.kind.' + kind, v = tr(k);
+        return v === k ? kind : v;
+    }
+
+    // ctxPie draws the groups as SVG slices; inferred groups are hatched.
+    function ctxPie(groups, total) {
+        const R = 90, C = 100;
+        let a = -Math.PI / 2, h = '';
+        groups.forEach((g, i) => {
+            const frac = g.tokens / total;
+            if (frac <= 0) return;
+            const fill = g.inferred ? 'url(#ctxhatch)' : g.color;
+            const tip = `<title>${esc(ctxKindName(g.kind))} · ${fmt(g.tokens)} · ${(frac * 100).toFixed(1)}%</title>`;
+            const click = `onclick="ctxOpen(${i})"`;
+            if (frac >= 0.9999) {
+                h += `<circle cx="${C}" cy="${C}" r="${R}" fill="${fill}" ${click}>${tip}</circle>`;
+                return;
+            }
+            const b = a + frac * 2 * Math.PI;
+            const p = t => `${(C + R * Math.cos(t)).toFixed(2)},${(C + R * Math.sin(t)).toFixed(2)}`;
+            h += `<path d="M${C},${C} L${p(a)} A${R},${R} 0 ${frac > 0.5 ? 1 : 0} 1 ${p(b)} Z" fill="${fill}" ${click}>${tip}</path>`;
+            a = b;
+        });
+        return `<svg class="ctxpie" viewBox="0 0 200 200"><defs><pattern id="ctxhatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="${CTX_COLORS.hidden}"/><line x1="0" y1="0" x2="0" y2="8" stroke="#9aa5ce" stroke-width="3"/></pattern></defs>${h}</svg>`;
+    }
+
+    function ctxOpen(i) {
+        const d = document.querySelector('#ctxgrp' + i);
+        if (!d) return;
+        d.open = true;
+        d.scrollIntoView({block: 'nearest'});
+    }
+
+    function renderCtx(j) {
+        const by = {};
+        for (const it of j.items || []) {
+            const g = by[it.kind] || (by[it.kind] = {kind: it.kind, tokens: 0, items: [], inferred: true, color: ctxColor(it.kind)});
+            g.tokens += it.tokens;
+            g.items.push(it);
+            if (it.est !== 'inferred') g.inferred = false;
+        }
+        const groups = Object.values(by).sort((a, b) => b.tokens - a.tokens);
+        const total = Math.max(1, j.ctx);
+        const pct = n => (n / total * 100).toFixed(1) + '%';
+        const rows = groups.map((g, i) => {
+            const sq = `<i class="dsq${g.inferred ? ' hatch' : ''}" style="background:${g.color}"></i>`;
+            const items = g.items.slice().sort((a, b) => b.tokens - a.tokens).map(it => {
+                const head = `${esc(it.label || ctxKindName(it.kind))} · <b>${fmt(it.tokens)}</b> · ${tr(it.est === 'inferred' ? 'ctx.est.inferred' : 'ctx.est.text')}`;
+                return it.text
+                    ? `<details class="ctxitem"><summary>${head}</summary><pre class="prompt">${esc(it.text)}${it.cut ? '\n\n' + tr('trig.trunc') : ''}</pre></details>`
+                    : `<div class="ctxitem">${head}</div>`;
+            }).join('');
+            return `<details class="ctxgrp" id="ctxgrp${i}"><summary>${sq}${esc(ctxKindName(g.kind))} <b>${fmt(g.tokens)}</b> ${pct(g.tokens)}</summary>${items}</details>`;
+        }).join('');
+        return `<div class="lbl">${tr('ctx.title', {ctx: fmt(j.ctx)})}</div><div class="ctxwrap">${ctxPie(groups, total)}<div class="ctxlegs">${rows}</div></div><div class="ctxnote">${tr('ctx.note')}</div>`;
+    }
+
+    // ctxCall opens a call and its context composition at once.
+    async function ctxCall(idx) {
+        await showCall(idx);
+        ctxShow(idx);
+    }
+
+    async function ctxShow(idx) {
+        const c = CALLS[idx], box = document.querySelector('#ccompbox');
+        if (!c || !box) return;
+        document.querySelector('#ccompbtn')?.remove();
+        box.innerHTML = tr('loading');
+        try {
+            const r = await fetch('/api/context/' + encodeURIComponent(c.mid));
+            if (r.status === 404) {
+                const e = await r.json().catch(() => ({}));
+                box.innerHTML = `<div class="empty">${tr(e.error === 'not_supported' ? 'ctx.unsupported' : 'ctx.na')}</div>`;
+                return;
+            }
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const j = await r.json();
+            if (curCall === idx) box.innerHTML = renderCtx(j);
+        } catch (e) {
+            if (curCall === idx) box.innerHTML = `<div class="empty">${tr('load.fail', {msg: esc(e.message)})}</div>`;
+        }
     }
 
     window.addEventListener('keydown', e => {
@@ -4154,6 +4439,9 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#reconly').title = tr('recent.only.title');
         document.querySelector('#reclabel').title = tr('recent.only.title');
         document.querySelector('#reclabel').textContent = tr('filter.recent');
+        document.querySelector('#recwin').title = tr('recent.win.title');
+        document.querySelector('#recwintxt').title = tr('recent.win.title');
+        syncRecWin();
         document.querySelector('#chkbox').title = tr('favourites.only.title');
         document.querySelector('#chklabel').title = tr('favourites.only.title');
         document.querySelector('#chklabel').textContent = tr('filter.favourites');

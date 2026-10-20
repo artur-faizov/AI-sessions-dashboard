@@ -244,7 +244,7 @@ test('favourites filter shows subagents spawned after the root was starred', asy
 test('active sessions render an ECG sparkline across the heart', async () => {
     const now = Date.now();
     const ctx = boot({
-        '/api/tree': [sess({id: 'beat', active: true, updated: now, beats: [now - 600000, now - 120000]})],
+        '/api/tree': [sess({id: 'beat', active: true, updated: now, beats: [[now - 600000, now - 590000], [now - 120000, 0]]})],
     });
     await settle();
     const tree = ctx.els.get('#tree').innerHTML;

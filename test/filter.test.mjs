@@ -295,6 +295,21 @@ test('treeHotVisible: node or any descendant above warn or crit', () => {
     assert.equal(L.treeHotVisible(node({ maxctx: 999999 }), null, null), false);
 });
 
+test('treeRecentVisible: active, or node or any descendant updated since the window start', () => {
+    const since = 1000;
+    assert.equal(L.treeRecentVisible(node({ updated: 999 }), since), false);
+    assert.equal(L.treeRecentVisible(node({ updated: 1000 }), since), true);
+    assert.equal(L.treeRecentVisible(node({ updated: 10, active: true }), since), true);
+    assert.equal(L.treeRecentVisible(node({ updated: 10, children: [node({ updated: 2000 })] }), since), true);
+});
+
+test('recent-window slider: log scale 5 min..24 h, round trip, coarser rounding', () => {
+    assert.equal(L.recWinAt(0), 5);
+    assert.equal(L.recWinAt(1000), 24 * 60);
+    for (const m of [5, 15, 30, 45, 60, 180, 24 * 60]) assert.equal(L.recWinAt(L.recSliderPos(m)), m);
+    assert.equal(L.recWinAt(800) % 15, 0);
+});
+
 test('treeActiveVisible: node or any descendant active', () => {
     const root = node({ children: [node({ active: true })] });
     assert.equal(L.treeActiveVisible(root), true);
@@ -350,45 +365,60 @@ test('ecgPoints: no beats = empty trace (no flatline from the past)', () => {
     assert.equal(p, '');
 });
 
-test('ecgPoints: beat maps to an ECG spike — R peak above baseline at its position', () => {
+test('ecgPoints: a call is a triangle from sent to finished, peak halfway between', () => {
     const now = 1000000;
-    const p = L.ecgPoints([now - 500], now, { win: 1000, w: 40, h: 20 });
+    const p = L.ecgPoints([[now - 500, now - 250]], now, { win: 1000, w: 40, h: 20 });
     const pts = p.split(' ').map(s => s.split(',').map(Number));
-    assert.ok(pts.length > 2, 'spike has intermediate points');
-    // R peak: x at beat position (half window = 20), y = mid - amp = 10 - 9 = 1
-    assert.ok(pts.some(([x, y]) => Math.abs(x - 20) < 1 && y === 1), 'R peak at beat position above baseline');
-    // dips below baseline exist (Q/S)
-    assert.ok(pts.some(([x, y]) => y > 10), 'dip below baseline');
-    // trace starts at the first beat, not at the left edge
-    assert.ok(pts[0][0] >= 15 && pts[0][0] <= 17, 'no leading flatline before first beat');
-    assert.ok(pts.every(([x, y]) => x >= 0 && x <= 40 && y >= 0 && y <= 20), 'all points in bounds');
+    // base = 17, top = 3; sent at x=20, finished at x=30, then flat to the edge
+    assert.deepEqual(pts, [[20, 17], [25, 3], [30, 17], [40, 17]]);
+});
+
+test('ecgPoints: an in-flight call (finished = 0) climbs to a peak at now', () => {
+    const now = 1000000;
+    const pts = L.ecgPoints([[now - 500, 0]], now, { win: 1000, w: 40, h: 20 })
+        .split(' ').map(s => s.split(',').map(Number));
+    assert.deepEqual(pts, [[20, 17], [40, 3]]);
+});
+
+test('ecgPoints: idle gap between calls stays at zero', () => {
+    const now = 1000000;
+    const pts = L.ecgPoints([[now - 900, now - 800], [now - 300, now - 200]], now, { win: 1000, w: 40, h: 20 })
+        .split(' ').map(s => s.split(',').map(Number));
+    assert.deepEqual(pts.slice(2, 4), [[8, 17], [28, 17]], 'flat at zero from the first finish to the next send');
+});
+
+test('ecgRises: one bold rising edge per request, up to its peak', () => {
+    const now = 1000000;
+    const d = L.ecgRises([[now - 900, now - 800], [now - 300, 0]], now, { win: 1000, w: 40, h: 20 });
+    assert.equal(d, 'M4.0,17.0L6.0,3.0M28.0,17.0L40.0,3.0');
 });
 
 test('ecgPoints: beats outside the window are ignored', () => {
     const now = 1000000;
-    const p = L.ecgPoints([now - 5000, now + 500], now, { win: 1000, w: 40, h: 20 });
+    const p = L.ecgPoints([[now - 5000, now - 4000], [now + 500, now + 600]], now, { win: 1000, w: 40, h: 20 });
     assert.equal(p, '');
 });
 
-test('ecgPoints: unsorted beats still produce monotonically increasing x', () => {
+test('ecgPoints: unsorted and overlapping beats still produce monotonically increasing x', () => {
     const now = 1000000;
-    const p = L.ecgPoints([now - 200, now - 800], now, { win: 1000, w: 40, h: 20 });
+    const p = L.ecgPoints([[now - 200, now - 100], [now - 800, now - 150], [now - 900, now - 850]], now, { win: 1000, w: 40, h: 20 });
     const xs = p.split(' ').map(s => Number(s.split(',')[0]));
     assert.deepEqual([...xs].sort((a, b) => a - b).map(Number), xs);
 });
 
 test('ecgPoints: x position depends only on (beat - now), so all rows share one timeline', () => {
-    const p1 = L.ecgPoints([1500], 2000, { win: 1000, w: 40, h: 20 });
-    const p2 = L.ecgPoints([11500], 12000, { win: 1000, w: 40, h: 20 });
+    const p1 = L.ecgPoints([[1500, 1600]], 2000, { win: 1000, w: 40, h: 20 });
+    const p2 = L.ecgPoints([[11500, 11600]], 12000, { win: 1000, w: 40, h: 20 });
     assert.equal(p1, p2);
 });
 
-test('ecgPoints: beat at the right edge stays clamped inside the box', () => {
+test('ecgPoints: call sent right now stays clamped inside the box and visible', () => {
     const now = 1000000;
-    const p = L.ecgPoints([now], now, { win: 1000, w: 40, h: 20 });
+    const p = L.ecgPoints([[now, 0]], now, { win: 1000, w: 40, h: 20 });
     const pts = p.split(' ').map(s => s.split(',').map(Number));
     assert.ok(pts.every(([x]) => x <= 40), 'no x beyond width');
-    assert.ok(pts.some(([, y]) => y === 1), 'peak still drawn');
+    assert.ok(pts.some(([x, y]) => y === 3 && x === 40), 'peak drawn at now');
+    assert.ok(pts[0][0] < 40, 'rise starts inside the box');
 });
 
 test('callDeltaAt: first call delta = its ctx, later = growth vs previous', () => {

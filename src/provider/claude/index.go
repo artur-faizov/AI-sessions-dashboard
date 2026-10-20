@@ -688,9 +688,13 @@ func (f *claudeFile) promptTitle() string {
 	return ""
 }
 
-func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats []int64, byModel map[string]*provider.SubtreeSums) {
+func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats []provider.Beat, byModel map[string]*provider.SubtreeSums) {
 	byModel = map[string]*provider.SubtreeSums{}
+	var lastIn *claudeMsg // the request goes out right after the last input line
 	for _, m := range f.messages {
+		if m.role != "assistant" {
+			lastIn = m
+		}
 		if m.role != "assistant" || !m.hasUsage {
 			continue
 		}
@@ -708,7 +712,11 @@ func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats
 			In: m.usage.in, Out: m.usage.out,
 			Cr: m.usage.cr, Cw: m.usage.cw,
 		})
-		beats = append(beats, m.timeMS)
+		b := provider.Beat{m.timeMS, max(m.endMS, m.timeMS)}
+		if lastIn != nil && lastIn.timeMS < b[0] {
+			b[0] = lastIn.timeMS
+		}
+		beats = append(beats, b)
 	}
 	return in, out, cr, cw, maxctx, model, beats, byModel
 }
@@ -848,9 +856,18 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 		}
 	}
 	for id, n := range nodes {
-		if n.Active {
-			_, _, _, _, _, _, beats, _ := idx.lookup(id).file.stats()
-			sort.Slice(beats, func(i, j int) bool { return beats[i] < beats[j] })
+		if n.Active || nowMS-n.Updated < provider.BeatWindowMS {
+			f := idx.lookup(id).file
+			_, _, _, _, _, _, beats, _ := f.stats()
+			sort.Slice(beats, func(i, j int) bool { return beats[i][0] < beats[j][0] })
+			// A busy session whose transcript ends on an input line has its
+			// next request in flight.
+			if k := len(f.messages); n.State == provider.StateBusy && k > 0 && f.messages[k-1].role != "assistant" {
+				beats = append(beats, provider.Beat{f.messages[k-1].timeMS, 0})
+			}
+			if beats == nil {
+				beats = []provider.Beat{}
+			}
 			n.Beats = beats
 		}
 	}
@@ -906,7 +923,7 @@ func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode
 		Created:  s.file.firstMS,
 		Updated:  updated,
 		Active:   updated > 0 && nowMS-updated < provider.ActiveWindowMS,
-		Beats:    []int64{},
+		Beats:    []provider.Beat{},
 		Children: []*provider.SessionNode{},
 		Subtree:  nil,
 		ByModel:  byModel,

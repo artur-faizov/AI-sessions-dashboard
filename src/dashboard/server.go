@@ -142,6 +142,23 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			writeJSON(w, http.StatusOK, res)
+		case strings.HasPrefix(path, "/api/context/"):
+			mid := strings.TrimPrefix(path, "/api/context/")
+			cp, ok := active.(provider.ContextProvider)
+			if !ok {
+				writeJSON(w, http.StatusNotFound, map[string]any{"error": "not_supported"})
+				return
+			}
+			res, err := cp.CallContext(mid)
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+				return
+			}
+			if res == nil {
+				writeJSON(w, http.StatusNotFound, map[string]any{"error": "not_available"})
+				return
+			}
+			writeJSON(w, http.StatusOK, res)
 		default:
 			http.Error(w, "404 Not Found", http.StatusNotFound)
 		}

@@ -36,3 +36,11 @@ type Provider interface {
 	// Candidates lists autodetected data paths for the picker (nil when not switchable).
 	Candidates() []string
 }
+
+// ContextProvider is implemented by providers that can tell what the input
+// context of an AI call was made of. CallContext returns nil, nil when the
+// call is unknown or its composition cannot be told (only a session's first
+// call is supported for now).
+type ContextProvider interface {
+	CallContext(mid string) (*ContextResp, error)
+}
