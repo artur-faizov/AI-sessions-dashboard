@@ -1606,6 +1606,28 @@
             background: #6b7280
         }
 
+        .dchart .dbar.long {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 4px;
+            color: #e6e9ef;
+            font-size: 11px;
+            white-space: nowrap
+        }
+
+        .dchart .dbar.long.ai { background: #1f4a78 }
+        .dchart .dbar.long.tool { background: #1d4f6e }
+        .dchart .dbar.long.human { background: #7a4410 }
+        .dchart .dbar.long.sub { background: #463a6e }
+        .dchart .dbar.long.unk { background: #3a3e46 }
+
+        .dchart .dbar.long:hover {
+            background: #fff;
+            color: #0f1217
+        }
+
         .segbar {
             display: flex;
             justify-content: flex-end;
@@ -4309,16 +4331,35 @@
         refreshCalls();
     }
 
+    // A span of CHART_LONG or more (a night away, a hung tool) is drawn
+    // collapsed: a dark full-height bar of a fixed CHART_LONG_W% of the width
+    // (shared down to CHART_LONG_MAX% in total) with its rounded duration
+    // inside, so it does not squeeze the rest of the session into a sliver.
+    const CHART_LONG = 36e5, CHART_LONG_W = 10, CHART_LONG_MAX = 50;
+    const durRound = ms => ms < 864e5 ? Math.round(ms / 36e5) + 'h' : Math.round(ms / 864e5) + 'd';
+
     function durChart(spans) {
         if (!spans.length) return '';
-        const t0 = Math.min(...spans.map(x => x.start)), t1 = Math.max(...spans.map(x => x.end)), span = Math.max(1, t1 - t0);
-        const segs = chartSegments(spans, t0, t1).filter(x => CHART_ON[x.kind]);
-        const mD = Math.max(1, ...segs.map(x => x.end - x.start));
+        const t0 = Math.min(...spans.map(x => x.start)), t1 = Math.max(...spans.map(x => x.end));
+        const all = chartSegments(spans, t0, t1);
+        const long = all.filter(x => x.end - x.start >= CHART_LONG);
+        const lw = long.length ? Math.min(CHART_LONG_W, CHART_LONG_MAX / long.length) : 0;
+        const rest = Math.max(1, t1 - t0 - long.reduce((a, x) => a + x.end - x.start, 0));
+        const kw = (100 - lw * long.length) / rest;
+        let at = 0;
+        all.forEach(x => {
+            x.long = x.end - x.start >= CHART_LONG;
+            x.left = at;
+            x.w = x.long ? lw : (x.end - x.start) * kw;
+            at += x.w;
+        });
+        const segs = all.filter(x => CHART_ON[x.kind]);
+        const mD = Math.max(1, ...segs.filter(x => !x.long).map(x => x.end - x.start));
         const bars = segs.map(x => {
             const d = x.end - x.start;
             const sg = x.go.startsWith('s:') ? SEGS[+x.go.slice(2)] : null;
             const tip = x.n ? tr('calls.chart.tip', {n: x.n, t: when(x.end), d: dur(d)}) : segTip({kind: x.kind, start: x.start, end: x.end, name: sg && sg.name, input: sg && sg.input, output: sg && sg.output});
-            return `<span class="dbar ${x.kind}"${x.go ? ` data-go="1" onclick="chartGo('${esc(x.go)}')"` : ''} style="left:${((x.start - t0) / span * 100).toFixed(3)}%;width:${(d / span * 100).toFixed(3)}%;height:${Math.max(2, d / mD * 100).toFixed(1)}%" data-tip="${esc(tip)}"></span>`;
+            return `<span class="dbar ${x.kind}${x.long ? ' long' : ''}"${x.go ? ` data-go="1" onclick="chartGo('${esc(x.go)}')"` : ''} style="left:${x.left.toFixed(3)}%;width:${x.w.toFixed(3)}%;height:${x.long ? 100 : Math.max(2, d / mD * 100).toFixed(1)}%" data-tip="${esc(tip)}">${x.long ? durRound(d) : ''}</span>`;
         }).join('');
         const leg = k => `<span class="dleg${CHART_ON[k] ? '' : ' off'}" onclick="chartToggle('${k}', event)"><i class="dsq ${k}"></i>${chartLabel(k)}</span>`;
         return `<div class="dchart${CHART_FULL ? ' full' : ''}"><div class="dax"><span class="dlegs">${CHART_KINDS.map(leg).join('')}</span><span class="dtools">max ${dur(mD)}<button class="dzoom" ${CHART_FULL ? '' : 'disabled'} onclick="chartFull(false, event)" title="${tr('calls.chart.zoomout')}">${zoomIc(false)}</button><button class="dzoom" ${CHART_FULL ? 'disabled' : ''} onclick="chartFull(true, event)" title="${tr('calls.chart.zoomin')}">${zoomIc(true)}</button></span></div>
