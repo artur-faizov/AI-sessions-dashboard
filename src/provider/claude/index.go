@@ -731,7 +731,13 @@ func (f *claudeFile) trigger(mid string) (*provider.TriggerResp, bool) {
 		if i == 0 {
 			return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}, Reply: f.reply(i)}, true
 		}
-		prev := f.messages[i-1]
+		// A slash command writes its expansion as isMeta lines right after
+		// the typed prompt; show the prompt rather than the empty expansion.
+		j := i - 1
+		for j > 0 && f.messages[j].role == "user" && f.messages[j].meta && f.messages[j-1].role == "user" {
+			j--
+		}
+		prev := f.messages[j]
 		res := &provider.TriggerResp{Time: prev.timeMS, Parts: []any{}, Reply: f.reply(i)}
 		if prev.role == "user" {
 			res.Case = "user"

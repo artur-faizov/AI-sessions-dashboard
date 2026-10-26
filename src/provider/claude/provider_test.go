@@ -404,6 +404,27 @@ func TestClaudeTriggerCases(t *testing.T) {
 	}
 }
 
+func TestClaudeTriggerSkipsSlashCommandExpansion(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z",
+			"<command-message>propose</command-message>\n<command-name>/propose</command-name>\n<command-args>add a topic</command-args>"),
+		`{"type":"user","uuid":"u2","isMeta":true,"timestamp":"2026-09-03T13:28:27.500Z","message":{"role":"user","content":[{"type":"text","text":"skill body"}]}}`,
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, textBlock),
+	)
+	res, err := p.CallTrigger("a1")
+	if err != nil || res == nil {
+		t.Fatalf("a1: %v %v", res, err)
+	}
+	if res.Case != "user" || len(res.Parts) != 1 {
+		t.Fatalf("trigger wrong: %s", jdump(res))
+	}
+	tp, ok := res.Parts[0].(provider.TriggerPartText)
+	if !ok || tp.Text != "/propose add a topic" {
+		t.Fatalf("part wrong: %s", jdump(res.Parts))
+	}
+}
+
 func TestClaudeTriggerUserToolResultPart(t *testing.T) {
 	p, dir := claudeFixture(t, "-home-x-proj")
 	writeLines(t, filepath.Join(dir, "s1.jsonl"),
