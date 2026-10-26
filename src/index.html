@@ -794,6 +794,153 @@
             font-variant-numeric: tabular-nums
         }
 
+        #filterpanel {
+            row-gap: 5px;
+            padding-top: 6px;
+            padding-bottom: 5px
+        }
+
+        #spanrow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 8px;
+            flex: 1 0 100%;
+            padding-top: 5px;
+            border-top: 1px solid var(--line)
+        }
+
+        #spanrow .fchip {
+            box-sizing: border-box;
+            height: 28px;
+            padding: 0 8px;
+            display: inline-flex;
+            align-items: center
+        }
+
+        #recbox.off {
+            opacity: .4
+        }
+
+        #recbox.off, #recbox.off input {
+            cursor: pointer
+        }
+
+        #spanlabel {
+            color: var(--dim);
+            font-size: 13px
+        }
+
+        #spanrow .fbtn {
+            height: 26px;
+            padding: 0 9px;
+            font-weight: 500
+        }
+
+        #spanrow .fbtn.spanstep {
+            padding: 0 7px;
+            font-size: 11px
+        }
+
+        #spanrow .fbtn:disabled {
+            opacity: .35;
+            cursor: default;
+            border-color: var(--line)
+        }
+
+        #spannav, #spanpre {
+            display: inline-flex;
+            gap: 4px
+        }
+
+        #spanbar {
+            position: relative;
+            flex: 1 1 150px;
+            min-width: 120px;
+            height: 32px;
+            background: #1d2026;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: crosshair;
+            user-select: none;
+            touch-action: none
+        }
+
+        #spandays, #spanhist {
+            position: absolute;
+            inset: 0
+        }
+
+        #spanhist {
+            width: 100%;
+            height: calc(100% - 12px);
+            pointer-events: none
+        }
+
+        #spanhist path {
+            fill: rgba(229, 72, 77, .6)
+        }
+
+        #spandays > div {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-left: 1px solid rgba(255, 255, 255, .05);
+            color: var(--dim);
+            font-size: 10px;
+            line-height: 12px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            overflow: hidden;
+            white-space: nowrap
+        }
+
+        #spandays > .we {
+            background: rgba(255, 255, 255, .035)
+        }
+
+        #spandays > .mon {
+            border-left-color: rgba(255, 255, 255, .22);
+            color: var(--fg)
+        }
+
+        #spannow {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 1px dashed #e5484d;
+            pointer-events: none
+        }
+
+        #spansel {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: rgba(122, 162, 247, .16);
+            border: 1px solid var(--acc);
+            border-width: 0 2px;
+            cursor: grab
+        }
+
+        #spansel > i {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 9px;
+            cursor: ew-resize
+        }
+
+        #spansel > .l {
+            left: -6px
+        }
+
+        #spansel > .r {
+            right: -6px
+        }
+
         .hlbox .ecg {
             width: 22px;
             height: 13px;
@@ -2089,14 +2236,6 @@
             width: 54px
         }
 
-        .finputs input[type=date] {
-            width: 128px
-        }
-
-        #ft-drow .finputs {
-            flex-wrap: wrap
-        }
-
         .cklist {
             max-height: 132px;
             overflow: auto;
@@ -2114,26 +2253,6 @@
             align-items: center;
             font-size: 13px;
             cursor: pointer
-        }
-
-        .dateopts {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px 12px;
-            flex: 1
-        }
-
-        .dateopt {
-            display: inline-flex;
-            gap: 5px;
-            align-items: center;
-            font-size: 13px;
-            cursor: pointer;
-            white-space: nowrap
-        }
-
-        .dateopt input {
-            accent-color: var(--acc)
         }
 
         .cklist input {
@@ -2280,13 +2399,18 @@
 <main>
     <div id="treepane">
         <div class="treehead"><div class="ptitle" id="treetitle"></div></div>
-        <div class="treehead"><div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
+        <div class="treehead" id="filterpanel"><div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
         <input type="text" class="namesel" id="namesel" autocomplete="off">
         <span class="projwrap"><input type="checkbox" id="projon" checked><span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span></span>
         <label class="hlbox fchip" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
-        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this.">recent</span><input type="range" id="recwin" min="0" max="1000" title="how far back counts as recent"><span id="recwintxt">15m</span></label>
         <span class="hlbox favbox fchip" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
         <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
+        <div id="spanrow">
+        <span id="spanlabel">period</span>
+        <div id="spanbar"><div id="spandays"></div><svg id="spanhist" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg><div id="spannow"></div><div id="spansel"><i class="l"></i><i class="r"></i></div></div>
+        <span id="spannav"><button type="button" class="fbtn spanstep" id="spanprev">◀</button><span id="spanpre"></span><button type="button" class="fbtn spanstep" id="spannext">▶</button></span>
+        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this.">recent</span><input type="range" id="recwin" min="0" max="1000" title="how far back counts as recent"><span id="recwintxt">15m</span></label>
+        </div>
         </div>
         <div id="tree"></div>
     </div>
@@ -2453,31 +2577,6 @@
         return k == null ? null : k * 1000;
     }
 
-    function presetRange(preset, now) {
-        if (preset !== 'today' && preset !== 'week' && preset !== 'month') return [null, null];
-        const d = new Date(now);
-        d.setHours(0, 0, 0, 0);
-        if (preset === 'week') d.setDate(d.getDate() - (d.getDay() + 6) % 7);
-        else if (preset === 'month') d.setDate(1);
-        return [d.getTime(), null];
-    }
-
-    function dayStartMs(str) {
-        if (!str) return null;
-        const t = new Date(str + 'T00:00').getTime();
-        return Number.isFinite(t) ? t : null;
-    }
-
-    function dateStrToRange(from, to) {
-        const mn = dayStartMs(from), mx = dayStartMs(to);
-        return [mn, mx == null ? null : mx + 86400000 - 1];
-    }
-
-    function resolveDateBounds(f, now) {
-        if (f.datePreset === 'custom') return dateStrToRange(f.dateFrom, f.dateTo);
-        return presetRange(f.datePreset, now);
-    }
-
     function nodeDir(n) {
         return n.dir || '(unknown)';
     }
@@ -2491,7 +2590,6 @@
         if (f.providers.size && !f.providers.has(nodeProvider(n))) return false;
         if (f.dirs.size && !f.dirsOff && !f.dirs.has(nodeDir(n))) return false;
         if (!inRange(n.order || 0, f.numMin, f.numMax)) return false;
-        if (!inRange(n.created || 0, f.dateMin, f.dateMax)) return false;
         if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
         if (!inRange(costNode(n), f.spentMin, f.spentMax)) return false;
         if (!inRange(n.dur, f.durMin, f.durMax)) return false;
@@ -2521,6 +2619,58 @@
         return !!n.active || (n.updated || 0) >= since || n.children.some(c => treeRecentVisible(c, since));
     }
 
+    // Active at any moment of the period [from, to): created before its end and
+    // updated at/after its start — the session itself or any subagent.
+    function treeSpanVisible(n, from, to) {
+        const c = n.created || 0;
+        return (c < to && Math.max(c, n.updated || 0) >= from) || n.children.some(x => treeSpanVisible(x, from, to));
+    }
+
+    // The calendar day or week ('day' | 'week', weeks start on Monday) holding t,
+    // moved by step whole periods: [start, end) in ms.
+    function periodRange(kind, t, step) {
+        const d = new Date(t);
+        d.setHours(0, 0, 0, 0);
+        if (kind === 'week') d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+        const len = kind === 'week' ? 7 : 1;
+        d.setDate(d.getDate() + step * len);
+        const from = d.getTime();
+        d.setDate(d.getDate() + len);
+        return [from, d.getTime()];
+    }
+
+    // [from, to) moved by its own length in direction dir (-1 / +1). Periods made
+    // of whole days move by calendar days, so DST changes keep them on midnight.
+    function shiftSpan(from, to, dir) {
+        const a = new Date(from), b = new Date(to);
+        const midnight = d => d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0;
+        if (midnight(a) && midnight(b)) {
+            const days = Math.round((to - from) / 86400000) * dir;
+            a.setDate(a.getDate() + days);
+            b.setDate(b.getDate() + days);
+            return [a.getTime(), b.getTime()];
+        }
+        const len = (to - from) * dir;
+        return [from + len, to + len];
+    }
+
+    // Sessions (subagents included) active in each bucketMs slot of [start, end):
+    // a session counts in every slot its [created, updated] interval touches.
+    function spanActivity(tree, start, end, bucketMs) {
+        const n = Math.max(0, Math.ceil((end - start) / bucketMs)), out = new Array(n).fill(0);
+        (function walk(ns) {
+            for (const x of ns) {
+                const c = x.created || 0, u = Math.max(c, x.updated || 0);
+                if (c && u >= start && c < end) {
+                    const i1 = Math.min(n - 1, Math.floor((u - start) / bucketMs));
+                    for (let i = Math.max(0, Math.floor((c - start) / bucketMs)); i <= i1; i++) out[i]++;
+                }
+                walk(x.children);
+            }
+        })(tree);
+        return out;
+    }
+
     // The recent-window slider runs 0..1000 on a log scale from 5 min to 24 h,
     // so short windows stay precise; minutes are rounded coarser as they grow.
     const REC_MIN = 5, REC_MAX = 24 * 60;
@@ -2543,7 +2693,6 @@
         const set = (a, b) => a != null || b != null;
         return [
             !!f.text, f.models.size > 0, f.providers.size > 0, f.dirs.size > 0 && !f.dirsOff, set(f.numMin, f.numMax),
-            f.datePreset != null && (f.datePreset !== 'custom' || !!f.dateFrom || !!f.dateTo),
             set(f.ctxMin, f.ctxMax), set(f.spentMin, f.spentMax), set(f.durMin, f.durMax)
         ].filter(Boolean).length;
     }
@@ -2659,8 +2808,8 @@
     }
 
     if (typeof module !== 'undefined' && module.exports) module.exports = {
-        modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
-        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeRecentVisible, recWinAt, recSliderPos, treeCheckedVisible, nodeDir, heartSizes, ecgPoints, ecgRises,
+        modelName, nodeProvider, inRange, hmsToMs,
+        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeRecentVisible, treeSpanVisible, periodRange, shiftSpan, spanActivity, recWinAt, recSliderPos, treeCheckedVisible, nodeDir, heartSizes, ecgPoints, ecgRises,
         callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel, exportCandidates,
         COST_DEF, COST, MCOST, costOf, costT, costNode, tokEqOf, resetCost
     };
@@ -2673,7 +2822,6 @@
     const newTreeFilter = () => ({
         text: '', models: new Set(), providers: new Set(), dirs: new Set(), dirsOff: false,
         numMin: null, numMax: null,
-        datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
         ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null
     });
     const newCallFilter = () => ({
@@ -2683,6 +2831,10 @@
     let treeFilter = newTreeFilter(), callFilter = newCallFilter();
     let HOT = { warn: 100, crit: 120, apply: false };
     let REC = { only: false, win: 15 }; // win: minutes that count as recent
+    // Timeline period [from, to) in ms: a whole day/week of scale, or a
+    // dragged custom range (scale null). live: the current period of scale,
+    // re-resolved on every render so "today" stays today after midnight.
+    let SPAN = { scale: 'day', live: true, from: 0, to: 0 };
     let CHK = { only: false, marked: new Set() };
     let SNAME = {}; // local session names: id -> text (replaces the title in the UI)
     let CSORT = {key: null, asc: false}; // AI calls table sort; key null = chronological
@@ -2695,7 +2847,7 @@
             const tree = Object.assign({}, treeFilter, {
                 models: [...treeFilter.models], providers: [...treeFilter.providers], dirs: [...treeFilter.dirs]
             });
-            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC,
+            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC, span: SPAN,
                 chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST, segc: SEG_COLLAPSED, segmin: SEG_MIN, csort: CSORT}));
         } catch (e) { /* storage unavailable — ignore */ }
     }
@@ -2738,6 +2890,11 @@
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
             if (s.rec) REC = Object.assign({only: false, win: 15}, s.rec);
             if (!(REC.win >= REC_MIN && REC.win <= REC_MAX)) REC.win = 15;
+            const known = s.span && (s.span.scale === null || SPAN_SCALES.some(([k]) => k === s.span.scale));
+            if (known && Number.isFinite(s.span.from) && Number.isFinite(s.span.to) && s.span.from < s.span.to) {
+                const scale = s.span.scale;
+                SPAN = {scale, live: !!scale && !!s.span.live, from: s.span.from, to: s.span.to};
+            }
             SEG_COLLAPSED = s.segc === true;
             if (s.segmin && typeof s.segmin.sec === 'number') SEG_MIN = {on: s.segmin.on !== false, sec: s.segmin.sec};
             if (s.csort && typeof s.csort.key === 'string') CSORT = {key: s.csort.key, asc: !!s.csort.asc};
@@ -2763,14 +2920,12 @@
     }
 
     function matches(s) {
-        const b = resolveDateBounds(treeFilter, Date.now());
-        return treeVisible(s, Object.assign({}, treeFilter, {dateMin: b[0], dateMax: b[1]}));
+        return treeVisible(s, treeFilter);
     }
 
     function treeFilterActive() {
         const f = treeFilter;
         return !!(f.text || f.models.size || f.providers.size || f.numMin != null || f.numMax != null
-            || (f.datePreset != null && (f.datePreset !== 'custom' || f.dateFrom || f.dateTo))
             || f.ctxMin != null || f.ctxMax != null || f.spentMin != null || f.spentMax != null || f.durMin != null || f.durMax != null);
     }
 
@@ -3016,6 +3171,190 @@
     });
     document.querySelector('#recwin').addEventListener('change', () => saveSettings());
 
+    // Timeline period: a 2-week strip with an hourly activity histogram and a
+    // draggable [from, to).
+    const SPAN_DAYS = 14, HOUR_MS = 3600000;
+    const SPAN_SCALES = [['week', 'span.week'], ['day', 'span.day']];
+    let spanDrag = null, spanRaf = 0;
+
+    // The strip ends tomorrow at midnight; once the period leaves it, the strip
+    // follows, keeping the period at its right edge (and at least as wide).
+    function spanView(now) {
+        const tomorrow = periodRange('day', now, 1)[0];
+        const days = Math.max(SPAN_DAYS, Math.ceil((SPAN.to - SPAN.from) / 86400000 - 0.1));
+        const back = t => {
+            const d = new Date(t);
+            d.setDate(d.getDate() - days);
+            return d.getTime();
+        };
+        let end = tomorrow;
+        if (SPAN.from < back(end)) end = Math.min(tomorrow, periodRange('day', SPAN.to - 1, 1)[0]);
+        return [back(end), end];
+    }
+
+    const hourSnap = t => {
+        const d = new Date(t + HOUR_MS / 2);
+        d.setMinutes(0, 0, 0);
+        return d.getTime();
+    };
+
+    function spanText(from, to) {
+        const loc = I18N.locale();
+        const day = t => new Date(t).toLocaleDateString(loc, {weekday: 'short', day: 'numeric', month: 'short'});
+        const hm = t => new Date(t).toLocaleTimeString(loc, {hour: '2-digit', minute: '2-digit'});
+        const [d0] = periodRange('day', from, 0), [d1] = periodRange('day', to, 0);
+        if (from === d0 && to === d1) return to - from <= 26 * HOUR_MS ? day(from) : day(from) + ' – ' + day(to - 1);
+        return d0 === periodRange('day', to - 1, 0)[0] ? day(from) + ' ' + hm(from) + '–' + hm(to)
+            : day(from) + ' ' + hm(from) + ' – ' + day(to) + ' ' + hm(to);
+    }
+
+    function placeSpanSel(view) {
+        const [vs, ve] = view, pct = t => (Math.min(ve, Math.max(vs, t)) - vs) / (ve - vs) * 100;
+        const el = document.querySelector('#spansel');
+        el.style.left = pct(SPAN.from) + '%';
+        el.style.width = (pct(SPAN.to) - pct(SPAN.from)) + '%';
+    }
+
+    function renderSpan(tree) {
+        const now = NOW || Date.now();
+        const view = spanDrag ? spanDrag.view : spanView(now);
+        const [vs, ve] = view, len = ve - vs, pct = t => (t - vs) / len * 100;
+        const loc = I18N.locale();
+        // too narrow for a number on every day: label only Mondays
+        const allDays = document.querySelector('#spanbar').clientWidth / (len / 86400000) >= 13;
+        let days = '';
+        for (let d = new Date(vs); d.getTime() < ve; ) {
+            const t = d.getTime(), dow = d.getDay();
+            d.setDate(d.getDate() + 1);
+            days += `<div class="${dow === 0 || dow === 6 ? 'we' : dow === 1 ? 'mon' : ''}" style="left:${pct(t)}%;width:${pct(d.getTime()) - pct(t)}%" title="${esc(new Date(t).toLocaleDateString(loc, {weekday: 'long', day: 'numeric', month: 'long'}))}">${allDays || dow === 1 ? new Date(t).getDate() : ''}</div>`;
+        }
+        document.querySelector('#spandays').innerHTML = days;
+        const act = spanActivity(tree, vs, ve, HOUR_MS), mx = Math.sqrt(Math.max(1, ...act));
+        let p = 'M0 100';
+        act.forEach((v, i) => {
+            const x0 = pct(vs + i * HOUR_MS), x1 = pct(Math.min(ve, vs + (i + 1) * HOUR_MS)), y = 100 - Math.sqrt(v) / mx * 100;
+            p += `L${x0.toFixed(3)} ${y.toFixed(2)}L${x1.toFixed(3)} ${y.toFixed(2)}`;
+        });
+        document.querySelector('#spanhist').innerHTML = `<path d="${p}L100 100Z"/>`;
+        document.querySelector('#spannow').style.left = pct(now) + '%';
+        placeSpanSel(view);
+        document.querySelector('#spansel').title = spanText(SPAN.from, SPAN.to);
+        document.querySelector('#spannext').disabled = SPAN.to > now;
+        // "recent" counts back from now, so it only applies while the period holds now
+        document.querySelector('#recbox').classList.toggle('off', !spanHasNow(now));
+        document.querySelectorAll('#spanpre .fbtn').forEach(b => b.classList.toggle('on', b.dataset.scale === SPAN.scale));
+    }
+
+    const spanHasNow = now => SPAN.from <= now && now < SPAN.to;
+
+    function resolveSpan(now) {
+        if (SPAN.scale && SPAN.live) [SPAN.from, SPAN.to] = periodRange(SPAN.scale, now, 0);
+        else if (!SPAN.from) [SPAN.from, SPAN.to] = periodRange('day', now, 0);
+    }
+
+    function setSpan(from, to, scale) {
+        const now = Date.now();
+        SPAN = {scale: scale || null, live: !!scale && from <= now && now < to, from, to};
+        render();
+        saveSettings();
+    }
+
+    // ◀ ▶ step one day/week of the scale, a custom range by its own length.
+    function stepSpan(dir) {
+        if (SPAN.scale) setSpan(...periodRange(SPAN.scale, SPAN.from, dir), SPAN.scale);
+        else setSpan(...shiftSpan(SPAN.from, SPAN.to, dir));
+    }
+
+    function syncSpanLang() {
+        document.querySelector('#spanlabel').title = tr('span.title');
+        document.querySelector('#spanlabel').textContent = tr('span.label');
+        document.querySelector('#spanprev').title = tr('span.prev');
+        document.querySelector('#spannext').title = tr('span.next');
+        document.querySelector('#spanbar').title = tr('span.bar.title');
+        document.querySelector('#spanpre').innerHTML = SPAN_SCALES.map(([k, key]) =>
+            `<button type="button" class="fbtn" data-scale="${k}" title="${esc(tr('span.scale.title'))}">${esc(tr(key))}</button>`).join('');
+    }
+
+    // greyed-out "recent": the first press jumps to today instead of editing it
+    let recJump = false;
+    document.querySelector('#recbox').addEventListener('pointerdown', e => {
+        if (!e.currentTarget.classList.contains('off')) return;
+        e.preventDefault();
+        recJump = true;
+        setSpan(...periodRange('day', Date.now(), 0), 'day');
+    }, true);
+    document.querySelector('#recbox').addEventListener('click', e => {
+        if (!recJump) return;
+        recJump = false;
+        e.preventDefault();
+        e.stopPropagation();
+    }, true);
+    document.querySelector('#spanprev').addEventListener('click', () => stepSpan(-1));
+    document.querySelector('#spannext').addEventListener('click', () => stepSpan(1));
+    document.querySelector('#spanpre').addEventListener('click', e => {
+        const b = e.target.closest('.fbtn');
+        if (!b) return;
+        // a new scale zooms around the shown period; the active one jumps back to now
+        const k = b.dataset.scale, anchor = SPAN.live || SPAN.scale === k ? Date.now() : SPAN.from;
+        setSpan(...periodRange(k, anchor, 0), k);
+    });
+
+    // Drag on the strip: on an edge resizes, inside the period moves it,
+    // elsewhere draws a new period; all snapped to whole hours.
+    const spanBar = document.querySelector('#spanbar');
+    const spanTimeAt = (e, view) => {
+        const r = spanBar.getBoundingClientRect();
+        return view[0] + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (view[1] - view[0]);
+    };
+    spanBar.addEventListener('pointerdown', e => {
+        if (e.button !== 0) return;
+        const view = spanView(Date.now()), t = spanTimeAt(e, view);
+        const mode = e.target.matches('#spansel > .l') ? 'l' : e.target.matches('#spansel > .r') ? 'r'
+            : e.target.id === 'spansel' ? 'move' : 'new';
+        spanDrag = {view, mode, t0: t, from: SPAN.from, to: SPAN.to, anchor: hourSnap(t)};
+        spanBar.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    });
+    spanBar.addEventListener('pointermove', e => {
+        const d = spanDrag;
+        if (!d) return;
+        const t = hourSnap(spanTimeAt(e, d.view));
+        let from = SPAN.from, to = SPAN.to;
+        if (d.mode === 'l') from = Math.min(t, d.to - HOUR_MS);
+        else if (d.mode === 'r') to = Math.max(t, d.from + HOUR_MS);
+        else if (d.mode === 'move') {
+            const dt = hourSnap(d.from + spanTimeAt(e, d.view) - d.t0) - d.from;
+            from = d.from + dt;
+            to = d.to + dt;
+        } else {
+            from = Math.min(t, d.anchor);
+            to = Math.max(t, d.anchor);
+            if (to - from < HOUR_MS) return;
+        }
+        if (from === d.from && to === d.to) return;
+        d.moved = true;
+        SPAN = {scale: null, live: false, from, to};
+        placeSpanSel(d.view);
+        if (!spanRaf) spanRaf = requestAnimationFrame(() => {
+            spanRaf = 0;
+            render();
+        });
+    });
+    // a click without dragging picks the day (or week, on week scale) under it
+    const spanDragEnd = e => {
+        const d = spanDrag;
+        if (!d) return;
+        spanDrag = null;
+        if (!d.moved && e.type === 'pointerup') {
+            const k = SPAN.scale || 'day';
+            return setSpan(...periodRange(k, spanTimeAt(e, d.view), 0), k);
+        }
+        render();
+        saveSettings();
+    };
+    spanBar.addEventListener('pointerup', spanDragEnd);
+    spanBar.addEventListener('pointercancel', spanDragEnd);
+
     function syncFav() {
         const b = document.querySelector('#chkbox');
         b.classList.toggle('on', !!CHK.only);
@@ -3201,7 +3540,6 @@
     function openTreeFilter() {
         const f = treeFilter;
         fmodalKind = 'tree';
-        const dradio = (v, key) => `<label class="dateopt"><input type="radio" name="ft-dpreset" value="${v}"${(f.datePreset || '') === v ? ' checked' : ''}>${tr(key)}</label>`;
         fmodalOpen(tr('ftree.title'), `
         <div class="fsect">${tr('fmod.text')}</div>
         <div class="frow"><span class="finputs"><input type="text" id="ft-text" value="${esc(f.text)}" placeholder="${tr('ftree.text.ph')}" style="width:100%"></span></div>
@@ -3215,9 +3553,6 @@
         ${rangeRow(tr('ftree.spent'), 'ft-spentmin', 'ft-spentmax', f, 'spentMin', 'spentMax')}
         ${durRow(tr('ftree.dur_min'), 'ft-dmin', f.durMin)}
         ${durRow(tr('ftree.dur_max'), 'ft-dmax', f.durMax)}
-        <div class="fsect">${tr('ftree.date')}</div>
-        <div class="frow"><span class="dateopts">${dradio('', 'fmod.any')}${dradio('today', 'ftree.date.today')}${dradio('week', 'ftree.date.week')}${dradio('month', 'ftree.date.month')}${dradio('custom', 'fmod.custom')}</span></div>
-        <div class="frow" id="ft-drow"${f.datePreset === 'custom' ? '' : ' style="display:none"'}><span class="flbl">${tr('fmod.from_to')}</span><span class="finputs"><input type="date" id="ft-dfrom" value="${esc(f.dateFrom || '')}"><input type="date" id="ft-dto" value="${esc(f.dateTo || '')}"></span></div>
         <button class="freset" onclick="resetTreeFilter()">${tr('fmod.reset')}</button>`);
         const apply = applyTreeFilter;
         document.querySelector('#ft-text').addEventListener('input', e => {
@@ -3234,31 +3569,6 @@
         bindNum('ft-spentmax', f, 'spentMax', apply);
         bindHms('ft-dmin', f, 'durMin', apply);
         bindHms('ft-dmax', f, 'durMax', apply);
-        const updDates = () => {
-            document.querySelector('#ft-drow').style.display = f.datePreset === 'custom' ? '' : 'none';
-        };
-        document.querySelectorAll('#fmodal input[name=ft-dpreset]').forEach(r => r.addEventListener('change', e => {
-            if (!e.target.checked) return;
-            f.datePreset = e.target.value || null;
-            if (f.datePreset !== 'custom') {
-                f.dateFrom = f.dateTo = null;
-                document.querySelector('#ft-dfrom').value = '';
-                document.querySelector('#ft-dto').value = '';
-            }
-            updDates();
-            apply();
-        }));
-        [['ft-dfrom', 'dateFrom'], ['ft-dto', 'dateTo']].forEach(([id, k]) => {
-            const el = document.querySelector('#' + id);
-            el.addEventListener('input', () => {
-                f[k] = el.value || null;
-                if (f[k] && f.datePreset !== 'custom') {
-                    f.datePreset = 'custom';
-                    updDates();
-                }
-                apply();
-            });
-        });
     }
 
     function resetTreeFilter() {
@@ -3343,11 +3653,14 @@
     function render() {
         if (document.querySelector('#tree .rninput')) return; // keep an in-progress rename alive across auto-refresh
         NOW = Date.now();
+        resolveSpan(NOW);
         let h = '';
-        const roots = sorted(TREE.filter(s => matches(s)
+        // the timeline histogram shows what the non-time filters leave
+        const filtered = TREE.filter(s => matches(s)
             && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
-            && (!REC.only || treeRecentVisible(s, NOW - REC.win * 60 * 1000))
-            && (!CHK.only || treeCheckedVisible(s, CHK.marked))));
+            && (!CHK.only || treeCheckedVisible(s, CHK.marked)));
+        const roots = sorted(filtered.filter(s => treeSpanVisible(s, SPAN.from, SPAN.to)
+            && (!REC.only || !spanHasNow(NOW) || treeRecentVisible(s, NOW - REC.win * 60 * 1000))));
         const HEARTS = heartSizes(roots);
         let mc = 0, mt = 0, mm = 0;
         (function scan(ns) {
@@ -3381,6 +3694,7 @@
         document.querySelector('#tree').innerHTML = h;
         updateFilterCount();
         syncGearStats();
+        renderSpan(filtered);
     }
 
     function syncGearStats() {
@@ -4465,6 +4779,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#recwin').title = tr('recent.win.title');
         document.querySelector('#recwintxt').title = tr('recent.win.title');
         syncRecWin();
+        syncSpanLang();
         document.querySelector('#chkbox').title = tr('favourites.only.title');
         document.querySelector('#chklabel').title = tr('favourites.only.title');
         document.querySelector('#chklabel').textContent = tr('filter.favourites');

@@ -21,7 +21,6 @@ const node = (o = {}) => ({
 const tf = (o = {}) => ({
     text: '', models: new Set(), providers: new Set(), dirs: new Set(),
     numMin: null, numMax: null,
-    datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
     ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null, ...o,
 });
 const cf = (o = {}) => ({
@@ -164,74 +163,11 @@ test('tree order filter: node without order counts as 0', () => {
     assert.equal(L.treeMatchesNode(node(), tf({ numMax: 0 })), true);
 });
 
-test('tree date filter: created within inclusive ms range, created=0 passes open range', () => {
-    const n = node({ created: new Date('2026-10-05T12:00').getTime() });
-    assert.equal(L.treeMatchesNode(n, tf({
-        dateMin: new Date('2026-10-05T00:00').getTime(),
-        dateMax: new Date('2026-10-05T23:59:59.999').getTime(),
-    })), true);
-    assert.equal(L.treeMatchesNode(n, tf({ dateMin: new Date('2026-10-06T00:00').getTime() })), false);
-    assert.equal(L.treeMatchesNode(n, tf({ dateMax: new Date('2026-10-04T23:59:59.999').getTime() })), false);
-    assert.equal(L.treeMatchesNode(node({ created: 0 }), tf()), true);
-});
-
-test('presetRange: today = local midnight, no upper bound', () => {
-    const now = new Date('2026-10-05T15:30').getTime();
-    const [min, max] = L.presetRange('today', now);
-    assert.equal(min, new Date('2026-10-05T00:00').getTime());
-    assert.equal(max, null);
-});
-
-test('presetRange: week starts Monday — mid-week and Sunday both map to it', () => {
-    const wed = new Date('2026-10-07T10:00').getTime();
-    assert.equal(L.presetRange('week', wed)[0], new Date('2026-10-05T00:00').getTime());
-    const sun = new Date('2026-10-11T23:00').getTime();
-    assert.equal(L.presetRange('week', sun)[0], new Date('2026-10-05T00:00').getTime());
-    const mon = new Date('2026-10-05T00:00').getTime();
-    assert.equal(L.presetRange('week', mon)[0], mon);
-});
-
-test('presetRange: month = local midnight of the 1st, no upper bound', () => {
-    const [min, max] = L.presetRange('month', new Date('2026-10-15T08:00').getTime());
-    assert.equal(min, new Date('2026-10-01T00:00').getTime());
-    assert.equal(max, null);
-});
-
-test('presetRange: null or unknown/custom preset = fully open range', () => {
-    assert.deepEqual([...L.presetRange(null, 123)], [null, null]);
-    assert.deepEqual([...L.presetRange(undefined, 123)], [null, null]);
-    assert.deepEqual([...L.presetRange('custom', 123)], [null, null]);
-});
-
-test('dateStrToRange: YYYY-MM-DD pair -> inclusive local day bounds', () => {
-    const [min, max] = L.dateStrToRange('2026-10-05', '2026-10-06');
-    assert.equal(min, new Date('2026-10-05T00:00').getTime());
-    assert.equal(max, new Date('2026-10-06T23:59:59.999').getTime());
-});
-
-test('dateStrToRange: empty or invalid side stays open', () => {
-    assert.deepEqual([...L.dateStrToRange('', '2026-10-06')], [null, new Date('2026-10-06T23:59:59.999').getTime()]);
-    assert.deepEqual([...L.dateStrToRange('2026-10-05', '')], [new Date('2026-10-05T00:00').getTime(), null]);
-    assert.deepEqual([...L.dateStrToRange(null, null)], [null, null]);
-    assert.deepEqual([...L.dateStrToRange('garbage', '')], [null, null]);
-});
-
-test('resolveDateBounds: preset resolved against the passed now, custom via strings', () => {
-    const now = new Date('2026-10-07T15:00').getTime();
-    assert.deepEqual([...L.resolveDateBounds(tf({ datePreset: 'today' }), now)], [...L.presetRange('today', now)]);
-    assert.deepEqual(
-        [...L.resolveDateBounds(tf({ datePreset: 'custom', dateFrom: '2026-10-05', dateTo: '2026-10-06' }), 0)],
-        [...L.dateStrToRange('2026-10-05', '2026-10-06')],
-    );
-    assert.deepEqual([...L.resolveDateBounds(tf(), 123)], [null, null]);
-});
-
-test('tree node order and date criteria AND together with the rest', () => {
-    const n = node({ order: 2, created: new Date('2026-10-05T12:00').getTime(), title: 'fix bug' });
-    const f = tf({ text: 'bug', numMin: 2, dateMin: new Date('2026-10-05T00:00').getTime() });
+test('tree node order criterion ANDs together with the rest', () => {
+    const n = node({ order: 2, title: 'fix bug' });
+    const f = tf({ text: 'bug', numMin: 2 });
     assert.equal(L.treeMatchesNode(n, f), true);
     assert.equal(L.treeMatchesNode(n, tf({ ...f, numMin: 3 })), false);
-    assert.equal(L.treeMatchesNode(n, tf({ ...f, dateMin: new Date('2026-10-06T00:00').getTime() })), false);
 });
 
 test('tree folder filter: empty set = off, empty dir = (unknown), AND with model filter', () => {
@@ -489,9 +425,7 @@ test('displayTitle: drops the "(@agent subagent)" suffix only for the same agent
 test('treeFilterCount: one per active criterion group', () => {
     assert.equal(L.treeFilterCount(tf()), 0);
     assert.equal(L.treeFilterCount(tf({text: 'x', models: new Set(['a', 'b']), ctxMin: 1, ctxMax: 5})), 3);
-    assert.equal(L.treeFilterCount(tf({datePreset: 'today'})), 1);
-    assert.equal(L.treeFilterCount(tf({datePreset: 'custom'})), 0);
-    assert.equal(L.treeFilterCount(tf({datePreset: 'custom', dateTo: '2026-01-01', durMax: 0})), 2);
+    assert.equal(L.treeFilterCount(tf({durMax: 0})), 1);
 });
 
 test('callFilterCount: one per active criterion group', () => {
@@ -524,4 +458,43 @@ test('exportCandidates: only top-level nodes are considered, never children', ()
     const now = 1e7;
     const tree = [node({ id: 'root', updated: 0, children: [node({ id: 'kid', updated: now })] })];
     assert.deepEqual(L.exportCandidates(tree, new Set(), now), []);
+});
+
+test('treeSpanVisible: node or any descendant active at some moment of [from, to)', () => {
+    const [from, to] = [1000, 2000];
+    assert.equal(L.treeSpanVisible(node({ created: 500, updated: 999 }), from, to), false);
+    assert.equal(L.treeSpanVisible(node({ created: 500, updated: 1000 }), from, to), true);
+    assert.equal(L.treeSpanVisible(node({ created: 500, updated: 3000 }), from, to), true);
+    assert.equal(L.treeSpanVisible(node({ created: 1999, updated: 0 }), from, to), true);
+    assert.equal(L.treeSpanVisible(node({ created: 2000, updated: 2500 }), from, to), false);
+    const parent = node({ created: 100, updated: 200, children: [node({ created: 1500, updated: 1600 })] });
+    assert.equal(L.treeSpanVisible(parent, from, to), true);
+});
+
+test('periodRange: local day and Monday-based week, shifted by whole periods', () => {
+    const wed = new Date(2026, 9, 21, 15, 30).getTime(); // Wed 21 Oct 2026
+    assert.deepEqual([...L.periodRange('day', wed, 0)], [new Date(2026, 9, 21).getTime(), new Date(2026, 9, 22).getTime()]);
+    assert.deepEqual([...L.periodRange('day', wed, -1)], [new Date(2026, 9, 20).getTime(), new Date(2026, 9, 21).getTime()]);
+    assert.deepEqual([...L.periodRange('week', wed, 0)], [new Date(2026, 9, 19).getTime(), new Date(2026, 9, 26).getTime()]);
+    assert.deepEqual([...L.periodRange('week', wed, -1)], [new Date(2026, 9, 12).getTime(), new Date(2026, 9, 19).getTime()]);
+    const sun = new Date(2026, 9, 25, 10).getTime();
+    assert.deepEqual(L.periodRange('week', sun, 0)[0], new Date(2026, 9, 19).getTime());
+});
+
+test('shiftSpan: whole-day periods move by calendar days, others by their length', () => {
+    const a = new Date(2026, 9, 19).getTime(), b = new Date(2026, 9, 24).getTime();
+    assert.deepEqual([...L.shiftSpan(a, b, -1)], [new Date(2026, 9, 14).getTime(), a]);
+    assert.deepEqual([...L.shiftSpan(a, b, 1)], [b, new Date(2026, 9, 29).getTime()]);
+    const h = 3600000, c = new Date(2026, 9, 19, 10).getTime();
+    assert.deepEqual([...L.shiftSpan(c, c + 3 * h, 1)], [c + 3 * h, c + 6 * h]);
+});
+
+test('spanActivity: counts every node in each bucket its [created, updated] touches', () => {
+    const tree = [
+        node({ created: 10, updated: 35, children: [node({ created: 20, updated: 25 })] }),
+        node({ created: 5, updated: 8 }),   // ends before the window
+        node({ created: 0, updated: 50 }),  // no created time — skipped
+        node({ created: 45, updated: 0 }),  // never updated — counts at created
+    ];
+    assert.deepEqual([...L.spanActivity(tree, 10, 50, 10)], [1, 2, 1, 1]);
 });

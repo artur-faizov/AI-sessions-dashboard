@@ -79,7 +79,7 @@ function boot(first, store = {}) {
 const sess = (o = {}) => ({
     id: 's1', parent: null, title: 'fix session', agent: 'build', model: null, dir: '/p',
     maxctx: 900, in: 10, out: 20, reason: 5, cr: 7, cw: 8,
-    created: 1700000000000, updated: 1700000100000, dur: 100000,
+    created: Date.now() - 100000, updated: Date.now(), dur: 100000,
     active: true, beats: [], children: [], subtree: {in: 10, out: 20, reason: 5, cr: 7, cw: 8}, ...o,
 });
 
