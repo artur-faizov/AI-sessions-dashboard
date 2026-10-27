@@ -1,0 +1,6 @@
+Alert sounds, taken unchanged from the freedesktop sound theme
+(sound-theme-freedesktop, https://www.freedesktop.org/wiki/Specifications/sound-theme-spec/).
+
+perm.oga  <- stereo/dialog-warning.oga  Ivica Bukvic             CC-BY-SA-3.0
+ask.oga   <- stereo/message.oga         Ivica Bukvic             CC-BY-SA-3.0
+done.oga  <- stereo/complete.oga        Dr. Richard Boulanger et al  CC-BY-3.0

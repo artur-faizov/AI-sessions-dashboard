@@ -2,6 +2,7 @@ package copilot
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/artur-faizov/token-monitor/src/provider"
 )
@@ -15,6 +16,17 @@ func (st *stream) humanBefore(i int) provider.Trig {
 		return provider.TrigText
 	}
 	return provider.TrigNone
+}
+
+// asksAfter reports whether the tools run right after the assistant message at
+// i include ask_user, i.e. that call put a question to the human.
+func (st *stream) asksAfter(i int) bool {
+	for j := i + 1; j < len(st.items) && st.items[j].kind == kindTool; j++ {
+		if provider.IsAskTool(st.items[j].toolName) {
+			return true
+		}
+	}
+	return false
 }
 
 // calls returns one record per assistant API call of a node, in time order,
@@ -41,7 +53,7 @@ func (s *session) calls(agentID string, td tokenData) []provider.CallRec {
 		for _, m := range msgs {
 			rec := provider.CallRec{
 				Mid: m.it.mid, Time: m.it.timeMS, Out: m.it.outTokens,
-				Hu: st.humanBefore(m.index),
+				Hu: st.humanBefore(m.index), Ask: st.asksAfter(m.index),
 			}
 			if agentID == "" {
 				if o, ok := s.otelFor(agentID, m.index, m.it, td.otel); ok {
@@ -66,6 +78,7 @@ func (s *session) calls(agentID string, td tokenData) []provider.CallRec {
 					rec.Time = msgs[k].it.timeMS
 				}
 				rec.Hu = st.humanBefore(msgs[k].index)
+				rec.Ask = st.asksAfter(msgs[k].index)
 			}
 			calls = append(calls, rec)
 		}
@@ -74,7 +87,7 @@ func (s *session) calls(agentID string, td tokenData) []provider.CallRec {
 	for _, m := range msgs {
 		calls = append(calls, provider.CallRec{
 			Mid: m.it.mid, Time: m.it.timeMS, Out: m.it.outTokens,
-			Hu: st.humanBefore(m.index),
+			Hu: st.humanBefore(m.index), Ask: st.asksAfter(m.index),
 		})
 	}
 	return calls
@@ -102,6 +115,27 @@ func (s *session) prompt(agentID string) []string {
 	return texts
 }
 
+// reply collects what the assistant message at i showed the human: its text
+// and the ask_user tools run right after it, or nil when there are none.
+func (st *stream) reply(i int) []any {
+	var parts []any
+	if txt := st.items[i].text; strings.TrimSpace(txt) != "" {
+		t, cut := provider.Clip(txt)
+		parts = append(parts, provider.TriggerPartText{Kind: "text", Text: t, Cut: cut})
+	}
+	for j := i + 1; j < len(st.items) && st.items[j].kind == kindTool; j++ {
+		if t := st.items[j]; provider.IsAskTool(t.toolName) {
+			in, cutI := provider.Clip(t.toolIn)
+			out, cutO := provider.Clip(t.toolOut)
+			parts = append(parts, provider.TriggerPartTool{
+				Kind: "tool", Tool: t.toolName, Status: t.status,
+				Input: in, CutI: cutI, Output: out, CutO: cutO,
+			})
+		}
+	}
+	return parts
+}
+
 // trigger reports what preceded the assistant call mid: the user message, or
 // the tool executions since the previous assistant message. ok is false when
 // mid is not in this session.
@@ -111,7 +145,15 @@ func (s *session) trigger(mid string) (*provider.TriggerResp, bool) {
 		return nil, false
 	}
 	st := s.streams[ref.agent]
-	j := ref.index - 1
+	res, ok := s.triggerOf(st, ref.index)
+	if res != nil {
+		res.Reply = st.reply(ref.index)
+	}
+	return res, ok
+}
+
+func (s *session) triggerOf(st *stream, index int) (*provider.TriggerResp, bool) {
+	j := index - 1
 	var tools []*item
 	for ; j >= 0 && st.items[j].kind == kindTool; j-- {
 		tools = append([]*item{st.items[j]}, tools...)

@@ -59,18 +59,29 @@ func sessionPrompt(pool *sql.DB, sessionID string) ([]string, error) {
 	return texts, nil
 }
 
+// msgParts is what a session's parts say about its messages.
+type msgParts struct {
+	human map[string]provider.Trig // message id -> human input it carries
+	asks  map[string]bool          // assistant messages with a question tool
+	texts map[string][]string      // assistant message id -> its text parts
+}
+
 // humanTriggers maps message id -> the kind of human input a message carries:
 // user text parts (text), user file parts (image), and completed question
-// tool parts on assistant messages (question).
-func humanTriggers(pool *sql.DB, sessionID string) (map[string]provider.Trig, error) {
+// tool parts on assistant messages (question). It also collects the assistant
+// messages that put a question tool to the human (in any status) and the
+// assistant text parts, in part order.
+func humanTriggers(pool *sql.DB, sessionID string) (*msgParts, error) {
 	rows, err := pool.Query(
 		`SELECT p.message_id AS mid, m.data AS mdata, p.data AS pdata FROM part p
 		 JOIN message m ON m.id = p.message_id
-		 WHERE p.session_id = ?`, sessionID)
+		 WHERE p.session_id = ? ORDER BY p.id`, sessionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+	asks := map[string]bool{}
+	texts := map[string][]string{}
 	textMsgs := map[string]bool{}
 	fileMsgs := map[string]bool{}
 	questionMsgs := map[string]bool{}
@@ -92,9 +103,14 @@ func humanTriggers(pool *sql.DB, sessionID string) (map[string]provider.Trig, er
 				fileMsgs[mid] = true
 			}
 		case "assistant":
-			if tool, _ := pd["tool"].(string); pd["type"] == "tool" && tool == "question" &&
-				sub(pd, "state")["status"] == "completed" {
-				questionMsgs[mid] = true
+			if txt, _ := pd["text"].(string); pd["type"] == "text" && pd["synthetic"] != true {
+				texts[mid] = append(texts[mid], txt)
+			}
+			if tool, _ := pd["tool"].(string); pd["type"] == "tool" && tool == "question" {
+				asks[mid] = true
+				if sub(pd, "state")["status"] == "completed" {
+					questionMsgs[mid] = true
+				}
 			}
 		}
 	}
@@ -113,7 +129,7 @@ func humanTriggers(pool *sql.DB, sessionID string) (map[string]provider.Trig, er
 			out[mid] = provider.TrigImage
 		}
 	}
-	return out, nil
+	return &msgParts{human: out, asks: asks, texts: texts}, nil
 }
 
 type msgRow struct {
@@ -142,14 +158,29 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	human, err := humanTriggers(pool, sessionID)
+	mp, err := humanTriggers(pool, sessionID)
 	if err != nil {
 		return nil, err
 	}
 	calls := []provider.CallRec{}
 	var prev *msgRow
+	// A call also asks when it ends the turn (a human message or the session
+	// end follows) with a question in its text.
+	last := -1
+	var texts []string
+	endTurn := func() {
+		if last >= 0 && provider.AsksInText(texts) {
+			calls[last].Ask = true
+		}
+	}
 	for _, m := range msgs {
 		d := decodeData(m.data)
+		if d != nil && d["role"] == "user" {
+			if t := mp.human[m.id]; t == provider.TrigText || t == provider.TrigImage {
+				endTurn()
+			}
+			last, texts = -1, nil
+		}
 		if d != nil && d["role"] == "assistant" {
 			t := sub(d, "tokens")
 			cache := sub(t, "cache")
@@ -161,20 +192,116 @@ func sessionCalls(pool *sql.DB, sessionID string) ([]provider.CallRec, error) {
 			if in != 0 || cr != 0 || cw != 0 || out != 0 || reason != 0 {
 				var hu provider.Trig
 				if prev != nil {
-					hu = human[prev.id]
+					hu = mp.human[prev.id]
 				}
 				mdl, _ := d["modelID"].(string)
+				tm := sub(d, "time")
+				var dur, end int64
+				if c, e := num(tm["created"]), num(tm["completed"]); c > 0 && e > c {
+					dur, end = e-c, e
+				}
 				calls = append(calls, provider.CallRec{
 					Mid: m.id, Time: m.created, In: in, Cr: cr, Cw: cw,
 					Out: out, Reason: reason, Ctx: in + cr + cw,
-					Hu: hu, Model: mdl,
+					Hu: hu, Ask: mp.asks[m.id], Model: mdl, Dur: dur, End: end,
 				})
+				last, texts = len(calls)-1, nil
+			}
+			if last >= 0 {
+				texts = append(texts, mp.texts[m.id]...)
 			}
 		}
 		mm := m
 		prev = &mm
 	}
+	endTurn()
 	return calls, nil
+}
+
+// sessionSegments lists the spans a session spent in tools (state start to
+// end), waiting for the human (question tool) and waiting for a subagent (task
+// tool, whose span covers the child session's run). A tool still running
+// ends at nowMS.
+func sessionSegments(pool *sql.DB, sessionID string, nowMS int64) ([]provider.Seg, error) {
+	rows, err := pool.Query(`SELECT message_id, data FROM part WHERE session_id = ? AND data LIKE '%"type":"tool"%'`, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	segs := []provider.Seg{}
+	for rows.Next() {
+		var mid, data string
+		if err := rows.Scan(&mid, &data); err != nil {
+			return nil, err
+		}
+		d := decodeData(data)
+		if d == nil || d["type"] != "tool" {
+			continue
+		}
+		st := sub(d, "state")
+		tm := sub(st, "time")
+		start, end := num(tm["start"]), num(tm["end"])
+		run := st["status"] == "running" && end <= 0
+		if run {
+			end = nowMS
+		}
+		if start <= 0 || end <= start {
+			continue
+		}
+		tool, _ := d["tool"].(string)
+		seg := provider.Seg{Kind: provider.SegTool, Start: start, End: end, Mid: mid, Name: tool, Err: st["status"] == "error",
+			Input: provider.ToolInput(st["input"]), Output: provider.ToolOutput(st["output"]), Run: run}
+		switch {
+		case tool == "task":
+			seg.Kind = provider.SegSub
+			seg.Sub, _ = sub(st, "metadata")["sessionId"].(string)
+			if t, _ := sub(st, "input")["subagent_type"].(string); t != "" {
+				seg.Name = t
+			}
+		case provider.IsAskTool(tool):
+			seg.Kind = provider.SegHuman
+		}
+		segs = append(segs, seg)
+	}
+	return segs, rows.Err()
+}
+
+// callReply collects what an assistant message showed the human: its text
+// parts and its question tool parts, or nil when there are none.
+func callReply(pool *sql.DB, messageID string) ([]any, error) {
+	rows, err := pool.Query("SELECT data FROM part WHERE message_id = ? ORDER BY id", messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var parts []any
+	for rows.Next() {
+		var data string
+		if err := rows.Scan(&data); err != nil {
+			return nil, err
+		}
+		pj := decodeData(data)
+		if pj == nil {
+			continue
+		}
+		tool, _ := pj["tool"].(string)
+		switch {
+		case pj["type"] == "text" && pj["synthetic"] != true:
+			if txt, _ := pj["text"].(string); strings.TrimSpace(txt) != "" {
+				t, cut := provider.Clip(txt)
+				parts = append(parts, provider.TriggerPartText{Kind: "text", Text: t, Cut: cut})
+			}
+		case pj["type"] == "tool" && provider.IsAskTool(tool):
+			st := sub(pj, "state")
+			inS, cutI := provider.Clip(st["input"])
+			outS, cutO := provider.Clip(st["output"])
+			parts = append(parts, provider.TriggerPartTool{
+				Kind: "tool", Tool: tool, Status: st["status"],
+				Input: inS, CutI: cutI, Output: outS, CutO: cutO,
+			})
+		}
+	}
+	return parts, rows.Err()
 }
 
 // callTrigger returns the message content preceding the given assistant message.
@@ -194,6 +321,10 @@ func callTrigger(pool *sql.DB, messageID string) (*provider.TriggerResp, error) 
 	if d := decodeData(data); d == nil || d["role"] != "assistant" {
 		return nil, nil
 	}
+	reply, err := callReply(pool, messageID)
+	if err != nil {
+		return nil, err
+	}
 	var prev msgRow
 	err = pool.QueryRow(
 		`SELECT id, time_created, data FROM message
@@ -201,7 +332,7 @@ func callTrigger(pool *sql.DB, messageID string) (*provider.TriggerResp, error) 
 		 ORDER BY time_created DESC, id DESC LIMIT 1`,
 		sessionID, created, created, messageID).Scan(&prev.id, &prev.created, &prev.data)
 	if err == sql.ErrNoRows {
-		return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}}, nil
+		return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}, Reply: reply}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -251,7 +382,7 @@ func callTrigger(pool *sql.DB, messageID string) (*provider.TriggerResp, error) 
 	if parts == nil {
 		parts = []any{}
 	}
-	res := &provider.TriggerResp{Time: prev.created, Parts: parts}
+	res := &provider.TriggerResp{Time: prev.created, Parts: parts, Reply: reply}
 	if pd["role"] == "user" {
 		res.Case = "user"
 	} else {

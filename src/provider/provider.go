@@ -4,6 +4,12 @@
 // and it imports neither.
 package provider
 
+// SegmentProvider is implemented by providers that can tell what a session
+// did between its AI calls (tools, subagents, waiting for the human).
+type SegmentProvider interface {
+	SessionSegments(sid string) ([]Seg, error)
+}
+
 // Provider is a data source behind the dashboard API (opencode sqlite DB,
 // Claude Code projects dir, ...).
 type Provider interface {
@@ -29,4 +35,12 @@ type Provider interface {
 	SetDataPath(path string) error
 	// Candidates lists autodetected data paths for the picker (nil when not switchable).
 	Candidates() []string
+}
+
+// ContextProvider is implemented by providers that can tell what the input
+// context of an AI call was made of. CallContext returns nil, nil when the
+// call is unknown or its composition cannot be told (only a session's first
+// call is supported for now).
+type ContextProvider interface {
+	CallContext(mid string) (*ContextResp, error)
 }

@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	webui "github.com/artur-faizov/token-monitor/src"
 	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
@@ -121,7 +123,13 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 				return
 			}
-			writeJSON(w, http.StatusOK, map[string]any{"calls": calls})
+			resp := map[string]any{"calls": calls}
+			if sp, ok := active.(provider.SegmentProvider); ok {
+				if segs, err := sp.SessionSegments(sid); err == nil && segs != nil {
+					resp["segs"] = segs
+				}
+			}
+			writeJSON(w, http.StatusOK, resp)
 		case strings.HasPrefix(path, "/api/trigger/"):
 			mid := strings.TrimPrefix(path, "/api/trigger/")
 			res, err := active.CallTrigger(mid)
@@ -131,6 +139,23 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 			}
 			if res == nil {
 				writeJSON(w, http.StatusNotFound, map[string]any{"error": "message not found"})
+				return
+			}
+			writeJSON(w, http.StatusOK, res)
+		case strings.HasPrefix(path, "/api/context/"):
+			mid := strings.TrimPrefix(path, "/api/context/")
+			cp, ok := active.(provider.ContextProvider)
+			if !ok {
+				writeJSON(w, http.StatusNotFound, map[string]any{"error": "not_supported"})
+				return
+			}
+			res, err := cp.CallContext(mid)
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+				return
+			}
+			if res == nil {
+				writeJSON(w, http.StatusNotFound, map[string]any{"error": "not_available"})
 				return
 			}
 			writeJSON(w, http.StatusOK, res)
@@ -145,6 +170,16 @@ func (s *server) handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(loadI18n(s.dev)))
+	case strings.HasPrefix(path, "/sounds/") && !strings.Contains(path[len("/sounds/"):], "/"):
+		b, ok := webui.Sound(path[len("/sounds/"):])
+		if !ok {
+			http.Error(w, "404 Not Found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/ogg")
+		w.Header().Set("Cache-Control", "max-age=86400")
+		// ServeContent: Content-Length and Range requests, which media elements use
+		http.ServeContent(w, r, path, time.Time{}, bytes.NewReader(b))
 	case path == "/":
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")

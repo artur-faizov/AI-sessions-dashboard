@@ -112,6 +112,15 @@
             font-size: 12px
         }
 
+        .alertgrp {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            padding: 2px 2px 2px 8px
+        }
+
         #dbsel {
             background: #1d2026;
             color: var(--fg);
@@ -202,6 +211,21 @@
             border-color: var(--acc)
         }
 
+        .rbtn.off .ricon .on, .rbtn:not(.off) .ricon .off {
+            display: none
+        }
+
+        .rbtn.off {
+            opacity: .55
+        }
+
+        .rbtn.blocked {
+            --attn: 224, 175, 104;
+            color: #e0af68;
+            border-color: #e0af68;
+            animation: attnblink 1.2s ease-in-out infinite
+        }
+
         .langsw {
             display: inline-flex;
             border: 1px solid var(--line);
@@ -226,6 +250,26 @@
             color: var(--acc);
             background: #232730;
             font-weight: 600
+        }
+
+        .sndcap {
+            color: var(--dim);
+            font-size: 12px
+        }
+
+        #sndsel {
+            background: #1d2026;
+            color: var(--fg);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font: inherit;
+            font-size: 12px
+        }
+
+        #sndvol {
+            flex: 1;
+            accent-color: var(--acc)
         }
 
         .gearwrap {
@@ -478,6 +522,35 @@
             background: rgba(122, 162, 247, .12)
         }
 
+        /* a session that needs the human: blinks until clicked */
+        .node.attn {
+            --attn: 158, 206, 106;
+            animation: attnblink 1.2s ease-in-out infinite
+        }
+
+        .node.attn-ask {
+            --attn: 224, 175, 104
+        }
+
+        .node.attn-perm {
+            --attn: 247, 118, 142
+        }
+
+        .node.attn-done {
+            --attn: 255, 230, 0
+        }
+
+        @keyframes attnblink {
+            0%, 100% {
+                background: rgba(var(--attn), .08);
+                box-shadow: inset 3px 0 0 rgba(var(--attn), .5)
+            }
+            50% {
+                background: rgba(var(--attn), .34);
+                box-shadow: inset 3px 0 0 rgb(var(--attn))
+            }
+        }
+
         table.calls tbody tr.warn {
             background: rgba(230, 200, 80, .16)
         }
@@ -511,6 +584,25 @@
         table.calls tbody tr.hum td:last-child {
             border-radius: 0 8px 8px 0;
             box-shadow: inset -1px 0 0 rgba(124, 200, 100, .55), inset 0 1px 0 rgba(124, 200, 100, .55), inset 0 -1px 0 rgba(124, 200, 100, .55)
+        }
+
+        table.calls tbody tr.ask td {
+            background: rgba(187, 154, 247, .30);
+            box-shadow: inset 0 1px 0 rgba(187, 154, 247, .6), inset 0 -1px 0 rgba(187, 154, 247, .6)
+        }
+
+        table.calls tbody tr.ask:hover td {
+            background: rgba(187, 154, 247, .44)
+        }
+
+        table.calls tbody tr.ask td:first-child {
+            border-radius: 8px 0 0 8px;
+            box-shadow: inset 1px 0 0 rgba(187, 154, 247, .6), inset 0 1px 0 rgba(187, 154, 247, .6), inset 0 -1px 0 rgba(187, 154, 247, .6)
+        }
+
+        table.calls tbody tr.ask td:last-child {
+            border-radius: 0 8px 8px 0;
+            box-shadow: inset -1px 0 0 rgba(187, 154, 247, .6), inset 0 1px 0 rgba(187, 154, 247, .6), inset 0 -1px 0 rgba(187, 154, 247, .6)
         }
 
         .human-ic {
@@ -604,6 +696,31 @@
             text-align: center
         }
 
+        .tgl {
+            width: 12px;
+            height: 12px;
+            flex: none;
+            align-self: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            line-height: 1;
+            border-radius: 3px;
+            color: var(--dim);
+            user-select: none
+        }
+
+        .tgl.on {
+            border: 1px solid #3a3f4a;
+            cursor: pointer
+        }
+
+        .tgl.on:hover {
+            color: var(--fg);
+            border-color: var(--dim)
+        }
+
         .node .star {
             width: 16px;
             flex: none;
@@ -651,11 +768,177 @@
             overflow: hidden
         }
 
-        .ttlbg polyline {
+        .ttlbg polyline, .ttlbg path {
             fill: none;
             stroke: #e5484d;
-            stroke-width: 1.3;
+            stroke-width: 2;
+            stroke-linejoin: round;
             vector-effect: non-scaling-stroke
+        }
+
+        .ttlbg path {
+            stroke-width: 3.5;
+            stroke-linecap: round
+        }
+
+        #recwin {
+            width: 64px;
+            margin: 0;
+            accent-color: var(--acc);
+            cursor: pointer
+        }
+
+        #recwintxt {
+            min-width: 4.6em;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums
+        }
+
+        #filterpanel {
+            row-gap: 5px;
+            padding-top: 6px;
+            padding-bottom: 5px
+        }
+
+        #spanrow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 8px;
+            flex: 1 0 100%;
+            padding-top: 5px;
+            border-top: 1px solid var(--line)
+        }
+
+        #spanrow .fchip {
+            box-sizing: border-box;
+            height: 28px;
+            padding: 0 8px;
+            display: inline-flex;
+            align-items: center
+        }
+
+        #recbox.off {
+            opacity: .4
+        }
+
+        #recbox.off, #recbox.off input {
+            cursor: pointer
+        }
+
+        #spanlabel {
+            color: var(--dim);
+            font-size: 13px
+        }
+
+        #spanrow .fbtn {
+            height: 26px;
+            padding: 0 9px;
+            font-weight: 500
+        }
+
+        #spanrow .fbtn.spanstep {
+            padding: 0 7px;
+            font-size: 11px
+        }
+
+        #spanrow .fbtn:disabled {
+            opacity: .35;
+            cursor: default;
+            border-color: var(--line)
+        }
+
+        #spannav, #spanpre {
+            display: inline-flex;
+            gap: 4px
+        }
+
+        #spanbar {
+            position: relative;
+            flex: 1 1 150px;
+            min-width: 120px;
+            height: 32px;
+            background: #1d2026;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: crosshair;
+            user-select: none;
+            touch-action: none
+        }
+
+        #spandays, #spanhist {
+            position: absolute;
+            inset: 0
+        }
+
+        #spanhist {
+            width: 100%;
+            height: calc(100% - 12px);
+            pointer-events: none
+        }
+
+        #spanhist path {
+            fill: rgba(229, 72, 77, .6)
+        }
+
+        #spandays > div {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-left: 1px solid rgba(255, 255, 255, .05);
+            color: var(--dim);
+            font-size: 10px;
+            line-height: 12px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            overflow: hidden;
+            white-space: nowrap
+        }
+
+        #spandays > .we {
+            background: rgba(255, 255, 255, .035)
+        }
+
+        #spandays > .mon {
+            border-left-color: rgba(255, 255, 255, .22);
+            color: var(--fg)
+        }
+
+        #spannow {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 1px dashed #e5484d;
+            pointer-events: none
+        }
+
+        #spansel {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: rgba(122, 162, 247, .16);
+            border: 1px solid var(--acc);
+            border-width: 0 2px;
+            cursor: grab
+        }
+
+        #spansel > i {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 9px;
+            cursor: ew-resize
+        }
+
+        #spansel > .l {
+            left: -6px
+        }
+
+        #spansel > .r {
+            right: -6px
         }
 
         .hlbox .ecg {
@@ -735,10 +1018,6 @@
 
         .badge.agent {
             color: var(--user)
-        }
-
-        .badge.sub {
-            color: var(--sub)
         }
 
         .num {
@@ -959,11 +1238,16 @@
             background: #323948
         }
 
+        .treehead + .treehead {
+            margin-top: 0
+        }
+
         .treehead #grp-filter {
             gap: 6px;
             flex-wrap: nowrap;
             white-space: nowrap;
-            margin: 0 0 0 auto
+            flex: 1 0 100%;
+            margin: 0
         }
 
         .ptitle {
@@ -1087,6 +1371,23 @@
             border-bottom: 1px solid var(--line)
         }
 
+        table.calls th.srt {
+            cursor: pointer;
+            white-space: nowrap
+        }
+
+        table.calls th.srt:hover, table.calls th.srt.active {
+            color: var(--acc)
+        }
+
+        table.calls th.srt.active::after {
+            content: ' ▾'
+        }
+
+        table.calls th.srt.active.asc::after {
+            content: ' ▴'
+        }
+
         table.calls td {
             padding: 3px 6px;
             border-bottom: 1px solid #1f2229
@@ -1119,26 +1420,360 @@
             background: #1d2026
         }
 
-        table.calls tbody tr.wait {
+        .dchart {
+            margin: 0 10px 8px;
+            padding: 6px 10px 4px;
+            background: #1b1f27;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            font-size: 11px;
+            color: var(--dim)
+        }
+
+        .dstick {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            background: var(--bg);
+            padding-bottom: 8px
+        }
+
+        .dstick .dchart {
+            margin-bottom: 0
+        }
+
+        /* the zoomed chart is fixed full screen; lift its stacking context too */
+        .dstick:has(.dchart.full) {
+            z-index: 60
+        }
+
+        .dchart.full {
+            position: fixed;
+            inset: 20px;
+            z-index: 60;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            font-size: 13px;
+            box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .6)
+        }
+
+        .dchart .dax {
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .dchart .dplot {
+            position: relative;
+            height: 56px;
+            margin-top: 4px;
+            border-left: 1px solid var(--line);
+            border-bottom: 1px solid var(--line)
+        }
+
+        .dchart.full .dplot {
+            flex: 1;
+            height: auto
+        }
+
+        .dchart .dbar {
+            position: absolute;
+            bottom: 0;
+            min-width: 2px;
+            min-height: 1px;
+            box-sizing: border-box;
+            border: 1px solid #0f1217;
+            border-radius: 1px 1px 0 0
+        }
+
+        .dchart .dbar[data-go] {
+            cursor: pointer
+        }
+
+        .dchart .dbar:hover {
+            background: #fff
+        }
+
+        .dchart .dlegs {
+            display: flex;
+            gap: 14px
+        }
+
+        .dchart .dleg {
+            cursor: pointer;
+            user-select: none
+        }
+
+        .dchart .dleg.off {
+            opacity: .4;
+            text-decoration: line-through
+        }
+
+        .dchart .dtools {
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .dchart .dzoom {
+            background: none;
+            border: 0;
+            padding: 2px;
+            color: var(--fg);
+            cursor: pointer;
+            line-height: 0
+        }
+
+        .dchart .dzoom:disabled {
+            opacity: .3;
             cursor: default
         }
 
-        table.calls tbody tr.wait:hover {
-            background: none
-        }
-
-        table.calls tbody tr.wait td {
-            padding: 2px 10px;
+        .tsplit {
+            margin: 0 10px 8px;
             font-size: 11px;
-            color: var(--dim);
-            text-align: center;
-            border-top: 1px dashed var(--line);
-            border-bottom: 1px dashed var(--line)
+            color: var(--dim)
         }
 
-        table.calls .wbar {
-            width: 120px;
-            margin: 0 0 0 8px
+        .tsplit .tsbar {
+            display: flex;
+            height: 14px;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #1b1f27
+        }
+
+        .tstab {
+            display: flex;
+            justify-content: center;
+            margin: 0 10px 3px;
+            height: 12px;
+            line-height: 0;
+            align-items: center;
+            background: #2a2f38;
+            border-radius: 4px;
+            color: var(--dim);
+            cursor: pointer
+        }
+
+        .tstab:hover {
+            color: var(--fg);
+            background: #343a45
+        }
+
+        .tsplit .tslegs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 16px;
+            margin-top: 4px
+        }
+
+        .tsplit .tstitle {
+            color: var(--fg);
+            font-weight: 600
+        }
+
+        .tsplit .tslegs b {
+            color: var(--fg)
+        }
+
+        .dsq {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            margin-right: 5px;
+            border-radius: 2px
+        }
+
+        .tsbar .ai, .dchart .dbar.ai, .dsq.ai, table.calls .dvbar .ai {
+            background: #5aa9ff
+        }
+
+        .tsbar .tool, .dchart .dbar.tool, .dsq.tool, table.calls .dvbar .tool {
+            background: #4fb3a3
+        }
+
+        .tsbar .human, .dchart .dbar.human, .dsq.human, table.calls .dvbar .human {
+            background: #f08a24
+        }
+
+        .tsbar .sub, .dchart .dbar.sub, .dsq.sub, table.calls .dvbar .sub {
+            background: #9b7fd9
+        }
+
+        .tsbar .unk, .dchart .dbar.unk, .dsq.unk, table.calls .dvbar .unk {
+            background: #6b7280
+        }
+
+        .dchart .dbar.long {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 4px;
+            color: #e6e9ef;
+            font-size: 11px;
+            white-space: nowrap
+        }
+
+        .dchart .dbar.long.ai { background: #1f4a78 }
+        .dchart .dbar.long.tool { background: #1d4f6e }
+        .dchart .dbar.long.human { background: #7a4410 }
+        .dchart .dbar.long.sub { background: #463a6e }
+        .dchart .dbar.long.unk { background: #3a3e46 }
+
+        .dchart .dbar.long:hover {
+            background: #fff;
+            color: #0f1217
+        }
+
+        .segbar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+            margin: 0 10px 4px;
+            font-size: 11px;
+            color: var(--dim)
+        }
+
+        .segsw {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none
+        }
+
+        .segsw .segsec {
+            width: 46px;
+            font-size: 11px
+        }
+
+        table.calls tbody tr.segrow td {
+            padding-top: 1px;
+            padding-bottom: 1px;
+            font-size: 11px;
+            color: var(--dim)
+        }
+
+        table.calls tbody tr.segrow td:last-child {
+            padding-left: 22px;
+            text-align: left
+        }
+
+        /* the call number comes first, its human / ask icons after it */
+        table.calls tbody td:first-child .human-ic {
+            margin: 0 0 0 6px;
+            vertical-align: -4px
+        }
+
+        /* indented so the call numbers stay a clean column on the left */
+        table.calls .seg-ic {
+            margin-left: 22px;
+            color: var(--dim);
+            vertical-align: -3px
+        }
+
+        table.calls .dvbar {
+            display: inline-block;
+            width: 70px;
+            height: 6px;
+            margin-right: 6px;
+            border-radius: 3px;
+            background: #232730;
+            vertical-align: middle;
+            overflow: hidden
+        }
+
+        table.calls .dvbar span {
+            display: block;
+            height: 100%;
+            border-radius: 3px
+        }
+
+        table.calls .segerr, .segkv .segerr {
+            margin-left: 6px;
+            color: #e5534b
+        }
+
+        table.calls .segrun, .segkv .segrun {
+            margin-left: 6px;
+            color: #d29922
+        }
+
+        table.calls tbody tr.flash td {
+            animation: rowflash 1.6s ease-out
+        }
+
+        @keyframes rowflash {
+            from {
+                background: #3d4f7a
+            }
+            to {
+                background: transparent
+            }
+        }
+
+        .segkv {
+            display: flex;
+            gap: 12px;
+            font-size: 12px
+        }
+
+        .segkv span:first-child {
+            width: 110px;
+            color: var(--dim)
+        }
+
+        /* hover tooltip of the timeline bars: keeps the command one per line */
+        #dtip {
+            position: fixed;
+            z-index: 1000;
+            pointer-events: none;
+            margin: 0;
+            padding: 6px 9px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow: hidden;
+            white-space: pre-wrap;
+            background: #14171d;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            font-size: 12px
+        }
+
+        .segpre {
+            margin: 0;
+            padding: 8px 10px;
+            max-height: 50vh;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #14171d;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            font-size: 12px
+        }
+
+        /* a here-document body (e.g. a python script fed via <<'E') inside a command */
+        .segpre .heredoc {
+            display: block;
+            margin: 4px 0 4px 12px;
+            padding: 6px 10px;
+            background: #1c2230;
+            border-left: 3px solid var(--acc);
+            border-radius: 4px;
+            color: #c8d3f5
+        }
+
+        .segpre .heredoc[data-prog]::before {
+            content: attr(data-prog);
+            float: right;
+            margin-left: 8px;
+            font-size: 10px;
+            color: var(--dim);
+            text-transform: uppercase
         }
 
         table.calls .sep {
@@ -1373,6 +2008,113 @@
             max-height: 40vh
         }
 
+        .ctxwrap {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-top: 8px
+        }
+
+        .ctxpie {
+            width: 200px;
+            height: 200px;
+            flex: none
+        }
+
+        .ctxpie path, .ctxpie circle {
+            cursor: pointer;
+            stroke: var(--bg);
+            stroke-width: 1
+        }
+
+        .ctxpie path:hover, .ctxpie circle:hover {
+            opacity: .8
+        }
+
+        .ctxlegs {
+            flex: 1;
+            min-width: 0;
+            font-size: 13px
+        }
+
+        .ctxgrp > summary {
+            cursor: pointer;
+            padding: 2px 0
+        }
+
+        .ctxgrp b, .ctxitem b {
+            color: var(--fg)
+        }
+
+        .ctxitem {
+            margin: 2px 0 2px 22px;
+            color: var(--dim);
+            font-size: 12px
+        }
+
+        .ctxitem > summary {
+            cursor: pointer
+        }
+
+        .ctxitem pre.prompt {
+            max-height: 30vh
+        }
+
+        .dsq.hatch {
+            background-image: repeating-linear-gradient(45deg, transparent 0 2px, #9aa5ce 2px 4px) !important
+        }
+
+        .ctxic {
+            cursor: pointer;
+            margin-right: 4px
+        }
+
+        .ctxic:hover {
+            filter: brightness(1.3)
+        }
+
+        .ctxnote {
+            color: var(--dim);
+            font-size: 12px;
+            margin-top: 8px
+        }
+
+        .tblock.reply pre.prompt {
+            border-color: rgba(187, 154, 247, .6);
+            background: rgba(187, 154, 247, .10)
+        }
+
+        .tblock.reply .lbl {
+            color: rgb(187, 154, 247)
+        }
+
+        .calls-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 16px;
+            margin: 8px 4px 4px;
+            color: var(--dim);
+            font-size: 12px
+        }
+
+        .calls-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .calls-legend .hlsq.hum {
+            background: rgba(124, 200, 100, .7)
+        }
+
+        .calls-legend .hlsq.ask {
+            background: rgba(187, 154, 247, .8)
+        }
+
+        .calls-legend .human-ic {
+            margin-right: 0
+        }
+
         #fmodal {
             position: fixed;
             inset: 0;
@@ -1516,14 +2258,6 @@
             width: 54px
         }
 
-        .finputs input[type=date] {
-            width: 128px
-        }
-
-        #ft-drow .finputs {
-            flex-wrap: wrap
-        }
-
         .cklist {
             max-height: 132px;
             overflow: auto;
@@ -1541,26 +2275,6 @@
             align-items: center;
             font-size: 13px;
             cursor: pointer
-        }
-
-        .dateopts {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px 12px;
-            flex: 1
-        }
-
-        .dateopt {
-            display: inline-flex;
-            gap: 5px;
-            align-items: center;
-            font-size: 13px;
-            cursor: pointer;
-            white-space: nowrap
-        }
-
-        .dateopt input {
-            accent-color: var(--acc)
         }
 
         .cklist input {
@@ -1617,7 +2331,7 @@
            whole-pixel height (36px = 2px + 32px + 2px) avoids subpixel jitter while scrolling */
         table.calls thead th {
             position: sticky;
-            top: 0;
+            top: var(--dstick, 0px);
             z-index: 1;
             background: #262b36;
             border-top: 2px solid #3d4455;
@@ -1671,13 +2385,20 @@
     <symbol id="hum-question" viewBox="0 0 24 24"><g transform="translate(24,0) scale(-1,1)"><circle cx="8" cy="7.6" r="4.1" fill="#1976d2"/><path d="M11.6 6.2l3 1.5-3 1.5z" fill="#1976d2"/><path d="M1 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><path d="M16 6.7a4.2 4.2 0 0 1 0 7.6" fill="none" stroke="#1976d2" stroke-width="1.7" stroke-linecap="round"/><path d="M18.7 4.8a7.2 7.2 0 0 1 0 11.4" fill="none" stroke="#1976d2" stroke-width="1.7" stroke-linecap="round"/></g></symbol>
     <symbol id="hum-approval" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><path d="M11.7 15.45l2.55 2.55 4.95-5.55" fill="none" stroke="#12290f" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="hum-image" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><rect x="11.25" y="12.6" width="8.1" height="5.85" rx="1.05" fill="none" stroke="#12290f" stroke-width="1.4"/><circle cx="13.2" cy="14.4" r="0.75" fill="#12290f"/><path d="M12 17.85l2.25-2.4 1.5 1.8 1.2-1.35 2.55 3z" fill="#12290f"/></symbol>
+    <symbol id="ai-ask" viewBox="0 0 24 24"><path d="M4 3h16a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 20 17h-8.5L6 21.5V17H4a2.5 2.5 0 0 1-2.5-2.5v-9A2.5 2.5 0 0 1 4 3z" fill="#9d7cd8"/><path d="M9.3 8.1a2.7 2.7 0 1 1 3.9 2.4c-.8.4-1.2.9-1.2 1.7v.3" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="14.6" r="1.1" fill="#fff"/></symbol>
+    <symbol id="seg-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a4.5 4.5 0 0 0-5.9 5.9L3.3 17.7a1.9 1.9 0 0 0 2.7 2.7l5.5-5.5a4.5 4.5 0 0 0 5.9-5.9l-2.8 2.8-2.4-.3-.3-2.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="seg-wait" viewBox="0 0 24 24"><circle cx="6.5" cy="7" r="3.2" fill="currentColor"/><path d="M1 20.5c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6z" fill="currentColor"/><path d="M14 3h8M14 21h8M15 3c0 4.5 6 4.5 6 9s-6 4.5-6 9M21 3c0 4.5-6 4.5-6 9s6 4.5 6 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="seg-sub" viewBox="0 0 24 24"><path d="M12 2.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="2.3" r="1.3" fill="currentColor"/><rect x="4" y="6" width="16" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="11.5" r="1.6" fill="currentColor"/><circle cx="15" cy="11.5" r="1.6" fill="currentColor"/><path d="M9.5 15h5M1.5 10.5v3M22.5 10.5v3M8 18v3.5M16 18v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 </defs></svg>
 <header><div class="headcol" id="grp-src"><h1 id="apptitle"><select id="provsel" title="data source"></select></h1><span id="dbwrap" class="dbwrap"><span id="dblabel" class="dblabel">database</span><select id="dbsel"></select><input type="text" id="dbcustom" class="dbcustom" hidden><button class="fbtn" id="dbapply" hidden></button><button class="fbtn" id="dbbrowse" hidden></button></span></div>
     <div class="hgrp center" id="grp-hl"><label class="hlbox" id="hlbox" title="rows with context above these values (in k tokens) are highlighted: warn — yellow, crit — red"><span id="hllabel">highlight context size</span><i class="hlsq warn"></i><input type="number" id="hlwarn" value="100" min="0" title="warning threshold: rows with context above this value (in k tokens) are highlighted yellow"><i class="hlsq crit"></i><input type="number" id="hlcrit" value="120" min="0" title="critical threshold: rows with context above this value (in k tokens) are highlighted red"></label></div>
-    <div class="hgrp right" id="grp-meta"><button class="fbtn" id="expbtn" onclick="expOpen()"></button><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
+    <div class="hgrp right" id="grp-meta"><span class="alertgrp"><span id="alertlabel" class="dblabel">alerts:</span><button class="rbtn" id="sndbtn"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path class="on" d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.6a6 6 0 0 1 0 8.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path class="off" d="M11 6l4 4M15 6l-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><button class="rbtn" id="blinkbtn"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="currentColor"/><path class="on" d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path class="off" d="M2 14L14 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></span><button class="fbtn" id="expbtn" onclick="expOpen()"></button><span class="gearwrap"><button class="rbtn" id="gearbtn" title="settings"><svg class="ricon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button><div class="gearmenu" id="gearmenu" hidden>
         <div class="mcol">
         <div class="grow"><span id="version" class="ver" title="dashboard version">v{{VERSION}}</span></div>
         <div class="grow"><span id="langsw" class="langsw" title="Language"></span></div>
+        <div class="sect" id="gearsound">alert sound</div>
+        <div class="grow"><select id="sndsel"></select><button class="fbtn" id="sndplay">▶</button></div>
+        <div class="grow"><span id="sndvollbl" class="sndcap">volume</span><input type="range" id="sndvol" min="5" max="100" step="5"><span id="sndvolv" class="sndcap"></span></div>
         <div class="sect" id="gearstats">statistics</div>
         <div class="grow" id="statrows"></div>
         </div>
@@ -1699,14 +2420,19 @@
     <button class="rbtn" id="refresh" title="auto-refresh in 5s · click to refresh now"><svg class="ricon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13.7 1.4v3.5h-3.5z" fill="currentColor"/></svg><span id="refnum">5</span></button></div></header>
 <main>
     <div id="treepane">
-        <div class="treehead"><div class="ptitle" id="treetitle"></div>
-        <div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
+        <div class="treehead"><div class="ptitle" id="treetitle"></div></div>
+        <div class="treehead" id="filterpanel"><div class="hgrp center" id="grp-filter"><span id="fbymark">filter by</span>
         <input type="text" class="namesel" id="namesel" autocomplete="off">
         <span class="projwrap"><input type="checkbox" id="projon" checked><span class="projdd" id="projdd"><button type="button" id="projbtn"></button><div class="projmenu" id="projmenu"><input type="text" id="projsearch" autocomplete="off"><div id="projlist"></div></div></span></span>
         <label class="hlbox fchip" id="ctxbox" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><input type="checkbox" id="hlapply" title="Keep in the tree only the sessions whose context exceeds the warn or crit threshold (plus the parent chain leading to them). The AI calls list is never filtered by this — it only gets the highlight."><span id="ctxlabel">context size</span></label>
-        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions updated within the last 15 min, plus the parent chain leading to them. The AI calls list is never filtered by this.">recent</span></label>
         <span class="hlbox favbox fchip" id="chkbox" role="checkbox" aria-checked="false" tabindex="0" title="Keep in the tree only the favourite sessions, marked with a star (plus their descendants and the parent chain leading to them). The AI calls list is never filtered by this."><span id="chkonly" class="fstar">☆</span><span id="chklabel">favourites</span></span>
         <button class="fbtn" id="tree-fbtn" onclick="openTreeFilter()" title="session filter">extra filters</button></div>
+        <div id="spanrow">
+        <span id="spanlabel">period</span>
+        <div id="spanbar"><div id="spandays"></div><svg id="spanhist" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg><div id="spannow"></div><div id="spansel"><i class="l"></i><i class="r"></i></div></div>
+        <span id="spannav"><button type="button" class="fbtn spanstep" id="spanprev">◀</button><span id="spanpre"></span><button type="button" class="fbtn spanstep" id="spannext">▶</button></span>
+        <label class="hlbox fchip" id="recbox" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><input type="checkbox" id="reconly" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this."><svg class="ecg" viewBox="0 0 34 20" aria-hidden="true"><polyline points="0,10 10,10 12,12 14,2 16,14 18,10 34,10"/></svg><span id="reclabel" title="Keep in the tree only the sessions where the session or any of its subagents was updated within the selected time window (15 min by default); such sessions are shown with all their subagents. The AI calls list is never filtered by this.">recent</span><input type="range" id="recwin" min="0" max="1000" title="how far back counts as recent"><span id="recwintxt">15m</span></label>
+        </div>
         </div>
         <div id="tree"></div>
     </div>
@@ -1727,6 +2453,14 @@
             <div class="ovl-msg" id="expmsg"></div>
             <div class="ovl-row"><button class="fbtn" id="expgo"></button></div>
         </div>
+    </div>
+</div>
+<pre id="dtip" hidden></pre>
+<div class="ovl" id="segdlg" hidden>
+    <div class="ovl-bg" onclick="segDlgClose()"></div>
+    <div class="ovl-box">
+        <div class="ovl-head"><span id="seghead"></span><button class="ovl-x" onclick="segDlgClose()">✕</button></div>
+        <div class="ovl-body" id="segbody"></div>
     </div>
 </div>
 <div class="ovl" id="browsedlg" hidden>
@@ -1865,31 +2599,6 @@
         return k == null ? null : k * 1000;
     }
 
-    function presetRange(preset, now) {
-        if (preset !== 'today' && preset !== 'week' && preset !== 'month') return [null, null];
-        const d = new Date(now);
-        d.setHours(0, 0, 0, 0);
-        if (preset === 'week') d.setDate(d.getDate() - (d.getDay() + 6) % 7);
-        else if (preset === 'month') d.setDate(1);
-        return [d.getTime(), null];
-    }
-
-    function dayStartMs(str) {
-        if (!str) return null;
-        const t = new Date(str + 'T00:00').getTime();
-        return Number.isFinite(t) ? t : null;
-    }
-
-    function dateStrToRange(from, to) {
-        const mn = dayStartMs(from), mx = dayStartMs(to);
-        return [mn, mx == null ? null : mx + 86400000 - 1];
-    }
-
-    function resolveDateBounds(f, now) {
-        if (f.datePreset === 'custom') return dateStrToRange(f.dateFrom, f.dateTo);
-        return presetRange(f.datePreset, now);
-    }
-
     function nodeDir(n) {
         return n.dir || '(unknown)';
     }
@@ -1903,7 +2612,6 @@
         if (f.providers.size && !f.providers.has(nodeProvider(n))) return false;
         if (f.dirs.size && !f.dirsOff && !f.dirs.has(nodeDir(n))) return false;
         if (!inRange(n.order || 0, f.numMin, f.numMax)) return false;
-        if (!inRange(n.created || 0, f.dateMin, f.dateMax)) return false;
         if (!inRange(n.maxctx || 0, kilo(f.ctxMin), kilo(f.ctxMax))) return false;
         if (!inRange(costNode(n), f.spentMin, f.spentMax)) return false;
         if (!inRange(n.dur, f.durMin, f.durMax)) return false;
@@ -1928,6 +2636,77 @@
         return !!n.active || n.children.some(c => treeActiveVisible(c));
     }
 
+    // Active, or updated at/after since — the session itself or any subagent.
+    function treeRecentVisible(n, since) {
+        return !!n.active || (n.updated || 0) >= since || n.children.some(c => treeRecentVisible(c, since));
+    }
+
+    // Active at any moment of the period [from, to): created before its end and
+    // updated at/after its start — the session itself or any subagent.
+    function treeSpanVisible(n, from, to) {
+        const c = n.created || 0;
+        return (c < to && Math.max(c, n.updated || 0) >= from) || n.children.some(x => treeSpanVisible(x, from, to));
+    }
+
+    // The calendar day or week ('day' | 'week', weeks start on Monday) holding t,
+    // moved by step whole periods: [start, end) in ms.
+    function periodRange(kind, t, step) {
+        const d = new Date(t);
+        d.setHours(0, 0, 0, 0);
+        if (kind === 'week') d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+        const len = kind === 'week' ? 7 : 1;
+        d.setDate(d.getDate() + step * len);
+        const from = d.getTime();
+        d.setDate(d.getDate() + len);
+        return [from, d.getTime()];
+    }
+
+    // [from, to) moved by its own length in direction dir (-1 / +1). Periods made
+    // of whole days move by calendar days, so DST changes keep them on midnight.
+    function shiftSpan(from, to, dir) {
+        const a = new Date(from), b = new Date(to);
+        const midnight = d => d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0;
+        if (midnight(a) && midnight(b)) {
+            const days = Math.round((to - from) / 86400000) * dir;
+            a.setDate(a.getDate() + days);
+            b.setDate(b.getDate() + days);
+            return [a.getTime(), b.getTime()];
+        }
+        const len = (to - from) * dir;
+        return [from + len, to + len];
+    }
+
+    // Sessions (subagents included) active in each bucketMs slot of [start, end):
+    // a session counts in every slot its [created, updated] interval touches.
+    function spanActivity(tree, start, end, bucketMs) {
+        const n = Math.max(0, Math.ceil((end - start) / bucketMs)), out = new Array(n).fill(0);
+        (function walk(ns) {
+            for (const x of ns) {
+                const c = x.created || 0, u = Math.max(c, x.updated || 0);
+                if (c && u >= start && c < end) {
+                    const i1 = Math.min(n - 1, Math.floor((u - start) / bucketMs));
+                    for (let i = Math.max(0, Math.floor((c - start) / bucketMs)); i <= i1; i++) out[i]++;
+                }
+                walk(x.children);
+            }
+        })(tree);
+        return out;
+    }
+
+    // The recent-window slider runs 0..1000 on a log scale from 5 min to 24 h,
+    // so short windows stay precise; minutes are rounded coarser as they grow.
+    const REC_MIN = 5, REC_MAX = 24 * 60;
+
+    function recWinAt(pos) {
+        const m = REC_MIN * Math.pow(REC_MAX / REC_MIN, pos / 1000);
+        const step = m < 60 ? 1 : m < 360 ? 5 : 15;
+        return Math.min(REC_MAX, Math.max(REC_MIN, Math.round(m / step) * step));
+    }
+
+    function recSliderPos(min) {
+        return Math.round(Math.log(min / REC_MIN) / Math.log(REC_MAX / REC_MIN) * 1000);
+    }
+
     function treeCheckedVisible(n, marked) {
         return marked.has(n.id) || n.children.some(c => treeCheckedVisible(c, marked));
     }
@@ -1936,7 +2715,6 @@
         const set = (a, b) => a != null || b != null;
         return [
             !!f.text, f.models.size > 0, f.providers.size > 0, f.dirs.size > 0 && !f.dirsOff, set(f.numMin, f.numMax),
-            f.datePreset != null && (f.datePreset !== 'custom' || !!f.dateFrom || !!f.dateTo),
             set(f.ctxMin, f.ctxMax), set(f.spentMin, f.spentMax), set(f.durMin, f.durMax)
         ].filter(Boolean).length;
     }
@@ -1955,25 +2733,46 @@
         return m;
     }
 
-    function ecgPoints(beats, now, o) {
+    // Each beat is [sent, finished]: the trace sits at zero and draws a
+    // triangle from sent to finished with its peak halfway between (an
+    // in-flight call, finished = 0, keeps climbing to a peak at now).
+    // Overlapping pulses merge so x keeps increasing.
+    function ecgSpans(beats, now, o) {
         o = o || {};
         const w = o.w || 34, h = o.h || 20, win = o.win || 15 * 60 * 1000;
-        const mid = h / 2, amp = h * 0.45, lo = now - win;
-        const ts = (beats || []).filter(t => t >= lo && t <= now).sort((a, b) => a - b);
+        const lo = now - win, minW = 0.25;
         const x = t => Math.max(0, Math.min(w, (t - lo) / win * w));
+        const spans = [];
+        for (const [s, e] of (beats || []).map(b => [b[0], b[1]]).sort((a, b) => a[0] - b[0])) {
+            if ((e || now) < lo || s > now) continue;
+            const xs = Math.min(x(s), w - minW), xe = Math.max(x(e || now), xs + minW);
+            const last = spans[spans.length - 1];
+            if (last && xs <= last[1]) {
+                last[1] = Math.max(last[1], xe);
+                last[2] = last[2] || !e;
+            } else spans.push([xs, xe, !e]);
+        }
+        return {spans, w, base: h * 0.85, top: h * 0.15};
+    }
+
+    function ecgPoints(beats, now, o) {
+        const {spans, w, base, top} = ecgSpans(beats, now, o);
         // No leading flatline from the past: the trace begins at the first beat.
         const pts = [];
-        for (const t of ts) {
-            const cx = x(t);
-            pts.push([Math.max(0, cx - 4), mid]);        // baseline before spike
-            pts.push([Math.max(0, cx - 1.5), mid + h * 0.1]);  // Q dip
-            pts.push([Math.max(0, cx), mid - amp]);      // R peak
-            pts.push([Math.min(w, cx + 1.5), mid + h * 0.15]); // S dip
-            pts.push([Math.min(w, cx + 4), mid]);        // back to baseline
+        for (const [xs, xe, open] of spans) {
+            if (open) pts.push([xs, base], [xe, top]);
+            else pts.push([xs, base], [(xs + xe) / 2, top], [xe, base]);
         }
         if (!pts.length) return '';
-        pts.push([w, mid]);
+        if (pts[pts.length - 1][0] < w) pts.push([w, base]);
         return pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    }
+
+    // The rising (request) edges alone, drawn bolder on top of the trace.
+    function ecgRises(beats, now, o) {
+        const {spans, base, top} = ecgSpans(beats, now, o);
+        return spans.map(([xs, xe, open]) =>
+            `M${xs.toFixed(1)},${base.toFixed(1)}L${(open ? xe : (xs + xe) / 2).toFixed(1)},${top.toFixed(1)}`).join('');
     }
 
     function callDeltaAt(calls, i) {
@@ -1995,7 +2794,7 @@
         textOf = textOf || (c => c.time ? String(c.time) : '');
         return calls.map((c, i) => ({
             n: i + 1, mid: c.mid, time: c.time, ctx: c.ctx, delta: callDeltaAt(calls, i),
-            out: c.out, reason: c.reason, in: c.in, cr: c.cr, cw: c.cw || 0, text: textOf(c), hu: c.hu || '',
+            out: c.out, reason: c.reason, in: c.in, cr: c.cr, cw: c.cw || 0, text: textOf(c), hu: c.hu || '', ask: !!c.ask,
         })).filter(r => callRowMatches(r, f));
     }
 
@@ -2031,8 +2830,8 @@
     }
 
     if (typeof module !== 'undefined' && module.exports) module.exports = {
-        modelName, nodeProvider, inRange, hmsToMs, presetRange, dateStrToRange, resolveDateBounds,
-        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeCheckedVisible, nodeDir, heartSizes, ecgPoints,
+        modelName, nodeProvider, inRange, hmsToMs,
+        treeMatchesNode, treeVisible, hotLevel, treeHotVisible, treeActiveVisible, treeRecentVisible, treeSpanVisible, periodRange, shiftSpan, spanActivity, recWinAt, recSliderPos, treeCheckedVisible, nodeDir, heartSizes, ecgPoints, ecgRises,
         callDeltaAt, callRowMatches, visibleCallRows, displayTitle, treeFilterCount, callFilterCount, parseHashSel, exportCandidates,
         COST_DEF, COST, MCOST, costOf, costT, costNode, tokEqOf, resetCost
     };
@@ -2045,7 +2844,6 @@
     const newTreeFilter = () => ({
         text: '', models: new Set(), providers: new Set(), dirs: new Set(), dirsOff: false,
         numMin: null, numMax: null,
-        datePreset: null, dateFrom: null, dateTo: null, dateMin: null, dateMax: null,
         ctxMin: null, ctxMax: null, spentMin: null, spentMax: null, durMin: null, durMax: null
     });
     const newCallFilter = () => ({
@@ -2054,9 +2852,14 @@
     });
     let treeFilter = newTreeFilter(), callFilter = newCallFilter();
     let HOT = { warn: 100, crit: 120, apply: false };
-    let REC = { only: false };
+    let REC = { only: false, win: 15 }; // win: minutes that count as recent
+    // Timeline period [from, to) in ms: a whole day/week of scale, or a
+    // dragged custom range (scale null). live: the current period of scale,
+    // re-resolved on every render so "today" stays today after midnight.
+    let SPAN = { scale: 'day', live: true, from: 0, to: 0 };
     let CHK = { only: false, marked: new Set() };
     let SNAME = {}; // local session names: id -> text (replaces the title in the UI)
+    let CSORT = {key: null, asc: false}; // AI calls table sort; key null = chronological
 
     const SET_KEY = 'ttree-settings';
 
@@ -2066,8 +2869,8 @@
             const tree = Object.assign({}, treeFilter, {
                 models: [...treeFilter.models], providers: [...treeFilter.providers], dirs: [...treeFilter.dirs]
             });
-            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC,
-                chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST}));
+            localStorage.setItem(SET_KEY, JSON.stringify({v: 2, tree, call: callFilter, hot: HOT, rec: REC, span: SPAN,
+                chk: {only: CHK.only, marked: [...CHK.marked]}, names: SNAME, cost: COST, mcost: MCOST, segc: SEG_COLLAPSED, segmin: SEG_MIN, csort: CSORT}));
         } catch (e) { /* storage unavailable — ignore */ }
     }
 
@@ -2107,7 +2910,16 @@
                 {models: new Set(s.tree.models || []), providers: new Set(s.tree.providers || []), dirs: new Set(s.tree.dirs || [])});
             if (s.call) callFilter = Object.assign(newCallFilter(), s.call);
             if (s.hot) HOT = Object.assign({warn: 100, crit: 120, apply: false}, s.hot);
-            if (s.rec) REC = Object.assign({only: false}, s.rec);
+            if (s.rec) REC = Object.assign({only: false, win: 15}, s.rec);
+            if (!(REC.win >= REC_MIN && REC.win <= REC_MAX)) REC.win = 15;
+            const known = s.span && (s.span.scale === null || SPAN_SCALES.some(([k]) => k === s.span.scale));
+            if (known && Number.isFinite(s.span.from) && Number.isFinite(s.span.to) && s.span.from < s.span.to) {
+                const scale = s.span.scale;
+                SPAN = {scale, live: !!scale && !!s.span.live, from: s.span.from, to: s.span.to};
+            }
+            SEG_COLLAPSED = s.segc === true;
+            if (s.segmin && typeof s.segmin.sec === 'number') SEG_MIN = {on: s.segmin.on !== false, sec: s.segmin.sec};
+            if (s.csort && typeof s.csort.key === 'string') CSORT = {key: s.csort.key, asc: !!s.csort.asc};
             if (s.chk) CHK = Object.assign({only: false, marked: new Set(s.chk.marked || [])}, {only: !!s.chk.only});
             if (s.names && typeof s.names === 'object') {
                 SNAME = {};
@@ -2119,6 +2931,8 @@
             document.querySelector('#hlcrit').value = HOT.crit ?? '';
             document.querySelector('#hlapply').checked = !!HOT.apply;
             document.querySelector('#reconly').checked = !!REC.only;
+            document.querySelector('#recwin').value = String(recSliderPos(REC.win));
+            syncRecWin();
             syncFav();
         } catch (e) { /* corrupt — keep defaults */ }
     }
@@ -2128,14 +2942,12 @@
     }
 
     function matches(s) {
-        const b = resolveDateBounds(treeFilter, Date.now());
-        return treeVisible(s, Object.assign({}, treeFilter, {dateMin: b[0], dateMax: b[1]}));
+        return treeVisible(s, treeFilter);
     }
 
     function treeFilterActive() {
         const f = treeFilter;
         return !!(f.text || f.models.size || f.providers.size || f.numMin != null || f.numMax != null
-            || (f.datePreset != null && (f.datePreset !== 'custom' || f.dateFrom || f.dateTo))
             || f.ctxMin != null || f.ctxMax != null || f.spentMin != null || f.spentMax != null || f.durMin != null || f.durMax != null);
     }
 
@@ -2180,7 +2992,7 @@
         const q = document.querySelector('#projsearch').value.trim().toLowerCase();
         const shown = q ? vals.filter(v => v.toLowerCase().includes(q)) : vals;
         document.querySelector('#projsearch').placeholder = tr('filter.project.search');
-        document.querySelector('#projlist').innerHTML = !shown.length ? `<div class="projnone">${esc(tr('filter.project.none'))}</div>` : shown.map(v => `<label title="${esc(v)}"><input type="checkbox" value="${esc(v)}"${sel.has(v) ? ' checked' : ''}>${esc(shortDir(v))}</label>`).join('');
+        document.querySelector('#projlist').innerHTML = !shown.length ? `<div class="projnone">${esc(tr('filter.project.none'))}</div>` : shown.map(v => `<label title="${esc(v)}"><input type="checkbox" value="${esc(v)}"${sel.has(v) ? ' checked' : ''}>${esc(q && !shortDir(v).toLowerCase().includes(q) ? v : shortDir(v))}</label>`).join('');
         const btn = document.querySelector('#projbtn');
         btn.textContent = tr('filter.project.n', {n: sel.size});
         btn.title = tr('fmod.folder');
@@ -2339,6 +3151,7 @@
     function refreshCalls() {
         const el = document.querySelector('#calls');
         if (el) el.innerHTML = callsTable(CALLS);
+        pinChart();
     }
 
     const bindHl = (id, key) => document.querySelector(id).addEventListener('input', e => {
@@ -2363,6 +3176,206 @@
         render();
         saveSettings();
     });
+
+    function recWinText(m) {
+        const h = Math.floor(m / 60), r = m % 60;
+        return !h ? tr('recent.win.m', {n: m}) : tr('recent.win.h', {n: h}) + (r ? ' ' + tr('recent.win.m', {n: r}) : '');
+    }
+
+    function syncRecWin() {
+        document.querySelector('#recwintxt').textContent = recWinText(REC.win);
+    }
+
+    document.querySelector('#recwin').addEventListener('input', e => {
+        REC.win = recWinAt(Number(e.target.value));
+        syncRecWin();
+        render();
+    });
+    document.querySelector('#recwin').addEventListener('change', () => saveSettings());
+
+    // Timeline period: a 2-week strip with an hourly activity histogram and a
+    // draggable [from, to).
+    const SPAN_DAYS = 14, HOUR_MS = 3600000;
+    const SPAN_SCALES = [['week', 'span.week'], ['day', 'span.day']];
+    let spanDrag = null, spanRaf = 0;
+
+    // The strip ends tomorrow at midnight; once the period leaves it, the strip
+    // follows, keeping the period at its right edge (and at least as wide).
+    function spanView(now) {
+        const tomorrow = periodRange('day', now, 1)[0];
+        const days = Math.max(SPAN_DAYS, Math.ceil((SPAN.to - SPAN.from) / 86400000 - 0.1));
+        const back = t => {
+            const d = new Date(t);
+            d.setDate(d.getDate() - days);
+            return d.getTime();
+        };
+        let end = tomorrow;
+        if (SPAN.from < back(end)) end = Math.min(tomorrow, periodRange('day', SPAN.to - 1, 1)[0]);
+        return [back(end), end];
+    }
+
+    const hourSnap = t => {
+        const d = new Date(t + HOUR_MS / 2);
+        d.setMinutes(0, 0, 0);
+        return d.getTime();
+    };
+
+    function spanText(from, to) {
+        const loc = I18N.locale();
+        const day = t => new Date(t).toLocaleDateString(loc, {weekday: 'short', day: 'numeric', month: 'short'});
+        const hm = t => new Date(t).toLocaleTimeString(loc, {hour: '2-digit', minute: '2-digit'});
+        const [d0] = periodRange('day', from, 0), [d1] = periodRange('day', to, 0);
+        if (from === d0 && to === d1) return to - from <= 26 * HOUR_MS ? day(from) : day(from) + ' – ' + day(to - 1);
+        return d0 === periodRange('day', to - 1, 0)[0] ? day(from) + ' ' + hm(from) + '–' + hm(to)
+            : day(from) + ' ' + hm(from) + ' – ' + day(to) + ' ' + hm(to);
+    }
+
+    function placeSpanSel(view) {
+        const [vs, ve] = view, pct = t => (Math.min(ve, Math.max(vs, t)) - vs) / (ve - vs) * 100;
+        const el = document.querySelector('#spansel');
+        el.style.left = pct(SPAN.from) + '%';
+        el.style.width = (pct(SPAN.to) - pct(SPAN.from)) + '%';
+    }
+
+    function renderSpan(tree) {
+        const now = NOW || Date.now();
+        const view = spanDrag ? spanDrag.view : spanView(now);
+        const [vs, ve] = view, len = ve - vs, pct = t => (t - vs) / len * 100;
+        const loc = I18N.locale();
+        // too narrow for a number on every day: label only Mondays
+        const allDays = document.querySelector('#spanbar').clientWidth / (len / 86400000) >= 13;
+        let days = '';
+        for (let d = new Date(vs); d.getTime() < ve; ) {
+            const t = d.getTime(), dow = d.getDay();
+            d.setDate(d.getDate() + 1);
+            days += `<div class="${dow === 0 || dow === 6 ? 'we' : dow === 1 ? 'mon' : ''}" style="left:${pct(t)}%;width:${pct(d.getTime()) - pct(t)}%" title="${esc(new Date(t).toLocaleDateString(loc, {weekday: 'long', day: 'numeric', month: 'long'}))}">${allDays || dow === 1 ? new Date(t).getDate() : ''}</div>`;
+        }
+        document.querySelector('#spandays').innerHTML = days;
+        const act = spanActivity(tree, vs, ve, HOUR_MS), mx = Math.sqrt(Math.max(1, ...act));
+        let p = 'M0 100';
+        act.forEach((v, i) => {
+            const x0 = pct(vs + i * HOUR_MS), x1 = pct(Math.min(ve, vs + (i + 1) * HOUR_MS)), y = 100 - Math.sqrt(v) / mx * 100;
+            p += `L${x0.toFixed(3)} ${y.toFixed(2)}L${x1.toFixed(3)} ${y.toFixed(2)}`;
+        });
+        document.querySelector('#spanhist').innerHTML = `<path d="${p}L100 100Z"/>`;
+        document.querySelector('#spannow').style.left = pct(now) + '%';
+        placeSpanSel(view);
+        document.querySelector('#spansel').title = spanText(SPAN.from, SPAN.to);
+        document.querySelector('#spannext').disabled = SPAN.to > now;
+        // "recent" counts back from now, so it only applies while the period holds now
+        document.querySelector('#recbox').classList.toggle('off', !spanHasNow(now));
+        document.querySelectorAll('#spanpre .fbtn').forEach(b => b.classList.toggle('on', b.dataset.scale === SPAN.scale));
+    }
+
+    const spanHasNow = now => SPAN.from <= now && now < SPAN.to;
+
+    function resolveSpan(now) {
+        if (SPAN.scale && SPAN.live) [SPAN.from, SPAN.to] = periodRange(SPAN.scale, now, 0);
+        else if (!SPAN.from) [SPAN.from, SPAN.to] = periodRange('day', now, 0);
+    }
+
+    function setSpan(from, to, scale) {
+        const now = Date.now();
+        SPAN = {scale: scale || null, live: !!scale && from <= now && now < to, from, to};
+        render();
+        saveSettings();
+    }
+
+    // ◀ ▶ step one day/week of the scale, a custom range by its own length.
+    function stepSpan(dir) {
+        if (SPAN.scale) setSpan(...periodRange(SPAN.scale, SPAN.from, dir), SPAN.scale);
+        else setSpan(...shiftSpan(SPAN.from, SPAN.to, dir));
+    }
+
+    function syncSpanLang() {
+        document.querySelector('#spanlabel').title = tr('span.title');
+        document.querySelector('#spanlabel').textContent = tr('span.label');
+        document.querySelector('#spanprev').title = tr('span.prev');
+        document.querySelector('#spannext').title = tr('span.next');
+        document.querySelector('#spanbar').title = tr('span.bar.title');
+        document.querySelector('#spanpre').innerHTML = SPAN_SCALES.map(([k, key]) =>
+            `<button type="button" class="fbtn" data-scale="${k}" title="${esc(tr('span.scale.title'))}">${esc(tr(key))}</button>`).join('');
+    }
+
+    // greyed-out "recent": the first press jumps to today instead of editing it
+    let recJump = false;
+    document.querySelector('#recbox').addEventListener('pointerdown', e => {
+        if (!e.currentTarget.classList.contains('off')) return;
+        e.preventDefault();
+        recJump = true;
+        setSpan(...periodRange('day', Date.now(), 0), 'day');
+    }, true);
+    document.querySelector('#recbox').addEventListener('click', e => {
+        if (!recJump) return;
+        recJump = false;
+        e.preventDefault();
+        e.stopPropagation();
+    }, true);
+    document.querySelector('#spanprev').addEventListener('click', () => stepSpan(-1));
+    document.querySelector('#spannext').addEventListener('click', () => stepSpan(1));
+    document.querySelector('#spanpre').addEventListener('click', e => {
+        const b = e.target.closest('.fbtn');
+        if (!b) return;
+        // a new scale zooms around the shown period; the active one jumps back to now
+        const k = b.dataset.scale, anchor = SPAN.live || SPAN.scale === k ? Date.now() : SPAN.from;
+        setSpan(...periodRange(k, anchor, 0), k);
+    });
+
+    // Drag on the strip: on an edge resizes, inside the period moves it,
+    // elsewhere draws a new period; all snapped to whole hours.
+    const spanBar = document.querySelector('#spanbar');
+    const spanTimeAt = (e, view) => {
+        const r = spanBar.getBoundingClientRect();
+        return view[0] + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (view[1] - view[0]);
+    };
+    spanBar.addEventListener('pointerdown', e => {
+        if (e.button !== 0) return;
+        const view = spanView(Date.now()), t = spanTimeAt(e, view);
+        const mode = e.target.matches('#spansel > .l') ? 'l' : e.target.matches('#spansel > .r') ? 'r'
+            : e.target.id === 'spansel' ? 'move' : 'new';
+        spanDrag = {view, mode, t0: t, from: SPAN.from, to: SPAN.to, anchor: hourSnap(t)};
+        spanBar.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    });
+    spanBar.addEventListener('pointermove', e => {
+        const d = spanDrag;
+        if (!d) return;
+        const t = hourSnap(spanTimeAt(e, d.view));
+        let from = SPAN.from, to = SPAN.to;
+        if (d.mode === 'l') from = Math.min(t, d.to - HOUR_MS);
+        else if (d.mode === 'r') to = Math.max(t, d.from + HOUR_MS);
+        else if (d.mode === 'move') {
+            const dt = hourSnap(d.from + spanTimeAt(e, d.view) - d.t0) - d.from;
+            from = d.from + dt;
+            to = d.to + dt;
+        } else {
+            from = Math.min(t, d.anchor);
+            to = Math.max(t, d.anchor);
+            if (to - from < HOUR_MS) return;
+        }
+        if (from === d.from && to === d.to) return;
+        d.moved = true;
+        SPAN = {scale: null, live: false, from, to};
+        placeSpanSel(d.view);
+        if (!spanRaf) spanRaf = requestAnimationFrame(() => {
+            spanRaf = 0;
+            render();
+        });
+    });
+    // a click without dragging picks the day (or week, on week scale) under it
+    const spanDragEnd = e => {
+        const d = spanDrag;
+        if (!d) return;
+        spanDrag = null;
+        if (!d.moved && e.type === 'pointerup') {
+            const k = SPAN.scale || 'day';
+            return setSpan(...periodRange(k, spanTimeAt(e, d.view), 0), k);
+        }
+        render();
+        saveSettings();
+    };
+    spanBar.addEventListener('pointerup', spanDragEnd);
+    spanBar.addEventListener('pointercancel', spanDragEnd);
 
     function syncFav() {
         const b = document.querySelector('#chkbox');
@@ -2549,7 +3562,6 @@
     function openTreeFilter() {
         const f = treeFilter;
         fmodalKind = 'tree';
-        const dradio = (v, key) => `<label class="dateopt"><input type="radio" name="ft-dpreset" value="${v}"${(f.datePreset || '') === v ? ' checked' : ''}>${tr(key)}</label>`;
         fmodalOpen(tr('ftree.title'), `
         <div class="fsect">${tr('fmod.text')}</div>
         <div class="frow"><span class="finputs"><input type="text" id="ft-text" value="${esc(f.text)}" placeholder="${tr('ftree.text.ph')}" style="width:100%"></span></div>
@@ -2563,9 +3575,6 @@
         ${rangeRow(tr('ftree.spent'), 'ft-spentmin', 'ft-spentmax', f, 'spentMin', 'spentMax')}
         ${durRow(tr('ftree.dur_min'), 'ft-dmin', f.durMin)}
         ${durRow(tr('ftree.dur_max'), 'ft-dmax', f.durMax)}
-        <div class="fsect">${tr('ftree.date')}</div>
-        <div class="frow"><span class="dateopts">${dradio('', 'fmod.any')}${dradio('today', 'ftree.date.today')}${dradio('week', 'ftree.date.week')}${dradio('month', 'ftree.date.month')}${dradio('custom', 'fmod.custom')}</span></div>
-        <div class="frow" id="ft-drow"${f.datePreset === 'custom' ? '' : ' style="display:none"'}><span class="flbl">${tr('fmod.from_to')}</span><span class="finputs"><input type="date" id="ft-dfrom" value="${esc(f.dateFrom || '')}"><input type="date" id="ft-dto" value="${esc(f.dateTo || '')}"></span></div>
         <button class="freset" onclick="resetTreeFilter()">${tr('fmod.reset')}</button>`);
         const apply = applyTreeFilter;
         document.querySelector('#ft-text').addEventListener('input', e => {
@@ -2582,31 +3591,6 @@
         bindNum('ft-spentmax', f, 'spentMax', apply);
         bindHms('ft-dmin', f, 'durMin', apply);
         bindHms('ft-dmax', f, 'durMax', apply);
-        const updDates = () => {
-            document.querySelector('#ft-drow').style.display = f.datePreset === 'custom' ? '' : 'none';
-        };
-        document.querySelectorAll('#fmodal input[name=ft-dpreset]').forEach(r => r.addEventListener('change', e => {
-            if (!e.target.checked) return;
-            f.datePreset = e.target.value || null;
-            if (f.datePreset !== 'custom') {
-                f.dateFrom = f.dateTo = null;
-                document.querySelector('#ft-dfrom').value = '';
-                document.querySelector('#ft-dto').value = '';
-            }
-            updDates();
-            apply();
-        }));
-        [['ft-dfrom', 'dateFrom'], ['ft-dto', 'dateTo']].forEach(([id, k]) => {
-            const el = document.querySelector('#' + id);
-            el.addEventListener('input', () => {
-                f[k] = el.value || null;
-                if (f[k] && f.datePreset !== 'custom') {
-                    f.datePreset = 'custom';
-                    updDates();
-                }
-                apply();
-            });
-        });
     }
 
     function resetTreeFilter() {
@@ -2616,8 +3600,7 @@
     }
 
     function applyCallFilter() {
-        const el = document.querySelector('#calls');
-        if (el) el.innerHTML = callsTable(CALLS);
+        refreshCalls();
         updateFilterBtns();
         saveSettings();
     }
@@ -2692,11 +3675,14 @@
     function render() {
         if (document.querySelector('#tree .rninput')) return; // keep an in-progress rename alive across auto-refresh
         NOW = Date.now();
+        resolveSpan(NOW);
         let h = '';
-        const roots = sorted(TREE.filter(s => matches(s)
+        // the timeline histogram shows what the non-time filters leave
+        const filtered = TREE.filter(s => matches(s)
             && (!hotFilterActive() || treeHotVisible(s, HOT.warn, HOT.crit))
-            && (!REC.only || treeActiveVisible(s))
-            && (!CHK.only || treeCheckedVisible(s, CHK.marked))));
+            && (!CHK.only || treeCheckedVisible(s, CHK.marked)));
+        const roots = sorted(filtered.filter(s => treeSpanVisible(s, SPAN.from, SPAN.to)
+            && (!REC.only || !spanHasNow(NOW) || treeRecentVisible(s, NOW - REC.win * 60 * 1000))));
         const HEARTS = heartSizes(roots);
         let mc = 0, mt = 0, mm = 0;
         (function scan(ns) {
@@ -2730,6 +3716,7 @@
         document.querySelector('#tree').innerHTML = h;
         updateFilterCount();
         syncGearStats();
+        renderSpan(filtered);
     }
 
     function syncGearStats() {
@@ -2742,12 +3729,16 @@
 
     const DEFAULT_AGENT = 'build';
 
-    function node(s, depth, HEARTS) {
+    // The recent filter applies to roots only: once a session is shown, its
+    // whole subagent tree stays visible, including subagents no longer recent.
+    // favIn: an ancestor is a favourite, so the whole subtree stays visible —
+    // including subagents spawned after the star was set (not in CHK.marked).
+    function node(s, depth, HEARTS, favIn) {
         const t = s.subtree;
+        const fav = favIn || CHK.marked.has(s.id);
         const kids = sorted(s.children).filter(k =>
             (!hotFilterActive() || treeHotVisible(k, HOT.warn, HOT.crit))
-            && (!REC.only || treeActiveVisible(k))
-            && (!CHK.only || treeCheckedVisible(k, CHK.marked)));
+            && (!CHK.only || fav || treeCheckedVisible(k, CHK.marked)));
         const hasSub = kids.length > 0;
         const spent = tokEqOf(t);
         const hasKids = s.children.length > 0;
@@ -2760,23 +3751,26 @@
         const totalOwnTip = tr('node.totalown.tip') + ' · ';
         const spentTip = totalOwnTip + tr('node.spent.tip') + ' · ' + pricesTip();
         const moneyTip = totalOwnTip + tr('node.money.tip') + ' · ' + pricesTip();
-        const subBadges = hasSub ? `<span class="badge sub">${tr('node.children_badge', {n: kids.length})}</span>` : '';
         const open = COLLAPSED.has(s.id) ? false : EXPANDED.has(s.id) ? true : (depth < 2 || hasSub && kids.length <= 6);
         const heartNow = NOW || Date.now();
-        const heart = s.active
-            ? `<svg class="ttlbg" viewBox="0 0 34 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="${ecgPoints(s.beats, heartNow)}"/></svg>`
+        const recWinMs = REC.win * 60 * 1000;
+        const heart = s.active || s.updated >= heartNow - recWinMs
+            ? `<svg class="ttlbg" viewBox="0 0 34 20" preserveAspectRatio="none" aria-hidden="true"><polyline points="${ecgPoints(s.beats, heartNow, {win: recWinMs})}"/><path d="${ecgRises(s.beats, heartNow, {win: recWinMs})}"/></svg>`
             : '';
         const ttlTip = s.active ? `${s.title} · ${tr('node.active.tip')} · ${tr('node.active.updated', {ago: dur(heartNow - s.updated)})}` : s.title;
         const hl = hotLevel(s.maxctx, HOT.warn, HOT.crit);
+        const at = nodeAttn(s, open);
+        const atCls = at && at.kind ? ` attn attn-${at.kind}` : '';
+        const atTip = at && at.kind ? tr(at.own ? ATTN_TIP[at.own] : 'node.attn.inside') : '';
             const hasAgent = s.agent && s.agent !== DEFAULT_AGENT;
-        let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}${sel === s.id ? ' sel' : ''}" data-id="${s.id}">
+        let h = `<li><div class="node${depth === 1 ? ' root' : ''}${hl ? ' ' + hl : ''}${sel === s.id ? ' sel' : ''}${atCls}" data-id="${s.id}"${atTip ? ` title="${esc(atTip)}"` : ''}>
     ${depth === 1 ? `<span class="star${CHK.marked.has(s.id) ? ' on' : ''}" data-id="${esc(s.id)}" onclick="chkToggle(event)" title="${esc(tr('favourites.title'))}">${CHK.marked.has(s.id) ? '★' : '☆'}</span>` : '<span class="chkcol"></span>'}
     <span class="val v-idx" title="${when(s.created)}">${ORDER.get(s.id) || '·'}</span>
+    <span class="tgl${hasSub ? ' on' : ''}"${hasSub ? ` title="${esc(tr('node.toggle.tip'))}"` : ''}>${hasSub ? (open ? '−' : '+') : ''}</span>
     <span class="ttl" title="${esc(ttlTip)}">${heart}${SNAME[s.id] ? `<span class="rnmark" title="${esc(tr('rename.mark'))}">📝</span>` : ''}<span class="tname">${esc(SNAME[s.id] || (hasAgent ? displayTitle(s.title, s.agent) : s.title))}</span><span class="rnbtn" data-id="${esc(s.id)}" onclick="renameSession(event)" title="${esc(tr('rename.title'))}">✎</span></span>
-    ${subBadges}
     ${s.model ? `<span class="badge">${esc(modelName(s.model))}</span>` : ''}
     <span class="vals"><span class="val v-dur" title="${tr('node.dur.tip')}">${s.dur < 0 ? '' : dur(s.dur)}</span><span class="vbar" title="${tr('node.ctx.tip')}"><span style="width:${s.maxctx ? ctxPct : 0}%"></span></span><span class="val v-ctx" title="${tr('node.ctx.tip')}">${s.maxctx ? `<span class="ctxsize">${fmt(s.maxctx)}</span>` : ''}</span></span><span class="vbar amber" title="${spentTip}"><span style="width:${spent ? tokPct : 0}%"></span></span><span class="val v-tok" title="${spentTip}"><b>${fmt(spent)}</b>${hasKids ? `<span class="own-part">(${fmt(own)})</span>` : ''}</span><span class="vbar green" title="${moneyTip}"><span style="width:${money ? monPct : 0}%"></span></span><span class="val v-money" title="${moneyTip}"><b>${fmtMoney(money)}</b>${hasKids ? `<span class="own-part">(${fmtMoney(ownMoney)})</span>` : ''}</span></span></div>`;
-        if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS)).join('')}</ul>`;
+        if (hasSub) h += `<ul style="display:${open ? '' : 'none'}">${kids.map(k => node(k, depth + 1, HEARTS, fav)).join('')}</ul>`;
         return h + '</li>';
     }
 
@@ -2795,6 +3789,8 @@
         const ul = li.querySelector(':scope > ul');
         if (!ul) return;
         const id = nd.dataset.id;
+        const tgl = nd.querySelector(':scope > .tgl');
+        if (tgl) tgl.textContent = ul.style.display === 'none' ? '−' : '+';
         if (ul.style.display === 'none') {
             ul.style.display = '';
             EXPANDED.add(id);
@@ -2816,6 +3812,10 @@
         return `<svg class="human-ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#${HUM_IC[kind] || 'hum-text'}"/></svg>`;
     }
 
+    function askIcon() {
+        return `<svg class="human-ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ai-ask"/></svg>`;
+    }
+
     function humTip(kind) {
         switch (kind) {
             case 'question': return tr('calls.hum.question.tip');
@@ -2830,31 +3830,47 @@
             VISIBLE = [];
             return `<div class="empty">${tr('calls.empty')}</div>`;
         }
-        const vis = visibleCallRows(calls, callFilter, c => when(c.time));
+        const kids = segsByCall(), found = visibleCallRows(calls, callFilter, c => when(c.time));
+        const vis = found.filter(r => callShown(calls[r.n - 1], kids));
+        vis.forEach(r => {
+            r.dur = stepDur(calls[r.n - 1]);
+            r.tokeq = tokEqOf(r);
+            r.money = costT(r, r.model);
+        });
+        const k = CSORT.key, f = k === 'num' ? 'n' : k;
+        if (k) vis.sort((a, b) => (CSORT.asc ? a[f] - b[f] : b[f] - a[f]) || a.n - b.n);
         VISIBLE = vis.map(r => r.n - 1);
-        if (!vis.length) return `<div class="empty">${tr('calls.empty_filtered')}</div>`;
+        if (!found.length) return `<div class="empty">${tr('calls.empty_filtered')}</div>`;
+        if (!vis.length) return `${callsCharts(calls)}${segSwitch()}<div class="empty">${tr('calls.empty_filtered')}</div>`;
         const all = calls.map((c, i) => ({
             n: i + 1, ctx: c.ctx, delta: callDeltaAt(calls, i),
             out: c.out, reason: c.reason, in: c.in, cr: c.cr, cw: c.cw || 0
         }));
-        vis.forEach(r => {
-            r.tokeq = tokEqOf(r);
-            r.money = costT(r, r.model);
-        });
         const mx = k => vis.reduce((m, r) => Math.max(m, r[k]), 1);
         const mCtx = mx('ctx'), mD = Math.max(1, ...vis.map(r => r.delta)),
             mOut = mx('out'), mRn = mx('reason'), mIn = mx('in'), mCr = mx('cr'), mTq = mx('tokeq'), mMon = mx('money');
         const bar = (v, m, cls) => `<span class="vbar${cls ? ' ' + cls : ''}"><span style="width:${v > 0 ? Math.max(2, v / m * 100) : 0}%"></span></span>`;
-        const waitOf = r => r.hu && r.n > 1 ? calls[r.n - 1].time - calls[r.n - 2].time : 0;
-        const mWait = Math.max(1, ...vis.map(waitOf));
-        let rows = '';
+        const segMax = Math.max(1, ...SEGS.map(x => x.end - x.start), ...calls.map(c => c.dur || 0), ...calls.map((c, i) => {
+            const w = waitSpan(calls, i);
+            return w ? w.end - w.start : 0;
+        }), ...(k === 'dur' ? vis.map(r => r.dur) : []));
+        // newest first: the wait before a call goes under it, unlisted spans on top;
+        // waits sit between calls, so a sort by value drops them
+        const rev = k === 'num' && !CSORT.asc, chrono = !k || k === 'num', tail = (kids[''] || []).map(i => segRow(i, segMax)).join('');
+        let rows = rev ? tail : '';
         vis.forEach(r => {
-            const wait = waitOf(r);
-            if (wait > 0) rows += `<tr class="wait"><td colspan="9" title="${tr('calls.wait.tip')}">${tr('calls.wait', {t: dur(wait)})}<span class="vbar wbar"><span style="width:${Math.max(2, wait / mWait * 100)}%"></span></span></td></tr>`;
-            const cls = r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
-            rows += `<tr${cls ? ` class="${cls}"` : ''}${r.hu ? ` title="${humTip(r.hu)}"` : ''} onclick="callPick('${esc(r.mid)}')">
-  <td class="num">${r.hu ? humIcon(r.hu) : ''}${r.n}</td>
-  <td class="num">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
+            const w = waitSpan(calls, r.n - 1);
+            const wr = w && chrono && segIsOpen(calls[r.n - 2].mid) && segShown(w) ? waitRow(r.n - 1, w, segMax) : '';
+            if (!rev) rows += wr;
+            const cls = r.ask ? 'ask' : r.hu ? 'hum' : hotLevel(r.ctx, HOT.warn, HOT.crit);
+            const tip = [r.hu ? humTip(r.hu) : '', r.ask ? tr('calls.ask.tip') : ''].filter(Boolean).join('\n');
+            const ks = kids[r.mid] || [], open = segIsOpen(r.mid);
+            rows += `<tr data-mid="${esc(r.mid)}" data-go="c:${esc(r.mid)}"${cls ? ` class="${cls}"` : ''}${tip ? ` title="${tip}"` : ''} onclick="callPick('${esc(r.mid)}')">
+  <td class="num">${r.n === 1 ? `<span class="ctxic" title="${esc(tr('ctx.btn.tip'))}" onclick="event.stopPropagation(); ctxCall(0)">🥧</span>` : ''}${r.n}${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}</td>
+  <td class="num sep">${k === 'dur' && r.dur !== (calls[r.n - 1].dur || 0)
+        ? durCell(r.dur, segMax, 'ai', tr('calls.dur.step.tip', {t: dur(r.dur), c: dur(calls[r.n - 1].dur || 0)}))
+        : durCell(calls[r.n - 1].dur || 0, segMax, 'ai')}</td>
+  <td class="num sep">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
   <td class="num">${bar(r.delta, mD)}${fmt(r.delta)}</td>
   <td class="num">${bar(r.out, mOut)}${fmt(r.out)}</td>
   <td class="num">${bar(r.reason, mRn)}${fmt(r.reason)}</td>
@@ -2862,21 +3878,519 @@
   <td class="num">${bar(r.cr, mCr)}${fmt(r.cr)}</td>
   <td class="num sep">${bar(r.tokeq, mTq, 'amber')}${fmt(r.tokeq)}</td>
   <td class="num">${bar(r.money, mMon, 'green')}${fmtMoney(r.money)}</td></tr>`;
+            if (open) rows += ks.map(i => segRow(i, segMax)).join('');
+            if (rev) rows += wr;
         });
+        if (!rev) rows += tail;
         const heads = [
-            [tr('calls.th.num'), tr('calls.th.num.tip'), ''],
-            [tr('calls.th.ctx'), tr('calls.th.ctx.tip'), ''],
-            [tr('calls.th.delta'), tr('calls.th.delta.tip'), ''],
-            [tr('calls.th.out'), tr('calls.th.out.tip'), ''],
-            [tr('calls.th.reason'), tr('calls.th.reason.tip'), ''],
-            [tr('calls.th.in'), tr('calls.th.in.tip'), 'sep'],
-            [tr('calls.th.cr'), tr('calls.th.cr.tip'), ''],
-            [tr('calls.th.tokeq'), tr('calls.th.tokeq.tip'), 'sep'],
-            [tr('calls.th.money'), tr('calls.th.money.tip'), '']
+            ['num', tr('calls.th.num'), tr('calls.th.num.tip'), ''],
+            ['dur', tr('calls.th.dur'), tr('calls.th.dur.tip'), 'sep'],
+            ['ctx', tr('calls.th.ctx'), tr('calls.th.ctx.tip'), 'sep'],
+            ['delta', tr('calls.th.delta'), tr('calls.th.delta.tip'), ''],
+            ['out', tr('calls.th.out'), tr('calls.th.out.tip'), ''],
+            ['reason', tr('calls.th.reason'), tr('calls.th.reason.tip'), ''],
+            ['in', tr('calls.th.in'), tr('calls.th.in.tip'), 'sep'],
+            ['cr', tr('calls.th.cr'), tr('calls.th.cr.tip'), ''],
+            ['tokeq', tr('calls.th.tokeq'), tr('calls.th.tokeq.tip'), 'sep'],
+            ['money', tr('calls.th.money'), tr('calls.th.money.tip'), '']
         ];
-        return `<table class="calls"><thead><tr>${heads.map(h => `<th${h[2] ? ` class="${h[2]}"` : ''} title="${h[1]}">${h[0]}</th>`).join('')}</tr></thead>
-  <tbody><tr class="gap"><td colspan="9"></td></tr>${rows}</tbody>
-</table>`;
+        const thCls = h => ['srt', h[3], k === h[0] ? 'active' + (CSORT.asc ? ' asc' : '') : ''].filter(Boolean).join(' ');
+        return `${callsCharts(calls)}${segSwitch()}<table class="calls"><thead><tr>${heads.map(h => `<th class="${thCls(h)}" title="${h[2]}\n${tr('calls.th.sort.tip')}" onclick="setCallSort('${h[0]}')">${h[1]}</th>`).join('')}</tr></thead>
+  <tbody><tr class="gap"><td colspan="10"></td></tr>${rows}</tbody>
+</table>${callsLegend()}`;
+    }
+
+    // setCallSort cycles a calls column: descending, ascending, chronological.
+    function setCallSort(k) {
+        CSORT = CSORT.key !== k ? {key: k, asc: false} : !CSORT.asc ? {key: k, asc: true} : {key: null, asc: false};
+        saveSettings();
+        refreshCalls();
+    }
+
+    // segsByCall groups the indexes into SEGS by the AI call that issued them,
+    // in time order. Spans of a call not listed yet (opencode records a call
+    // once its step ends, after its tools ran) go under '', drawn after the
+    // last call.
+    function segsByCall() {
+        const out = {}, known = new Set(CALLS.map(c => c.mid));
+        SEGS.forEach((x, i) => {
+            const k = known.has(x.mid) ? x.mid : '';
+            if (x.mid && segShown(x)) (out[k] = out[k] || []).push(i);
+        });
+        Object.values(out).forEach(l => l.sort((a, b) => SEGS[a].start - SEGS[b].start));
+        return out;
+    }
+
+    const callEnd = c => c.end || c.time;
+
+    // stepDur is the wall-clock time of an AI call together with the tools,
+    // subagents and waits it issued (its sub-rows); overlaps count once.
+    function stepDur(c) {
+        const iv = SEGS.filter(x => x.mid === c.mid && x.end > x.start).map(x => [x.start, x.end]);
+        if (c.dur > 0) iv.push([callEnd(c) - c.dur, callEnd(c)]);
+        iv.sort((a, b) => a[0] - b[0]);
+        let t = 0, e = -Infinity;
+        for (const [a, b] of iv) {
+            if (b <= e) continue;
+            t += b - Math.max(a, e);
+            e = b;
+        }
+        return t;
+    }
+
+    // segIcon marks a sub-row in the # column: an hourglass with a person for
+    // waiting on the human, a robot for a subagent, a wrench for a tool.
+    const SEG_IC = {human: 'seg-wait', sub: 'seg-sub'};
+    const segIcon = kind => `<svg class="seg-ic" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="#${SEG_IC[kind] || 'seg-tool'}"/></svg>`;
+
+    // durCell is the duration column: a bar on the scale shared by the calls,
+    // their sub-rows and the waits, then the duration.
+    const durCell = (d, mx, kind, tip) => d > 0
+        ? `<span class="dvbar"${tip ? ` data-tip="${esc(tip)}"` : ''}><span class="${kind}" style="width:${Math.max(2, d / mx * 100).toFixed(1)}%"></span></span>${dur(d)}` : '';
+
+    // waitSpan is the time calls[i] waited for the human: from the previous
+    // call's end to its own start, when the human triggered it; else null.
+    function waitSpan(calls, i) {
+        const c = calls[i];
+        if (!c || !c.hu || i < 1 || callEnd(c) <= 0) return null;
+        const start = callEnd(calls[i - 1]), end = callEnd(c) - (c.dur || 0);
+        return end > start ? {kind: 'human', start, end} : null;
+    }
+
+    const segShown = x => !SEG_MIN.on || x.end - x.start >= SEG_MIN.sec * 1000;
+
+    // callShown hides an AI call shorter than SEG_MIN too, unless its duration
+    // is unknown, it was triggered by the human or asks them a question, or it
+    // carries a sub-row long enough to show (kids from segsByCall).
+    const callShown = (c, kids) => !SEG_MIN.on || !(c.dur > 0) || c.dur >= SEG_MIN.sec * 1000 || !!c.hu || !!c.ask || !!(kids[c.mid] || []).length;
+
+    // waitRow is the wait before calls[i] drawn like a tool sub-row, at the
+    // end of the previous call's sub-rows.
+    function waitRow(i, w, mx) {
+        const d = w.end - w.start;
+        return `<tr class="segrow" data-go="w:${esc(CALLS[i].mid)}" onclick="waitDlg(${i}, event)" title="${tr('calls.wait.tip')}"><td class="num">${segIcon('human')}</td><td class="num sep">${durCell(d, mx, 'human')}</td><td colspan="8" class="sep">${tr('calls.chart.human')}</td></tr>`;
+    }
+
+    function waitDlg(i, ev) {
+        const w = waitSpan(CALLS, i);
+        if (w) segDlgShow(Object.assign({mid: CALLS[i].mid, name: tr('calls.chart.human')}, w), -1, ev);
+    }
+
+    const SEG_TIP_LINES = 15;
+
+    // segTip is the hover text of a span's bar: name, end, duration, the
+    // command one per line and the head of the reply.
+    function segTip(x) {
+        let t = tr('calls.chart.tip2', {k: x.name || chartLabel(x.kind), t: when(x.end), d: dur(x.end - x.start)});
+        if (x.input) t += `\n\n${tr('calls.seg.cmd')}:\n${cmdLines(x.input)}`;
+        if (x.output) {
+            const ls = x.output.split('\n');
+            t += `\n\n${tr('calls.seg.reply')}:\n${ls.slice(0, SEG_TIP_LINES).join('\n')}${ls.length > SEG_TIP_LINES ? '\n…' : ''}`;
+        }
+        return t;
+    }
+
+    // segRow is the sub-row under an AI call for one tool, wait or subagent it
+    // issued: its name and a bar as long as its duration. Clicking it opens
+    // segDlg with the details.
+    function segRow(i, mx) {
+        const x = SEGS[i], d = x.end - x.start, rt = ` title="${tr('calls.seg.details')}"`;
+        return `<tr class="segrow" data-go="s:${i}" onclick="segDlg(${i}, event)"><td class="num"${rt}>${segIcon(x.kind)}</td><td class="num sep">${durCell(d, mx, x.kind, segTip(x))}</td><td colspan="8" class="sep"${rt}>${esc(x.name || chartLabel(x.kind))}${x.err ? '<span class="segerr">✕</span>' : ''}${x.run ? `<span class="segrun">${tr('calls.seg.run')}</span>` : ''}</td></tr>`;
+    }
+
+    function segDlg(i, ev) {
+        if (SEGS[i]) segDlgShow(SEGS[i], i, ev);
+    }
+
+    // cmdLines puts every command chained with ;, && or || on its own line and
+    // every pipe stage on an indented line of its own; separators inside quotes
+    // or escaped (find … \;) are left alone, here-document bodies are kept as is.
+    function cmdLines(s) {
+        return cmdParts(s).map(p => p.doc ? p.text + '\n' : p.text).join('');
+    }
+
+    // cmdHtml is cmdLines for a <pre>: here-document bodies become blocks of
+    // their own labelled with the program reading them.
+    function cmdHtml(s) {
+        const ps = cmdParts(s);
+        return ps.map((p, i) => p.doc
+            ? `<span class="heredoc"${p.prog ? ` data-prog="${esc(p.prog)}"` : ''}>${esc(p.text)}</span>`
+            : esc(ps[i + 1] && ps[i + 1].doc ? p.text.replace(/\n$/, '') : p.text)).join('');
+    }
+
+    // heredocProg names the program a here-document opened at the end of the
+    // shell text cmd is fed to: the first word of its last command, skipping
+    // VAR=value, env and sudo.
+    function heredocProg(cmd) {
+        const ws = cmd.split(/[\n|;&]/).pop().trim().split(/\s+/)
+            .filter(w => w && !/^\w+=/.test(w) && w !== 'env' && w !== 'sudo');
+        return ws.length ? ws[0].split('/').pop() : '';
+    }
+
+    // cmdParts splits a command into shell text laid out by cmdLines and the
+    // bodies of its here-documents ({doc: true, prog}), taken verbatim up to
+    // the line holding only their delimiter.
+    function cmdParts(s) {
+        const parts = [];
+        let out = '', q = '', docs = [];
+        const flush = () => {
+            if (out) parts.push({text: out});
+            out = '';
+        };
+        for (let i = 0; i < s.length; i++) {
+            const c = s[i];
+            if (c === '\\' && q !== "'") {
+                out += c + (s[++i] ?? '');
+                continue;
+            }
+            if (!q && c === '<' && s[i + 1] === '<') {
+                const m = /^<<(-?)[ \t]*(['"]?)([A-Za-z_][\w.-]*)\2/.exec(s.slice(i));
+                if (m) {
+                    docs.push({end: m[3], tab: !!m[1], prog: heredocProg(out)});
+                    out += m[0];
+                    i += m[0].length - 1;
+                    continue;
+                }
+            }
+            if (!q && c === '\n' && docs.length) {
+                out += c;
+                let j = i + 1;
+                docs.forEach((d, k) => {
+                    let body = '', end = null;
+                    while (j < s.length && end === null) {
+                        let e = s.indexOf('\n', j);
+                        if (e < 0) e = s.length;
+                        const line = s.slice(j, e);
+                        j = e + 1;
+                        if ((d.tab ? line.replace(/^\t+/, '') : line) === d.end) end = line;
+                        else body += line + '\n';
+                    }
+                    flush();
+                    parts.push({text: body.replace(/\n$/, ''), doc: true, prog: d.prog});
+                    out += (end ?? '') + (k < docs.length - 1 ? '\n' : '');
+                });
+                docs = [];
+                i = j - 2;
+                continue;
+            }
+            if (q) {
+                if (c === q) q = '';
+            } else if (c === '"' || c === "'") q = c;
+            else if (c === ';' || ((c === '&' || c === '|') && s[i + 1] === c)) {
+                out = out.trimEnd() + (c === ';' ? ';\n' : ` ${c}${c}\n`);
+                if (c !== ';') i++;
+                while (s[i + 1] === ' ' || s[i + 1] === '\t') i++;
+                continue;
+            } else if (c === '|') {
+                out = out.trimEnd() + '\n  | ';
+                while (s[i + 1] === ' ' || s[i + 1] === '\t') i++;
+                continue;
+            }
+            out += c;
+        }
+        flush();
+        return parts;
+    }
+
+    // segDlgShow opens the details popup of a span; i is its SEGS index, or -1
+    // for a wait before a call (whose call row then names the call it led to).
+    function segDlgShow(x, i, ev) {
+        if (ev) ev.stopPropagation();
+        const call = CALLS.find(c => c.mid === x.mid);
+        const open = i >= 0 && x.sub && find(TREE, x.sub);
+        const row = (k, v) => `<div class="segkv"><span>${k}</span><span>${v}</span></div>`;
+        document.querySelector('#seghead').innerHTML = `<i class="dsq ${x.kind}"></i>${esc(x.name || chartLabel(x.kind))}`;
+        document.querySelector('#segbody').innerHTML = [
+            row(tr('calls.seg.kind'), esc(chartLabel(x.kind))),
+            x.err ? row(tr('calls.seg.status'), `<span class="segerr">${tr('calls.seg.err')}</span>`) : '',
+            x.run ? row(tr('calls.seg.status'), `<span class="segrun">${tr('calls.seg.run')}</span>`) : '',
+            row(tr('calls.seg.dur'), dur(x.end - x.start)),
+            row(tr('calls.seg.from'), esc(when(x.start))),
+            x.run ? '' : row(tr('calls.seg.to'), esc(when(x.end))),
+            call ? row(i < 0 ? tr('calls.seg.led') : tr('calls.seg.call'), `#${call.n}`) : '',
+            x.input ? `<div class="segkv"><span>${tr('calls.seg.cmd')}</span></div><pre class="segpre">${cmdHtml(x.input)}</pre>` : '',
+            x.output ? `<div class="segkv"><span>${tr('calls.seg.reply')}</span></div><pre class="segpre">${esc(x.output)}</pre>` : '',
+            open ? `<div class="ovl-row"><button class="fbtn" onclick="segDlgClose(); segOpen(${i})">${tr('calls.seg.open')} ↗</button></div>` : ''
+        ].join('');
+        document.querySelector('#segdlg').hidden = false;
+    }
+
+    function segDlgClose() {
+        document.querySelector('#segdlg').hidden = true;
+    }
+
+    // Sub-rows follow SEG_COLLAPSED (the switch above the table, saved with the
+    // settings); SEG_FLIP holds the calls opened anyway to show a chart click.
+    // SEG_MIN hides sub-rows and AI calls shorter than sec seconds from the
+    // table (the chart still draws them); saved with the settings.
+    let SEG_COLLAPSED = false, SEG_FLIP = new Set(), SEG_MIN = {on: true, sec: 5};
+
+    function segMinSet(on, sec) {
+        SEG_MIN = {on, sec: sec >= 0 ? sec : SEG_MIN.sec};
+        saveSettings();
+        refreshCalls();
+    }
+
+    const segIsOpen = mid => SEG_COLLAPSED === SEG_FLIP.has(mid);
+
+    function segSetOpen(mid, on) {
+        if (segIsOpen(mid) !== on) SEG_FLIP.has(mid) ? SEG_FLIP.delete(mid) : SEG_FLIP.add(mid);
+    }
+
+    function segAll(collapsed) {
+        SEG_COLLAPSED = collapsed;
+        SEG_FLIP = new Set();
+        saveSettings();
+        refreshCalls();
+    }
+
+    function segSwitch() {
+        const segs = SEGS.some(x => x.mid);
+        if (!segs && !CALLS.some(c => c.dur > 0)) return '';
+        return `<div class="segbar">${segs ? `<label class="segsw" title="${tr('calls.seg.collapse.tip')}"><input type="checkbox"${SEG_COLLAPSED ? ' checked' : ''} onchange="segAll(this.checked)">${tr('calls.seg.collapse')}</label>` : ''}<label class="segsw" title="${tr('calls.seg.short.tip')}"><input type="checkbox"${SEG_MIN.on ? ' checked' : ''} onchange="segMinSet(this.checked, SEG_MIN.sec)">${tr('calls.seg.short')}<input type="number" class="segsec" min="0" step="1" value="${SEG_MIN.sec}" onclick="event.stopPropagation()" onchange="segMinSet(SEG_MIN.on, parseFloat(this.value))">${tr('calls.seg.short.unit')}</label></div>`;
+    }
+
+    function segOpen(i, ev) {
+        if (ev) ev.stopPropagation();
+        selectSession(SEGS[i].sub, {reveal: true, scroll: true, push: true});
+    }
+
+    // Timeline of what a session did, as rectangles: x = the time a span took,
+    // height = its duration. Every moment gets one category, the first that
+    // applies: AI call, tool, waiting for the human, waiting for a subagent;
+    // whatever nothing explains is "unknown". Each category is toggled from the
+    // legend (a hidden category stays hidden, it does not turn into unknown).
+    const CHART_KINDS = ['ai', 'tool', 'human', 'sub', 'unk'];
+    const chartLabel = k => ({
+        ai: tr('calls.chart.ai'), tool: tr('calls.chart.tool'), human: tr('calls.chart.human'),
+        sub: tr('calls.chart.sub'), unk: tr('calls.chart.unk')
+    }[k]);
+    const CHART_ON = {ai: true, tool: true, human: true, sub: true, unk: true};
+    let CHART_FULL = false, SEGS = [];
+
+    function chartToggle(k, ev) {
+        ev.stopPropagation();
+        CHART_ON[k] = !CHART_ON[k];
+        refreshCalls();
+    }
+
+    function chartFull(on, ev) {
+        if (ev) ev.stopPropagation();
+        CHART_FULL = on;
+        refreshCalls();
+    }
+
+    // chartGo scrolls the calls table to the row behind a chart rectangle and
+    // flashes it: "c:<mid>" an AI call, "w:<mid>" the wait before it, "s:<i>"
+    // the sub-row of SEGS[i] (its call is expanded first).
+    function chartGo(go) {
+        const seg = go.startsWith('s:') ? SEGS[+go.slice(2)] : null;
+        let host = seg && seg.mid;
+        if (go.startsWith('w:')) {
+            const i = CALLS.findIndex(c => c.mid === go.slice(2));
+            host = i > 0 ? CALLS[i - 1].mid : '';
+        }
+        if (CHART_FULL || (host && !segIsOpen(host))) {
+            CHART_FULL = false;
+            if (host) segSetOpen(host, true);
+            refreshCalls();
+        }
+        const row = [...document.querySelectorAll('table.calls tbody tr[data-go]')].find(r => r.dataset.go === go);
+        if (!row) return;
+        row.scrollIntoView({block: 'center', behavior: 'smooth'});
+        row.classList.remove('flash');
+        void row.offsetWidth;
+        row.classList.add('flash');
+    }
+
+    const chevIc = up => `<svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${up ? 'M3 5l4-3 4 3M3 9l4-3 4 3' : 'M3 1l4 3 4-3M3 5l4 3 4-3'}"/></svg>`;
+    const zoomIc = plus => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6M7 10h6${plus ? 'M10 7v6' : ''}"/></svg>`;
+
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        if (!document.querySelector('#segdlg').hidden) segDlgClose();
+        else if (CHART_FULL) chartFull(false);
+    });
+
+    // chartSegments splits [t0, t1] into non-overlapping spans, each moment
+    // taken by the highest-ranked span covering it; spans are {kind, start,
+    // end, n?, go?, name?} where go is the table row a rectangle points to.
+    function chartSegments(spans, t0, t1) {
+        const cuts = [...new Set([t0, t1, ...spans.flatMap(x => [x.start, x.end])])].filter(t => t >= t0 && t <= t1).sort((a, b) => a - b);
+        const rank = {ai: 0, tool: 1, human: 2, sub: 3};
+        const out = [];
+        for (let i = 0; i + 1 < cuts.length; i++) {
+            const a = cuts[i], b = cuts[i + 1];
+            let best = null;
+            for (const x of spans) if (x.start <= a && x.end >= b && (!best || rank[x.kind] < rank[best.kind])) best = x;
+            const kind = best ? best.kind : 'unk', n = best && best.n || 0, go = best && best.go || '', name = best && best.name || '';
+            const last = out[out.length - 1];
+            if (last && last.kind === kind && last.n === n && last.go === go && last.name === name && last.end === a) last.end = b;
+            else out.push({kind, start: a, end: b, n, go, name});
+        }
+        return out;
+    }
+
+    // chartSpans collects what the chart and the time split draw from: the
+    // calls' AI and human-wait spans, then the tool and subagent spans of segs.
+    function chartSpans(calls, segs) {
+        const endOf = c => c.end || c.time;
+        const spans = [];
+        calls.forEach((c, i) => {
+            const e = endOf(c), d = c.dur || 0;
+            if (e <= 0) return;
+            const st = d > 0 ? e - d : e;
+            if (d > 0) spans.push({kind: 'ai', start: st, end: e, n: i + 1, go: 'c:' + c.mid});
+            const w = waitSpan(calls, i);
+            if (w) spans.push(Object.assign({go: 'w:' + c.mid}, w));
+        });
+        if (!spans.length) return spans;
+        const known = new Set(calls.map(c => c.mid));
+        segs.forEach((x, i) => {
+            if (x.end > x.start) spans.push({kind: x.kind, start: x.start, end: x.end, name: x.name, go: known.has(x.mid) ? 's:' + i : ''});
+        });
+        return spans;
+    }
+
+    // timeSplit is the strip above the chart: the session's whole time split
+    // into the chart's categories, one coloured part per category, with each
+    // category's total and share below. Legend toggles do not apply here.
+    // The tool part's tooltip also lists the 5 tools that took the most time.
+    // title, when given, names the bar at the start of its legend.
+    function timeSplit(spans, title) {
+        if (!spans.length) return '';
+        const t0 = Math.min(...spans.map(x => x.start)), t1 = Math.max(...spans.map(x => x.end)), all = Math.max(1, t1 - t0);
+        const tot = {}, tools = {};
+        chartSegments(spans, t0, t1).forEach(x => {
+            tot[x.kind] = (tot[x.kind] || 0) + x.end - x.start;
+            if (x.kind === 'tool') tools[x.name || '?'] = (tools[x.name || '?'] || 0) + x.end - x.start;
+        });
+        const ks = CHART_KINDS.filter(k => tot[k] > 0);
+        const pct = k => (tot[k] / all * 100).toFixed(1) + '%';
+        const top = Object.entries(tools).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, d]) => `${n} · ${dur(d)}`);
+        const tip = k => [`${chartLabel(k)} · ${dur(tot[k])} · ${pct(k)}`, ...(k === 'tool' ? ['', tr('calls.split.top'), ...top] : [])].join('\n');
+        const parts = ks.map(k => `<span class="${k}" style="width:${(tot[k] / all * 100).toFixed(3)}%" title="${esc(tip(k))}"></span>`).join('');
+        const legs = ks.map(k => `<span title="${esc(tip(k))}"><i class="dsq ${k}"></i>${chartLabel(k)} <b>${dur(tot[k])}</b> ${pct(k)}</span>`).join('');
+        return `<div class="tsplit"><div class="tsbar">${parts}</div><div class="tslegs">${title ? `<span class="tstitle">${title}</span>` : ''}<span>${tr('calls.split.total')} <b>${dur(t1 - t0)}</b></span>${legs}</div></div>`;
+    }
+
+    // callsCharts is the time split and the chart above the calls table; both
+    // stick to the top (see pinChart). A session
+    // with subagents gets two splits: the whole subtree first, then its own.
+    // The splits are folded by default under a thin grey tab on top of the
+    // chart; clicking the tab unfolds them above it or folds them back.
+    let SPLIT_OPEN = false;
+
+    function splitOpen(on) {
+        SPLIT_OPEN = on;
+        refreshCalls();
+    }
+
+    function callsCharts(calls) {
+        const spans = chartSpans(calls, SEGS);
+        const kids = TREE_SPANS && TREE_SPANS.id === sel ? TREE_SPANS.spans : null;
+        const chart = durChart(spans);
+        const split = !SPLIT_OPEN ? '' : kids ? timeSplit([...spans, ...kids], tr('calls.split.all')) + timeSplit(spans, tr('calls.split.own')) : timeSplit(spans);
+        const tab = spans.length ? `<div class="tstab" onclick="splitOpen(!SPLIT_OPEN)" title="${tr(SPLIT_OPEN ? 'calls.split.close' : 'calls.split.open')}">${chevIc(SPLIT_OPEN)}</div>` : '';
+        return `<div class="dstick">${split}${tab}${chart}</div>`;
+    }
+
+    // pinChart puts the calls table's sticky header right under the stuck chart.
+    function pinChart() {
+        const st = document.querySelector('#calls .dstick'), sc = document.querySelector('#dscroll');
+        if (sc && sc.style) sc.style.setProperty('--dstick', (st ? st.offsetHeight : 0) + 'px');
+    }
+
+    window.addEventListener('resize', pinChart);
+
+    // KID_SPANS caches each subagent's chart spans by id, refetched only when
+    // the tree shows it updated since. TREE_SPANS holds the spans of all the
+    // subagents under the selected session, for its "with subagents" split.
+    const KID_SPANS = {};
+    let TREE_SPANS = null;
+
+    async function loadTreeSpans(id) {
+        const s = find(TREE, id), kids = [];
+        const walk = n => n.children.forEach(k => {
+            kids.push(k);
+            walk(k);
+        });
+        if (s) walk(s);
+        if (!kids.length) {
+            TREE_SPANS = null;
+            return;
+        }
+        await Promise.all(kids.map(async k => {
+            const c = KID_SPANS[k.id];
+            if (c && c.updated === k.updated) return;
+            const j = await getJson('/api/calls/' + encodeURIComponent(k.id));
+            if (j) KID_SPANS[k.id] = {updated: k.updated, spans: chartSpans(j.calls || [], j.segs || [])};
+        }));
+        if (sel !== id) return;
+        TREE_SPANS = {id, spans: kids.flatMap(k => KID_SPANS[k.id] ? KID_SPANS[k.id].spans : [])};
+        refreshCalls();
+    }
+
+    // A span of CHART_LONG or more (a night away, a hung tool) is drawn
+    // collapsed: a dark full-height bar of a fixed CHART_LONG_W% of the width
+    // (shared down to CHART_LONG_MAX% in total) with its rounded duration
+    // inside, so it does not squeeze the rest of the session into a sliver.
+    const CHART_LONG = 36e5, CHART_LONG_W = 10, CHART_LONG_MAX = 50;
+    const durRound = ms => ms < 864e5 ? Math.round(ms / 36e5) + 'h' : Math.round(ms / 864e5) + 'd';
+
+    function durChart(spans) {
+        if (!spans.length) return '';
+        const t0 = Math.min(...spans.map(x => x.start)), t1 = Math.max(...spans.map(x => x.end));
+        const all = chartSegments(spans, t0, t1);
+        const long = all.filter(x => x.end - x.start >= CHART_LONG);
+        const lw = long.length ? Math.min(CHART_LONG_W, CHART_LONG_MAX / long.length) : 0;
+        const rest = Math.max(1, t1 - t0 - long.reduce((a, x) => a + x.end - x.start, 0));
+        const kw = (100 - lw * long.length) / rest;
+        let at = 0;
+        all.forEach(x => {
+            x.long = x.end - x.start >= CHART_LONG;
+            x.left = at;
+            x.w = x.long ? lw : (x.end - x.start) * kw;
+            at += x.w;
+        });
+        const segs = all.filter(x => CHART_ON[x.kind]);
+        const mD = Math.max(1, ...segs.filter(x => !x.long).map(x => x.end - x.start));
+        const bars = segs.map(x => {
+            const d = x.end - x.start;
+            const sg = x.go.startsWith('s:') ? SEGS[+x.go.slice(2)] : null;
+            const tip = x.n ? tr('calls.chart.tip', {n: x.n, t: when(x.end), d: dur(d)}) : segTip({kind: x.kind, start: x.start, end: x.end, name: sg && sg.name, input: sg && sg.input, output: sg && sg.output});
+            return `<span class="dbar ${x.kind}${x.long ? ' long' : ''}"${x.go ? ` data-go="1" onclick="chartGo('${esc(x.go)}')"` : ''} style="left:${x.left.toFixed(3)}%;width:${x.w.toFixed(3)}%;height:${x.long ? 100 : Math.max(2, d / mD * 100).toFixed(1)}%" data-tip="${esc(tip)}">${x.long ? durRound(d) : ''}</span>`;
+        }).join('');
+        const leg = k => `<span class="dleg${CHART_ON[k] ? '' : ' off'}" onclick="chartToggle('${k}', event)"><i class="dsq ${k}"></i>${chartLabel(k)}</span>`;
+        return `<div class="dchart${CHART_FULL ? ' full' : ''}"><div class="dax"><span class="dlegs">${CHART_KINDS.map(leg).join('')}</span><span class="dtools">max ${dur(mD)}<button class="dzoom" ${CHART_FULL ? '' : 'disabled'} onclick="chartFull(false, event)" title="${tr('calls.chart.zoomout')}">${zoomIc(false)}</button><button class="dzoom" ${CHART_FULL ? 'disabled' : ''} onclick="chartFull(true, event)" title="${tr('calls.chart.zoomin')}">${zoomIc(true)}</button></span></div>
+  <div class="dplot">${bars}</div>
+  <div class="dax"><span>${when(t0)}</span><span>${when(t1)}</span></div></div>`;
+    }
+
+    // dtipMove shows the data-tip of the bar under the mouse in #dtip,
+    // kept inside the window.
+    function dtipMove(e) {
+        const t = document.querySelector('#dtip');
+        const b = e.target.closest && e.target.closest('[data-tip]');
+        if (!b) return void (t.hidden = true);
+        if (t.textContent !== b.dataset.tip) t.textContent = b.dataset.tip;
+        t.hidden = false;
+        const x = Math.min(e.clientX + 12, innerWidth - t.offsetWidth - 4);
+        const y = e.clientY + 16 + t.offsetHeight > innerHeight ? e.clientY - 8 - t.offsetHeight : e.clientY + 16;
+        t.style.left = Math.max(4, x) + 'px';
+        t.style.top = Math.max(4, y) + 'px';
+    }
+
+    if (typeof document.addEventListener === 'function') document.addEventListener('mousemove', dtipMove);
+
+    function callsLegend() {
+        const item = (sq, ic, txt) => `<span><i class="hlsq ${sq}"></i>${ic}${txt}</span>`;
+        return `<div class="calls-legend">
+  ${item('hum', humIcon('text'), tr('calls.legend.hum'))}
+  ${item('ask', askIcon(), tr('calls.legend.ask'))}
+  ${item('warn', '', tr('calls.legend.warn', {k: HOT.warn}))}
+  ${item('crit', '', tr('calls.legend.crit', {k: HOT.crit}))}
+</div>`;
     }
 
     let curCall = -1;
@@ -2923,30 +4437,143 @@
             if (!r.ok) throw new Error('HTTP ' + r.status);
             const j = await r.json();
             if (curCall !== idx) return;
-            renderTrigger(j);
+            renderTrigger(j, c);
         } catch (e) {
             if (curCall === idx) body.innerHTML = `<div class="empty">${tr('load.fail', {msg: esc(e.message)})}</div>`;
         }
     }
 
-    function renderTrigger(j) {
-        const lbl = j.case === 'user' ? tr('trig.user')
-            : j.case === 'assistant' ? tr('trig.assistant')
-            : tr('trig.start');
-        let h = `<div class="tblock"><div class="lbl">${lbl}</div></div>`;
-        for (const p of (j.parts || [])) {
-            if (p.kind === 'text') {
-                h += `<div class="tblock"><div class="lbl">${tr('trig.text')}</div><pre class="prompt">${esc(p.text)}${p.cut ? '\n\n' + tr('trig.trunc') : ''}</pre></div>`;
-            } else if (p.kind === 'tool') {
-                h += `<div class="tblock"><div class="lbl">${tr('trig.tool', {tool: esc(p.tool), status: esc(p.status || '—')})}</div><pre class="prompt">${tr('trig.input')}
+    function trigPartHtml(p, cls) {
+        const c = cls ? ` ${cls}` : '';
+        if (p.kind === 'text') {
+            return `<div class="tblock${c}"><div class="lbl">${tr('trig.text')}</div><pre class="prompt">${esc(p.text)}${p.cut ? '\n\n' + tr('trig.trunc') : ''}</pre></div>`;
+        }
+        if (p.kind === 'tool') {
+            return `<div class="tblock${c}"><div class="lbl">${tr('trig.tool', {tool: esc(p.tool), status: esc(p.status || '—')})}</div><pre class="prompt">${tr('trig.input')}
 ${esc(p.input)}${p.cut_i ? '\n' + tr('trig.trunc_in') : ''}${p.output ? `
 
 ${tr('trig.output')}
 ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>`;
-            }
         }
+        return '';
+    }
+
+    // For a call that asked the human, the AI's reply comes first; the input
+    // that triggered the call follows.
+    function renderTrigger(j, c) {
+        let h = '';
+        if (c && c.ask && (j.reply || []).length) {
+            h += `<div class="tblock reply"><div class="lbl">${askIcon()}${tr('trig.reply')}</div></div>`;
+            for (const p of j.reply) h += trigPartHtml(p, 'reply');
+        }
+        const lbl = j.case === 'user' ? tr('trig.user')
+            : j.case === 'assistant' ? tr('trig.assistant')
+            : tr('trig.start');
+        h += `<div class="tblock"><div class="lbl">${c && c.hu ? humIcon(c.hu) : ''}${lbl}</div></div>`;
+        if (c && c.n === 1) h += `<div class="tblock"><button class="fbtn" id="ccompbtn" title="${esc(tr('ctx.btn.tip'))}" onclick="ctxShow(${CALLS.indexOf(c)})">🥧 ${tr('ctx.btn')}</button><div id="ccompbox"></div></div>`;
+        for (const p of (j.parts || [])) h += trigPartHtml(p);
         if (!(j.parts || []).length && j.case !== 'start') h += `<div class="empty">${tr('trig.empty')}</div>`;
         document.querySelector('#modal-body').innerHTML = h;
+    }
+
+    // Context composition of a call (/api/context): items of free-form kinds,
+    // grouped by kind into a pie; each kind opens into its items and texts.
+    const CTX_COLORS = {
+        system: '#7aa2f7', hidden: '#565f89', user: '#9ece6a', instructions: '#e0af68',
+        skills: '#bb9af7', agents: '#f7768e', hooks: '#ff9e64', files: '#2ac3de',
+        tools: '#4fb3a3', reminders: '#a9b1d6'
+    };
+    const CTX_SPARE = ['#73daca', '#c0caf5', '#db4b4b', '#b4f9f8', '#cfc9c2'];
+
+    function ctxColor(kind) {
+        if (CTX_COLORS[kind]) return CTX_COLORS[kind];
+        let h = 0;
+        for (const ch of kind) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+        return CTX_SPARE[h % CTX_SPARE.length];
+    }
+
+    function ctxKindName(kind) {
+        const k = 'ctx.kind.' + kind, v = tr(k);
+        return v === k ? kind : v;
+    }
+
+    // ctxPie draws the groups as SVG slices; inferred groups are hatched.
+    function ctxPie(groups, total) {
+        const R = 90, C = 100;
+        let a = -Math.PI / 2, h = '';
+        groups.forEach((g, i) => {
+            const frac = g.tokens / total;
+            if (frac <= 0) return;
+            const fill = g.inferred ? 'url(#ctxhatch)' : g.color;
+            const tip = `<title>${esc(ctxKindName(g.kind))} · ${fmt(g.tokens)} · ${(frac * 100).toFixed(1)}%</title>`;
+            const click = `onclick="ctxOpen(${i})"`;
+            if (frac >= 0.9999) {
+                h += `<circle cx="${C}" cy="${C}" r="${R}" fill="${fill}" ${click}>${tip}</circle>`;
+                return;
+            }
+            const b = a + frac * 2 * Math.PI;
+            const p = t => `${(C + R * Math.cos(t)).toFixed(2)},${(C + R * Math.sin(t)).toFixed(2)}`;
+            h += `<path d="M${C},${C} L${p(a)} A${R},${R} 0 ${frac > 0.5 ? 1 : 0} 1 ${p(b)} Z" fill="${fill}" ${click}>${tip}</path>`;
+            a = b;
+        });
+        return `<svg class="ctxpie" viewBox="0 0 200 200"><defs><pattern id="ctxhatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="${CTX_COLORS.hidden}"/><line x1="0" y1="0" x2="0" y2="8" stroke="#9aa5ce" stroke-width="3"/></pattern></defs>${h}</svg>`;
+    }
+
+    function ctxOpen(i) {
+        const d = document.querySelector('#ctxgrp' + i);
+        if (!d) return;
+        d.open = true;
+        d.scrollIntoView({block: 'nearest'});
+    }
+
+    function renderCtx(j) {
+        const by = {};
+        for (const it of j.items || []) {
+            const g = by[it.kind] || (by[it.kind] = {kind: it.kind, tokens: 0, items: [], inferred: true, color: ctxColor(it.kind)});
+            g.tokens += it.tokens;
+            g.items.push(it);
+            if (it.est !== 'inferred') g.inferred = false;
+        }
+        const groups = Object.values(by).sort((a, b) => b.tokens - a.tokens);
+        const total = Math.max(1, j.ctx);
+        const pct = n => (n / total * 100).toFixed(1) + '%';
+        const rows = groups.map((g, i) => {
+            const sq = `<i class="dsq${g.inferred ? ' hatch' : ''}" style="background:${g.color}"></i>`;
+            const items = g.items.slice().sort((a, b) => b.tokens - a.tokens).map(it => {
+                const head = `${esc(it.label || ctxKindName(it.kind))} · <b>${fmt(it.tokens)}</b> · ${tr(it.est === 'inferred' ? 'ctx.est.inferred' : 'ctx.est.text')}`;
+                return it.text
+                    ? `<details class="ctxitem"><summary>${head}</summary><pre class="prompt">${esc(it.text)}${it.cut ? '\n\n' + tr('trig.trunc') : ''}</pre></details>`
+                    : `<div class="ctxitem">${head}</div>`;
+            }).join('');
+            return `<details class="ctxgrp" id="ctxgrp${i}"><summary>${sq}${esc(ctxKindName(g.kind))} <b>${fmt(g.tokens)}</b> ${pct(g.tokens)}</summary>${items}</details>`;
+        }).join('');
+        return `<div class="lbl">${tr('ctx.title', {ctx: fmt(j.ctx)})}</div><div class="ctxwrap">${ctxPie(groups, total)}<div class="ctxlegs">${rows}</div></div><div class="ctxnote">${tr('ctx.note')}</div>`;
+    }
+
+    // ctxCall opens a call and its context composition at once.
+    async function ctxCall(idx) {
+        await showCall(idx);
+        ctxShow(idx);
+    }
+
+    async function ctxShow(idx) {
+        const c = CALLS[idx], box = document.querySelector('#ccompbox');
+        if (!c || !box) return;
+        document.querySelector('#ccompbtn')?.remove();
+        box.innerHTML = tr('loading');
+        try {
+            const r = await fetch('/api/context/' + encodeURIComponent(c.mid));
+            if (r.status === 404) {
+                const e = await r.json().catch(() => ({}));
+                box.innerHTML = `<div class="empty">${tr(e.error === 'not_supported' ? 'ctx.unsupported' : 'ctx.na')}</div>`;
+                return;
+            }
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const j = await r.json();
+            if (curCall === idx) box.innerHTML = renderCtx(j);
+        } catch (e) {
+            if (curCall === idx) box.innerHTML = `<div class="empty">${tr('load.fail', {msg: esc(e.message)})}</div>`;
+        }
     }
 
     window.addEventListener('keydown', e => {
@@ -2984,8 +4611,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         const s = find(TREE, id);
         if (!s) return;
         document.querySelector('#detail').innerHTML = `<div class="sect callshead"><span class="callstitle">${tr('detail.calls')} - <span id="dtitle" class="sesname" title="${esc(s.title)}">${esc(SNAME[s.id] || s.title)}</span></span> <button class="fbtn" id="call-fbtn" onclick="openCallFilter()" title="${tr('filter.calls.btn.title')}">${tr('filter.btn')}</button></div>
-  <div id="dscroll"><div id="calls">${tr('loading')}</div>
-  <div class="sect">${tr('detail.prompt')}</div><pre class="prompt" id="pp">${tr('loading')}</pre></div>`;
+  <div id="dscroll"><div id="calls">${tr('loading')}</div></div>`;
         await fillDetail(id);
     }
 
@@ -3003,18 +4629,14 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
     }
 
     async function fillDetail(id) {
-        const pP = getJson('/api/prompt/' + encodeURIComponent(id), document.querySelector('#pp'));
-        const pC = getJson('/api/calls/' + encodeURIComponent(id), document.querySelector('#calls'));
-        const pj = await pP;
-        const cj = await pC;
+        const cj = await getJson('/api/calls/' + encodeURIComponent(id), document.querySelector('#calls'));
         if (sel !== id) return;
-        if (pj) {
-            const pp = document.querySelector('#pp');
-            pp.textContent = (pj.texts && pj.texts.length) ? pj.texts.join('\n\n—\n\n') : tr('prompt.empty');
-        }
         if (cj) {
             CALLS = (cj.calls || []).map((c, i) => Object.assign({}, c, {n: i + 1}));
-            document.querySelector('#calls').innerHTML = callsTable(CALLS);
+            SEGS = cj.segs || [];
+            SEG_FLIP = new Set();
+            refreshCalls();
+            loadTreeSpans(id);
         }
         updateFilterBtns();
     }
@@ -3136,14 +4758,16 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
 
     document.querySelector('#tree').addEventListener('click', e => {
         const nd = e.target.closest('.node');
+        if (nd && e.target.closest('.tgl.on')) return toggleNode(nd);
         if (nd) {
+            dismissAttn(nd.dataset.id);
             if (nd.dataset.id === sel) return;
             selectSession(nd.dataset.id, {push: true});
         }
     });
     document.querySelector('#tree').addEventListener('dblclick', e => {
         const nd = e.target.closest('.node');
-        if (!nd || e.target.closest('.star, .rnbtn')) return;
+        if (!nd || e.target.closest('.star, .rnbtn, .tgl')) return;
         const sel = window.getSelection();
         if (sel) sel.removeAllRanges();
         toggleNode(nd);
@@ -3193,6 +4817,10 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         document.querySelector('#reconly').title = tr('recent.only.title');
         document.querySelector('#reclabel').title = tr('recent.only.title');
         document.querySelector('#reclabel').textContent = tr('filter.recent');
+        document.querySelector('#recwin').title = tr('recent.win.title');
+        document.querySelector('#recwintxt').title = tr('recent.win.title');
+        syncRecWin();
+        syncSpanLang();
         document.querySelector('#chkbox').title = tr('favourites.only.title');
         document.querySelector('#chklabel').title = tr('favourites.only.title');
         document.querySelector('#chklabel').textContent = tr('filter.favourites');
@@ -3228,6 +4856,8 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (lastDbInfo) renderDbField(lastDbInfo);
         if (document.querySelector('#detailempty')) document.querySelector('#detail').innerHTML = emptyDetailHtml();
         refreshLabel();
+        syncAlertBtns();
+        buildSoundPicker();
         buildLangSwitcher();
     }
 
@@ -3259,6 +4889,300 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         if (n) selectSession(n.id, {reveal: true, scroll: true});
     }
 
+    // --- attention alerts ---
+    // Each poll compares the sessions' live states (node.state) with the
+    // previous poll's. A session that starts asking a question (ask) or waiting
+    // for a permission (perm), or a root session whose whole subtree went idle
+    // (done), gets an ATTN mark: a sound plays once and its row blinks until
+    // clicked. A mark also goes away once its reason is gone (the human answered
+    // in the terminal, a new turn started). The first poll after page load only
+    // records the baseline.
+    const ALERT_KEY = 'alerts';
+    const ATTN_KEY = 'alerts.attn';
+    const ATTN_PRIO = {done: 1, ask: 2, perm: 3};
+    const ATTN_TIP = {ask: 'node.attn.ask', perm: 'node.attn.perm', done: 'node.attn.done'};
+    const ALERT = {sound: true, blink: true, tone: 'chimes', vol: 60};
+    // alert sounds, softest first: 'chimes' plays the files in /sounds/, the rest
+    // are synthesized. Each synth plays a per-kind pattern of notes (BEEPS) from
+    // its base pitch, a step apart; gain is calibrated for 100% volume.
+    const SND = [
+        {id: 'chimes'},
+        {id: 'whisper', base: 440, step: .32, gain: .18, voice: () => tone({attack: .06, decay: .5})},
+        {id: 'drop', base: 587, step: .26, gain: .25, voice: () => tone({attack: .02, decay: .35, sweep: .92})},
+        {id: 'marimba', base: 392, step: .2, gain: .45, voice: () => tone({attack: .004, decay: .35, partials: [[1, 1], [4, .08]]})},
+        {id: 'glass', base: 1047, step: .22, gain: .12, voice: () => tone({attack: .005, decay: .9})},
+        {id: 'kalimba', base: 659, step: .18, gain: .35, voice: () => tone({attack: .002, decay: .45, partials: [[1, 1], [5.4, .12]]})},
+        {id: 'bubble', base: 500, step: .14, gain: .25, voice: () => tone({attack: .005, decay: .12, sweep: 2})},
+        {id: 'chime', base: 784, step: .22, gain: .2, voice: () => tone({attack: .003, decay: .7, partials: [[1, 1], [2.76, .25]]})},
+        {id: 'pluck', base: 523, step: .18, gain: .4, voice: () => pluck({decay: .6})},
+        {id: 'warmbell', base: 660, step: .25, gain: .18, voice: () => fmbell({ratio: 1.4, index: 1.2, decay: 1})},
+        {id: 'woodblock', base: 880, step: .14, gain: .5, voice: () => tone({attack: .001, decay: .07, partials: [[1, 1], [2.3, .4]]})},
+        {id: 'beep', base: 880, step: .16, gain: .25, voice: () => tone({wave: 'triangle', attack: .005, decay: .18})},
+        {id: 'brightbell', base: 880, step: .2, gain: .16, voice: () => fmbell({ratio: 3.5, index: 2.5, decay: .9})},
+        {id: 'xylophone', base: 1047, step: .13, gain: .35, voice: () => tone({attack: .001, decay: .18, partials: [[1, 1], [3, .3], [6.2, .1]]})},
+        {id: 'ping', base: 1568, step: .11, gain: .25, voice: () => tone({attack: .002, decay: .12})},
+        {id: 'buzzer', base: 1100, step: .11, gain: .09, voice: () => tone({wave: 'sawtooth', attack: .004, decay: .1})},
+        {id: 'alarm', base: 1320, step: .1, gain: .1, voice: () => tone({wave: 'square', attack: .004, decay: .08})},
+    ];
+    const SND_LABEL = {
+        chimes: 'snd.chimes', whisper: 'snd.whisper', drop: 'snd.drop', marimba: 'snd.marimba', glass: 'snd.glass',
+        kalimba: 'snd.kalimba', bubble: 'snd.bubble', chime: 'snd.chime', pluck: 'snd.pluck', warmbell: 'snd.warmbell',
+        woodblock: 'snd.woodblock', beep: 'snd.beep', brightbell: 'snd.brightbell', xylophone: 'snd.xylophone',
+        ping: 'snd.ping', buzzer: 'snd.buzzer', alarm: 'snd.alarm',
+    };
+    // settings saved by earlier versions: soft/sharp, then levels 1..5
+    const SND_OLD = {soft: 'chimes', sharp: 'alarm', 1: 'chimes', 2: 'drop', 3: 'beep', 4: 'buzzer', 5: 'alarm'};
+    // notes per alert kind: [pitch relative to the sound's base, start in steps]
+    const BEEPS = {
+        ask: [[1, 0], [4 / 3, 1]],
+        perm: [[1, 0], [1, 1], [1, 2]],
+        done: [[1, 0], [1.25, 1], [1.5, 2]],
+    };
+
+    // voices: (ctx, out, freq, t, gain) => schedules one note into out
+
+    // tone: oscillator partials with an attack/decay envelope, optionally gliding by sweep
+    function tone({wave = 'sine', attack = .01, decay = .3, partials = [[1, 1]], sweep = 0}) {
+        return (c, out, f, t, g) => {
+            for (const [mul, amp] of partials) {
+                const o = c.createOscillator(), e = c.createGain();
+                o.type = wave;
+                o.frequency.setValueAtTime(f * mul, t);
+                if (sweep) o.frequency.exponentialRampToValueAtTime(f * mul * sweep, t + decay);
+                e.gain.setValueAtTime(0, t);
+                e.gain.linearRampToValueAtTime(g * amp, t + attack);
+                e.gain.exponentialRampToValueAtTime(.0001, t + attack + decay);
+                o.connect(e).connect(out);
+                o.start(t);
+                o.stop(t + attack + decay + .05);
+            }
+        };
+    }
+
+    // pluck: a short noise burst through a resonant band-pass, like a plucked string
+    function pluck({decay = .5}) {
+        return (c, out, f, t, g) => {
+            const len = Math.floor(c.sampleRate * .02), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+            for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+            const src = c.createBufferSource(), bp = c.createBiquadFilter(), e = c.createGain();
+            src.buffer = buf;
+            bp.type = 'bandpass';
+            bp.frequency.value = f;
+            bp.Q.value = 30;
+            e.gain.setValueAtTime(g * 6, t);
+            e.gain.exponentialRampToValueAtTime(.0001, t + decay);
+            src.connect(bp).connect(e).connect(out);
+            src.start(t);
+        };
+    }
+
+    // fmbell: frequency modulation at a non-integer ratio gives a metallic shimmer
+    function fmbell({ratio, index, decay}) {
+        return (c, out, f, t, g) => {
+            const car = c.createOscillator(), mod = c.createOscillator(), mg = c.createGain(), e = c.createGain();
+            car.frequency.value = f;
+            mod.frequency.value = f * ratio;
+            mg.gain.setValueAtTime(f * index, t);
+            mg.gain.exponentialRampToValueAtTime(1, t + decay);
+            mod.connect(mg).connect(car.frequency);
+            e.gain.setValueAtTime(0, t);
+            e.gain.linearRampToValueAtTime(g, t + .005);
+            e.gain.exponentialRampToValueAtTime(.0001, t + decay);
+            car.connect(e).connect(out);
+            car.start(t);
+            mod.start(t);
+            car.stop(t + decay + .05);
+            mod.stop(t + decay + .05);
+        };
+    }
+
+    let actx = null;
+    let ATTN = {}; // session id -> 'ask' | 'perm' | 'done'
+    let LIVE = null; // session id -> state at the previous poll; root ids also as '^' + id -> subtree state
+    const SOUNDS = {};
+    // the browser refuses to play until the human interacts with the page (autoplay policy)
+    let sndBlocked = typeof navigator !== 'undefined' && !!navigator.userActivation && !navigator.userActivation.hasBeenActive;
+
+    function loadAlerts() {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            const a = JSON.parse(localStorage.getItem(ALERT_KEY));
+            if (a) {
+                ALERT.sound = a.sound !== false;
+                ALERT.blink = a.blink !== false;
+                ALERT.tone = SND.some(x => x.id === a.tone) ? a.tone : SND_OLD[a.tone] || 'chimes';
+                ALERT.vol = Number.isFinite(a.vol) ? Math.min(100, Math.max(5, a.vol)) : 60;
+            }
+            ATTN = JSON.parse(localStorage.getItem(ATTN_KEY)) || {};
+        } catch (e) { }
+    }
+
+    function saveAlerts() {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            localStorage.setItem(ALERT_KEY, JSON.stringify(ALERT));
+            localStorage.setItem(ATTN_KEY, JSON.stringify(ATTN));
+        } catch (e) { }
+    }
+
+    function topAttn(a, b) {
+        return !a || (b && ATTN_PRIO[b] > ATTN_PRIO[a]) ? b : a;
+    }
+
+    const isWorking = s => s === 'busy' || s === 'ask' || s === 'perm';
+
+    // subtreeState: 'busy' while any session of the subtree works or waits for the human, else the root's own state
+    function subtreeState(n) {
+        const any = (function walk(x) {
+            return isWorking(x.state) || x.children.some(walk);
+        })(n);
+        return any ? 'busy' : n.state || '';
+    }
+
+    function scanAlerts(tree) {
+        const cur = {}, nodes = [];
+        (function walk(ns, root) {
+            for (const n of ns) {
+                cur[n.id] = n.state || '';
+                nodes.push(n);
+                if (root) cur['^' + n.id] = subtreeState(n);
+                walk(n.children, false);
+            }
+        })(tree, true);
+        let ring = null;
+        if (LIVE) {
+            for (const n of nodes) {
+                const s = cur[n.id], p = LIVE[n.id] || '';
+                if (s !== p && (s === 'ask' || s === 'perm')) {
+                    ATTN[n.id] = s;
+                    ring = topAttn(ring, s);
+                }
+                const rk = '^' + n.id;
+                if (rk in cur && cur[rk] === 'idle' && isWorking(LIVE[rk])) {
+                    ATTN[n.id] = 'done';
+                    ring = topAttn(ring, 'done');
+                }
+            }
+        }
+        for (const [id, kind] of Object.entries(ATTN)) {
+            const s = cur[id];
+            if (s === undefined || (kind !== 'done' && s !== kind) || (kind === 'done' && isWorking(s))) delete ATTN[id];
+        }
+        LIVE = cur;
+        saveAlerts();
+        if (ring && ALERT.sound) playAlert(ring);
+    }
+
+    function playAlert(kind) {
+        const snd = SND.find(x => x.id === ALERT.tone);
+        if (snd && snd.voice && playSynth(kind, snd)) return;
+        const a = SOUNDS[kind] || (SOUNDS[kind] = new Audio('/sounds/' + kind + '.oga'));
+        a.volume = ALERT.vol / 100;
+        a.currentTime = 0;
+        const p = a.play();
+        if (p && p.catch) p.catch(() => {
+            // autoplay policy: no sound until the human interacts with the page
+            sndBlocked = true;
+            syncAlertBtns();
+        });
+    }
+
+    // playSynth: a synthesized sound via Web Audio; false when the browser has none (falls back to the chime files)
+    function playSynth(kind, snd) {
+        const AC = typeof AudioContext !== 'undefined' ? AudioContext : null;
+        if (!AC) return false;
+        actx = actx || new AC();
+        if (actx.state === 'suspended') actx.resume();
+        if (actx.state === 'suspended' && navigator.userActivation && !navigator.userActivation.hasBeenActive) {
+            // autoplay policy: no sound until the human interacts with the page
+            sndBlocked = true;
+            syncAlertBtns();
+            return true;
+        }
+        const out = actx.createGain(), voice = snd.voice(), t0 = actx.currentTime + .02;
+        out.gain.value = ALERT.vol / 100;
+        out.connect(actx.destination);
+        for (const [r, i] of BEEPS[kind]) voice(actx, out, snd.base * r, t0 + i * snd.step, snd.gain);
+        return true;
+    }
+
+    // nodeAttn: the mark a row shows — its own, or, when collapsed, the strongest one hidden inside
+    function nodeAttn(s, open) {
+        if (!ALERT.blink) return null;
+        let inner = null;
+        if (!open) (function walk(ns) {
+            for (const k of ns) {
+                inner = topAttn(inner, ATTN[k.id]);
+                walk(k.children);
+            }
+        })(s.children);
+        const own = ATTN[s.id] || null;
+        return {kind: topAttn(own, inner), own};
+    }
+
+    function dismissAttn(id) {
+        if (!ATTN[id]) return;
+        delete ATTN[id];
+        saveAlerts();
+        render();
+    }
+
+    function syncAlertBtns() {
+        const sb = document.querySelector('#sndbtn'), bb = document.querySelector('#blinkbtn');
+        sb.classList.toggle('off', !ALERT.sound);
+        sb.classList.toggle('blocked', sndBlocked && ALERT.sound);
+        bb.classList.toggle('off', !ALERT.blink);
+        sb.title = sndBlocked && ALERT.sound ? tr('alert.sound.blocked') : tr(ALERT.sound ? 'alert.sound.on' : 'alert.sound.off');
+        bb.title = tr(ALERT.blink ? 'alert.blink.on' : 'alert.blink.off');
+        document.querySelector('#alertlabel').textContent = tr('alert.label');
+    }
+
+    // buildSoundPicker: the settings' sound list and volume; rebuilt on language change only,
+    // not in syncAlertBtns — that runs on the first click and would close an open dropdown
+    function buildSoundPicker() {
+        document.querySelector('#gearsound').textContent = tr('gear.sound');
+        const sel = document.querySelector('#sndsel');
+        sel.title = tr('gear.sound.tip');
+        sel.innerHTML = SND.map(x => `<option value="${x.id}">${esc(tr(SND_LABEL[x.id]))}</option>`).join('');
+        sel.value = ALERT.tone;
+        document.querySelector('#sndplay').title = tr('gear.sound.play');
+        document.querySelector('#sndvollbl').textContent = tr('gear.sound.vol');
+        document.querySelector('#sndvol').value = ALERT.vol;
+        document.querySelector('#sndvolv').textContent = ALERT.vol + '%';
+    }
+
+    document.querySelector('#sndbtn').addEventListener('click', () => {
+        ALERT.sound = !ALERT.sound;
+        saveAlerts();
+        syncAlertBtns();
+        if (ALERT.sound) playAlert('ask'); // a sample: proves sound reaches the speakers
+    });
+    document.querySelector('#sndsel').addEventListener('change', e => {
+        ALERT.tone = e.target.value;
+        saveAlerts();
+        playAlert('ask'); // a sample of the chosen sound
+    });
+    document.querySelector('#sndplay').addEventListener('click', () => playAlert('ask'));
+    document.querySelector('#sndvol').addEventListener('input', e => {
+        ALERT.vol = Number(e.target.value);
+        document.querySelector('#sndvolv').textContent = ALERT.vol + '%';
+        saveAlerts();
+    });
+    document.querySelector('#sndvol').addEventListener('change', () => playAlert('ask'));
+    document.querySelector('#blinkbtn').addEventListener('click', () => {
+        ALERT.blink = !ALERT.blink;
+        saveAlerts();
+        syncAlertBtns();
+        render();
+    });
+    // any interaction unlocks audio for the page
+    ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => {
+        if (!sndBlocked) return;
+        sndBlocked = false;
+        syncAlertBtns();
+    }, true));
+    loadAlerts();
+
     async function load() {
         const sp = document.querySelector('#refresh');
         sp.classList.add('busy');
@@ -3278,6 +5202,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
             }
             TREE = j;
             computeOrder();
+            scanAlerts(TREE);
             render();
             refreshDetail();
             updateFilterBtns();
@@ -3350,7 +5275,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         } catch (e) { return { ok: false, error: String(e) }; }
     }
 
-    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'copilot' ? tr('prov.copilot') : n === 'folder' ? tr('prov.folder') : n;
+    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'codex' ? tr('prov.codex') : n === 'copilot' ? tr('prov.copilot') : n === 'folder' ? tr('prov.folder') : n;
 
     let lastProv = null;
 

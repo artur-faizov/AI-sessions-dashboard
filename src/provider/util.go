@@ -5,11 +5,16 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 // ActiveWindowMS is how recently a session must have been updated to count as "active".
 const ActiveWindowMS = 15 * 60 * 1000
+
+// BeatWindowMS is the longest "recent" window the UI offers: sessions updated
+// within it carry beats so the ECG can span the whole selected window.
+const BeatWindowMS = 24 * 60 * 60 * 1000
 
 // WaitBeforeMS is the time the session waited on a human before calls[i]: the
 // gap since the previous call when calls[i] was triggered by human input, else 0.
@@ -32,6 +37,52 @@ func ActiveDur(dur int64, calls []CallRec) int64 {
 		return 0
 	}
 	return dur
+}
+
+// askNoise matches spans whose question marks are not questions: fenced and
+// inline code, and URLs.
+var askNoise = regexp.MustCompile("(?s)```.*?```|`[^`\n]*`|https?://\\S+")
+
+// askMark matches a question mark that ends a sentence.
+var askMark = regexp.MustCompile(`[?？]+(?:$|[\s*_)"'»:])`)
+
+// AsksInText reports whether an assistant text puts a question to the human:
+// a sentence-ending question mark anywhere outside code and URLs.
+func AsksInText(texts []string) bool {
+	return askMark.MatchString(askNoise.ReplaceAllString(strings.Join(texts, "\n"), " "))
+}
+
+// IsAskTool reports whether a tool name is a question-to-the-human tool
+// (opencode question, Claude AskUserQuestion, Copilot ask_user).
+func IsAskTool(name string) bool {
+	return name == "question" || name == "AskUserQuestion" || name == "ask_user"
+}
+
+// SegInputMax is the character cap on a Seg's tool input and output.
+const SegInputMax = 4000
+
+// ToolInput renders a tool's input for a Seg: the shell command when the
+// input carries one, else the input as JSON, cut at SegInputMax characters.
+func ToolInput(v any) string {
+	if m, ok := v.(map[string]any); ok {
+		if c, ok := m["command"].(string); ok && c != "" {
+			v = c
+		}
+	}
+	return segClip(v)
+}
+
+// ToolOutput renders a tool's reply for a Seg, cut at SegInputMax characters.
+func ToolOutput(v any) string {
+	return segClip(v)
+}
+
+func segClip(v any) string {
+	s, _ := Clip(v)
+	if r := []rune(s); len(r) > SegInputMax {
+		s = string(r[:SegInputMax]) + "…"
+	}
+	return s
 }
 
 // TriggerMax is the per-value character cap on trigger part text.

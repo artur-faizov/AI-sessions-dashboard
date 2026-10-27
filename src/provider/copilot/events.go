@@ -27,7 +27,7 @@ type item struct {
 	kind   itemKind
 	timeMS int64
 
-	// user
+	// user; assistant reply text
 	text  string
 	human bool // typed by the user (not skill/system-injected)
 
@@ -169,6 +169,7 @@ type rawAssistantMessage struct {
 	MessageID    string           `json:"messageId"`
 	APICallID    string           `json:"apiCallId"`
 	Model        string           `json:"model"`
+	Content      string           `json:"content"`
 	OutputTokens int64            `json:"outputTokens"`
 	ToolRequests []rawToolRequest `json:"toolRequests"`
 }
@@ -308,6 +309,7 @@ func (s *session) apply(line []byte, pending map[string]*rawToolStart) {
 		}
 		st.items = append(st.items, &item{
 			kind: kindAssistant, timeMS: ts, mid: mid, apiCallID: d.APICallID, model: d.Model, outTokens: d.OutputTokens,
+			text: d.Content,
 		})
 		st.assistantCount++
 		if d.Model != "" {

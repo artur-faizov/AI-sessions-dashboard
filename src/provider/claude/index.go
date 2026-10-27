@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +20,10 @@ func (u claudeUsage) nonzero() bool {
 	return u.in != 0 || u.out != 0 || u.cr != 0 || u.cw != 0
 }
 
+func (u claudeUsage) max(o claudeUsage) claudeUsage {
+	return claudeUsage{max(u.in, o.in), max(u.out, o.out), max(u.cr, o.cr), max(u.cw, o.cw)}
+}
+
 type claudeToolUse struct {
 	id    string
 	name  string
@@ -28,12 +33,14 @@ type claudeToolUse struct {
 type claudeToolResult struct {
 	id      string
 	content string
+	isErr   bool
 }
 
 type claudeMsg struct {
 	mid         string // top-level line uuid
 	role        string // "user" or "assistant"
 	timeMS      int64
+	endMS       int64 // first line of a request: timestamp of its last line
 	usage       claudeUsage
 	model       string
 	hasUsage    bool
@@ -95,6 +102,7 @@ type claudeRawBlock struct {
 	Input     any             `json:"input"`
 	ToolUseID string          `json:"tool_use_id"`
 	Content   json.RawMessage `json:"content"`
+	IsError   bool            `json:"is_error"`
 }
 
 type claudeAgentMeta struct {
@@ -119,7 +127,33 @@ func claudeParseMS(ts string) int64 {
 var claudeNoisePrefixes = []string{
 	"<system-reminder>", "<command-name>", "<command-message>", "<command-args>",
 	"<local-command-caveat", "<local-command-stdout", "<bash-input>", "<bash-stdout>",
-	"<bash-stderr>",
+	"<bash-stderr>", "<task-notification>", "<agent-message",
+	"Another Claude session sent a message:",
+}
+
+var (
+	claudeCmdNameRe = regexp.MustCompile(`(?s)<command-name>(.*?)</command-name>`)
+	claudeCmdArgsRe = regexp.MustCompile(`(?s)<command-args>(.*?)</command-args>`)
+)
+
+// claudeSlashCommand renders a slash command that carries arguments (e.g.
+// "/openspec-explore <question>") as human text; bare commands such as
+// "/model" stay noise.
+func claudeSlashCommand(t string) string {
+	name := claudeCmdNameRe.FindStringSubmatch(t)
+	args := claudeCmdArgsRe.FindStringSubmatch(t)
+	if name == nil || args == nil {
+		return ""
+	}
+	a := strings.TrimSpace(args[1])
+	if a == "" {
+		return ""
+	}
+	n := strings.TrimSpace(name[1])
+	if !strings.HasPrefix(n, "/") {
+		n = "/" + n
+	}
+	return n + " " + a
 }
 
 // claudeHumanText returns the real human text of a plain-string user content.
@@ -127,6 +161,9 @@ func claudeHumanText(s string) string {
 	t := strings.TrimSpace(s)
 	if t == "" {
 		return ""
+	}
+	if cmd := claudeSlashCommand(t); cmd != "" {
+		return cmd
 	}
 	for _, p := range claudeNoisePrefixes {
 		if strings.HasPrefix(t, p) {
@@ -160,7 +197,7 @@ func parseClaudeFile(path string) *claudeFile {
 		return f
 	}
 	seen := map[string]bool{}
-	seenReq := map[string]bool{}
+	seenReq := map[string]*claudeMsg{}
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -197,13 +234,28 @@ func parseClaudeFile(path string) *claudeFile {
 				seen[raw.UUID] = true
 			}
 			// One API request is written as multiple assistant lines (one per
-			// content block), each repeating the same usage block. Count usage
-			// only on the first line of a request to avoid overcounting.
+			// content block), each repeating the usage block. Count usage once
+			// per request, on its first line, to avoid overcounting. Early lines
+			// may carry a partial streaming output count (e.g. 8 instead of 3020),
+			// so keep the max of each field seen across the request's lines.
 			if raw.RequestID != "" {
-				if seenReq[raw.RequestID] {
+				if first := seenReq[raw.RequestID]; first != nil {
 					dupReq = true
+					if ts > first.endMS {
+						first.endMS = ts
+					}
+					if u := raw.Message.Usage; u != nil {
+						first.usage = first.usage.max(claudeUsage{
+							in:  u.InputTokens,
+							out: u.OutputTokens,
+							cr:  u.CacheReadInputTokens,
+							cw:  u.CacheCreationInputTokens,
+						})
+						first.hasUsage = first.usage.nonzero() && first.model != "<synthetic>"
+					}
 				} else {
-					seenReq[raw.RequestID] = true
+					seenReq[raw.RequestID] = m
+					m.endMS = ts
 				}
 			}
 			m.model = raw.Message.Model
@@ -265,6 +317,7 @@ func parseClaudeFile(path string) *claudeFile {
 						m.toolResults = append(m.toolResults, claudeToolResult{
 							id:      b.ToolUseID,
 							content: claudeBlockContentString(b.Content),
+							isErr:   b.IsError,
 						})
 					}
 				}
@@ -456,23 +509,145 @@ func (f *claudeFile) humanTrig(m *claudeMsg) provider.Trig {
 	return provider.TrigNone
 }
 
+// asksHuman reports whether an assistant line calls AskUserQuestion.
+func (m *claudeMsg) asksHuman() bool {
+	for _, tu := range m.toolUses {
+		if provider.IsAskTool(tu.name) {
+			return true
+		}
+	}
+	return false
+}
+
 func (f *claudeFile) calls() []provider.CallRec {
 	calls := []provider.CallRec{}
-	var prev *claudeMsg
+	var prev, lastIn *claudeMsg // lastIn: last line not written by the assistant
+	// A request spans several assistant lines (one per content block) and
+	// only its first line carries usage, so a question on a later line still
+	// belongs to the last call. A call also asks when it ends the turn (a
+	// human message or the transcript end follows) with a question in its text.
+	last := -1
+	var texts []string
+	endTurn := func() {
+		if last >= 0 && provider.AsksInText(texts) {
+			calls[last].Ask = true
+		}
+	}
 	for _, m := range f.messages {
+		if m.role == "user" && !m.meta {
+			if t := f.humanTrig(m); t == provider.TrigText || t == provider.TrigImage {
+				endTurn()
+			}
+			last, texts = -1, nil
+		}
 		if m.role == "assistant" && m.hasUsage {
+			// The request runs from the last input line (user text or tool
+			// result) to the last line of its streamed response.
+			var dur, end int64
+			if lastIn != nil && m.endMS > lastIn.timeMS {
+				dur, end = m.endMS-lastIn.timeMS, m.endMS
+			}
 			calls = append(calls, provider.CallRec{
 				Mid: m.mid, Time: m.timeMS,
 				In: m.usage.in, Cr: m.usage.cr, Cw: m.usage.cw,
 				Out: m.usage.out, Reason: 0,
 				Ctx:   m.usage.in + m.usage.cr + m.usage.cw,
 				Hu:    f.humanTrig(prev),
-				Model: m.model,
+				Model: m.model, Dur: dur, End: end,
 			})
+			last, texts = len(calls)-1, nil
+		}
+		if m.role == "assistant" && last >= 0 {
+			texts = append(texts, m.texts...)
+			if m.asksHuman() {
+				calls[last].Ask = true
+			}
 		}
 		prev = m
+		if m.role != "assistant" {
+			lastIn = m
+		}
 	}
+	endTurn()
 	return calls
+}
+
+// issuers maps tool_use id -> the AI call (its first line's mid) whose
+// response carried that tool_use. A request spans several assistant lines and
+// only the first carries usage, so later lines belong to the last call.
+func (f *claudeFile) issuers() map[string]string {
+	out := map[string]string{}
+	cur := ""
+	for _, m := range f.messages {
+		if m.role != "assistant" {
+			continue
+		}
+		if m.hasUsage {
+			cur = m.mid
+		}
+		for _, tu := range m.toolUses {
+			out[tu.id] = cur
+		}
+	}
+	return out
+}
+
+// segments lists the spans a transcript spent in tools and waiting for the
+// human, from a tool_use line to its tool_result line. Subagent launches are
+// left out: the launch returns at once, the run itself is a child transcript.
+// When the session is live (nowMS > 0), a tool_use still without its
+// tool_result is running and its span ends at nowMS.
+func (f *claudeFile) segments(nowMS int64) []provider.Seg {
+	segs := []provider.Seg{}
+	starts := map[string]int64{}
+	inputs := map[string]any{}
+	var open []string
+	mids := f.issuers()
+	add := func(id string, end int64, isErr bool, out any) {
+		st := starts[id]
+		if end <= st {
+			return
+		}
+		name := f.toolNames[id]
+		kind := provider.SegTool
+		switch name {
+		case "AskUserQuestion", "ExitPlanMode":
+			kind = provider.SegHuman
+		case "Agent", "Task":
+			return
+		}
+		segs = append(segs, provider.Seg{
+			Kind: kind, Start: st, End: end,
+			Mid: mids[id], Name: name, Err: isErr, Run: out == nil,
+			Input:  provider.ToolInput(inputs[id]),
+			Output: provider.ToolOutput(out),
+		})
+	}
+	for _, m := range f.messages {
+		for _, tu := range m.toolUses {
+			starts[tu.id] = m.timeMS
+			inputs[tu.id] = tu.input
+			open = append(open, tu.id)
+		}
+		if m.role != "user" {
+			continue
+		}
+		for _, tr := range m.toolResults {
+			if _, ok := starts[tr.id]; !ok {
+				continue
+			}
+			add(tr.id, m.timeMS, tr.isErr, tr.content)
+			delete(starts, tr.id)
+		}
+	}
+	if nowMS > 0 {
+		for _, id := range open {
+			if _, ok := starts[id]; ok {
+				add(id, nowMS, false, nil)
+			}
+		}
+	}
+	return segs
 }
 
 func (f *claudeFile) prompt() []string {
@@ -513,9 +688,13 @@ func (f *claudeFile) promptTitle() string {
 	return ""
 }
 
-func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats []int64, byModel map[string]*provider.SubtreeSums) {
+func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats []provider.Beat, byModel map[string]*provider.SubtreeSums) {
 	byModel = map[string]*provider.SubtreeSums{}
+	var lastIn *claudeMsg // the request goes out right after the last input line
 	for _, m := range f.messages {
+		if m.role != "assistant" {
+			lastIn = m
+		}
 		if m.role != "assistant" || !m.hasUsage {
 			continue
 		}
@@ -533,7 +712,11 @@ func (f *claudeFile) stats() (in, out, cr, cw, maxctx int64, model string, beats
 			In: m.usage.in, Out: m.usage.out,
 			Cr: m.usage.cr, Cw: m.usage.cw,
 		})
-		beats = append(beats, m.timeMS)
+		b := provider.Beat{m.timeMS, max(m.endMS, m.timeMS)}
+		if lastIn != nil && lastIn.timeMS < b[0] {
+			b[0] = lastIn.timeMS
+		}
+		beats = append(beats, b)
 	}
 	return in, out, cr, cw, maxctx, model, beats, byModel
 }
@@ -546,10 +729,16 @@ func (f *claudeFile) trigger(mid string) (*provider.TriggerResp, bool) {
 			continue
 		}
 		if i == 0 {
-			return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}}, true
+			return &provider.TriggerResp{Case: "start", Time: nil, Parts: []any{}, Reply: f.reply(i)}, true
 		}
-		prev := f.messages[i-1]
-		res := &provider.TriggerResp{Time: prev.timeMS, Parts: []any{}}
+		// A slash command writes its expansion as isMeta lines right after
+		// the typed prompt; show the prompt rather than the empty expansion.
+		j := i - 1
+		for j > 0 && f.messages[j].role == "user" && f.messages[j].meta && f.messages[j-1].role == "user" {
+			j--
+		}
+		prev := f.messages[j]
+		res := &provider.TriggerResp{Time: prev.timeMS, Parts: []any{}, Reply: f.reply(i)}
 		if prev.role == "user" {
 			res.Case = "user"
 			res.Parts = f.userParts(prev)
@@ -560,6 +749,33 @@ func (f *claudeFile) trigger(mid string) (*provider.TriggerResp, bool) {
 		return res, true
 	}
 	return nil, false
+}
+
+// reply collects what the call starting at messages[i] showed the human: the
+// text and AskUserQuestion blocks of its request lines (the call's line and
+// the usage-less lines after it), or nil when there are none.
+func (f *claudeFile) reply(i int) []any {
+	var parts []any
+	for j := i; j < len(f.messages); j++ {
+		m := f.messages[j]
+		if m.role != "assistant" || (j > i && m.hasUsage) {
+			break
+		}
+		for _, txt := range m.texts {
+			if strings.TrimSpace(txt) == "" {
+				continue
+			}
+			t, cut := provider.Clip(txt)
+			parts = append(parts, provider.TriggerPartText{Kind: "text", Text: t, Cut: cut})
+		}
+		for _, tu := range m.toolUses {
+			if provider.IsAskTool(tu.name) {
+				in, cutI := provider.Clip(tu.input)
+				parts = append(parts, provider.TriggerPartTool{Kind: "tool", Tool: tu.name, Input: in, CutI: cutI})
+			}
+		}
+	}
+	return parts
 }
 
 func (f *claudeFile) userParts(m *claudeMsg) []any {
@@ -614,7 +830,7 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 	idx := c.scanIndex()
 	nodes := map[string]*provider.SessionNode{}
 	for sid, s := range idx.sessions {
-		if s.file.promptTitle() == "" {
+		if s.file.title == "" && s.file.promptTitle() == "" {
 			continue // no user request (opened and closed): hide
 		}
 		nodes[sid] = claudeNode(s, nil, nowMS)
@@ -625,6 +841,8 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 			continue // orphan subagent: skip
 		}
 		n := claudeNode(a, a.parent, nowMS)
+		// group with the parent's project even if the agent ran in a subdir
+		n.Dir = parent.Dir
 		nodes[a.id] = n
 		parent.Children = append(parent.Children, n)
 	}
@@ -637,10 +855,25 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 	}
 
 	provider.DropClosed(roots, provider.ProcDirs("claude"))
+	live := c.liveStatuses()
+	for _, r := range roots {
+		if l, ok := live[r.ID]; ok && r.Active {
+			r.State = liveState(l, idx.lookup(r.ID).file)
+		}
+	}
 	for id, n := range nodes {
-		if n.Active {
-			_, _, _, _, _, _, beats, _ := idx.lookup(id).file.stats()
-			sort.Slice(beats, func(i, j int) bool { return beats[i] < beats[j] })
+		if n.Active || nowMS-n.Updated < provider.BeatWindowMS {
+			f := idx.lookup(id).file
+			_, _, _, _, _, _, beats, _ := f.stats()
+			sort.Slice(beats, func(i, j int) bool { return beats[i][0] < beats[j][0] })
+			// A busy session whose transcript ends on an input line has its
+			// next request in flight.
+			if k := len(f.messages); n.State == provider.StateBusy && k > 0 && f.messages[k-1].role != "assistant" {
+				beats = append(beats, provider.Beat{f.messages[k-1].timeMS, 0})
+			}
+			if beats == nil {
+				beats = []provider.Beat{}
+			}
 			n.Beats = beats
 		}
 	}
@@ -696,7 +929,7 @@ func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode
 		Created:  s.file.firstMS,
 		Updated:  updated,
 		Active:   updated > 0 && nowMS-updated < provider.ActiveWindowMS,
-		Beats:    []int64{},
+		Beats:    []provider.Beat{},
 		Children: []*provider.SessionNode{},
 		Subtree:  nil,
 		ByModel:  byModel,

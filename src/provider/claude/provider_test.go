@@ -147,6 +147,40 @@ func TestClaudeDedupAndZeroUsageExcluded(t *testing.T) {
 	}
 }
 
+func TestClaudeSplitRequestKeepsFinalUsage(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	// One request streamed as three lines: early lines carry a partial
+	// output count, the last one the final count.
+	req := func(uuid, ts string, out int64) string {
+		l := assistantLine(uuid, ts, "m1", 2, out, 100, 50, textBlock)
+		return strings.Replace(l, `"type":"assistant",`, `"type":"assistant","requestId":"r1",`, 1)
+	}
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.679Z", "hi"),
+		req("a1", "2026-09-03T13:28:28.000Z", 8),
+		req("a2", "2026-09-03T13:28:29.000Z", 8),
+		req("a3", "2026-09-03T13:28:30.000Z", 3020),
+	)
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := findNode(roots, "s1")
+	if n == nil {
+		t.Fatal("session node missing")
+	}
+	if n.In != 2 || n.Out != 3020 || n.Cr != 100 || n.Cw != 50 {
+		t.Fatalf("totals in=%d out=%d cr=%d cw=%d, want 2/3020/100/50", n.In, n.Out, n.Cr, n.Cw)
+	}
+	calls, err := p.SessionCalls("s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 1 || calls[0].Mid != "a1" {
+		t.Fatalf("calls %s", jdump(calls))
+	}
+}
+
 func TestClaudeSubagentParenting(t *testing.T) {
 	p, dir := claudeFixture(t, "-home-x-proj")
 	writeLines(t, filepath.Join(dir, "main.jsonl"),
@@ -280,6 +314,41 @@ func TestClaudeCallsTriggerKinds(t *testing.T) {
 		if c.Hu != wantHu[i] {
 			t.Fatalf("call %s hu=%q, want %q", c.Mid, c.Hu, wantHu[i])
 		}
+		// only a1 asks: its AskUserQuestion block sits on a later, usage-less line
+		if c.Ask != (c.Mid == "a1") {
+			t.Fatalf("call %s ask=%v", c.Mid, c.Ask)
+		}
+	}
+}
+
+func TestClaudeCallsAskInText(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	q := `{"type":"text","text":"Done. Which ticket should I use?"}`
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "start"),
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, q), // mid-turn: a tool follows
+		assistantLine("t1", "2026-09-03T13:28:29.000Z", "m1", 0, 0, 0, 0,
+			`{"type":"tool_use","id":"call_b","name":"Bash","input":{"command":"ls"}}`),
+		userToolResultLine("u2", "2026-09-03T13:28:30.000Z", "call_b", "file list"),
+		assistantLine("a2", "2026-09-03T13:28:31.000Z", "m1", 20, 6, 0, 0, textBlock),
+		assistantLine("x2", "2026-09-03T13:28:32.000Z", "m1", 0, 0, 0, 0, q), // later line of a2's request
+		userLine("u3", "2026-09-03T13:28:33.000Z", "PLN-1"),
+		assistantLine("a3", "2026-09-03T13:28:34.000Z", "m1", 15, 3, 0, 0, textBlock), // turn end, no question
+		userLine("u4", "2026-09-03T13:28:35.000Z", "thanks"),
+		assistantLine("a4", "2026-09-03T13:28:36.000Z", "m1", 12, 2, 0, 0, q), // transcript end: still waiting
+	)
+	calls, err := p.SessionCalls("s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{"a1": false, "a2": true, "a3": false, "a4": true}
+	if len(calls) != len(want) {
+		t.Fatalf("calls %s", jdump(calls))
+	}
+	for _, c := range calls {
+		if c.Ask != want[c.Mid] {
+			t.Fatalf("call %s ask=%v", c.Mid, c.Ask)
+		}
 	}
 }
 
@@ -332,6 +401,27 @@ func TestClaudeTriggerCases(t *testing.T) {
 	res, err = p.CallTrigger("nope")
 	if err != nil || res != nil {
 		t.Fatalf("not-found must return nil,nil, got %v %v", res, err)
+	}
+}
+
+func TestClaudeTriggerSkipsSlashCommandExpansion(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z",
+			"<command-message>propose</command-message>\n<command-name>/propose</command-name>\n<command-args>add a topic</command-args>"),
+		`{"type":"user","uuid":"u2","isMeta":true,"timestamp":"2026-09-03T13:28:27.500Z","message":{"role":"user","content":[{"type":"text","text":"skill body"}]}}`,
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, textBlock),
+	)
+	res, err := p.CallTrigger("a1")
+	if err != nil || res == nil {
+		t.Fatalf("a1: %v %v", res, err)
+	}
+	if res.Case != "user" || len(res.Parts) != 1 {
+		t.Fatalf("trigger wrong: %s", jdump(res))
+	}
+	tp, ok := res.Parts[0].(provider.TriggerPartText)
+	if !ok || tp.Text != "/propose add a topic" {
+		t.Fatalf("part wrong: %s", jdump(res.Parts))
 	}
 }
 
@@ -466,8 +556,9 @@ func TestClaudeActiveBeatsAndDur(t *testing.T) {
 	p, dir := claudeFixture(t, "-home-x-proj")
 	now := time.Now().UnixMilli()
 	ts := time.UnixMilli(now - 60_000).UTC().Format(time.RFC3339Nano)
+	sent := time.UnixMilli(now - 90_000).UTC().Format(time.RFC3339Nano)
 	writeLines(t, filepath.Join(dir, "s1.jsonl"),
-		userLine("u1", "2026-09-03T13:28:27.679Z", "hi"),
+		userLine("u1", sent, "hi"),
 		assistantLine("a1", ts, "m1", 10, 5, 0, 0, textBlock),
 	)
 	roots, err := p.BuildTree(now)
@@ -481,7 +572,8 @@ func TestClaudeActiveBeatsAndDur(t *testing.T) {
 	if !n.Active {
 		t.Fatal("session updated 1min ago must be active")
 	}
-	if len(n.Beats) != 1 {
+	// the beat runs from the prompt that sent the request to the reply
+	if len(n.Beats) != 1 || n.Beats[0] != (provider.Beat{now - 90_000, now - 60_000}) {
 		t.Fatalf("active session beats: %s", jdump(n.Beats))
 	}
 	if n.Dur <= 0 {
@@ -555,5 +647,63 @@ func TestPromptTitleFallback(t *testing.T) {
 	}
 	if got := (&claudeFile{}).promptTitle(); got != "" {
 		t.Fatalf("want empty, got %q", got)
+	}
+}
+
+func TestClaudeSlashCommandWithArgsIsPrompt(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "<command-name>/model</command-name>\n<command-message>model</command-message>\n<command-args></command-args>"),
+		userLine("u2", "2026-09-03T13:28:28.000Z", "<command-message>openspec-explore</command-message>\n<command-name>/openspec-explore</command-name>\n<command-args>revise the change</command-args>"),
+		userLine("u3", "2026-09-03T13:28:29.000Z", "Another Claude session sent a message:\n<agent-message from=\"a1\">report</agent-message>"),
+		userLine("u4", "2026-09-03T13:28:30.000Z", "<task-notification>\n<task-id>a1</task-id>\n</task-notification>"),
+	)
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := findNode(roots, "s1")
+	if n == nil {
+		t.Fatal("session started by a slash command with args must be shown")
+	}
+	if n.Title != "/openspec-explore revise the change" {
+		t.Fatalf("title %q", n.Title)
+	}
+	texts, _ := p.SessionPrompt("s1")
+	if len(texts) != 1 {
+		t.Fatalf("prompt texts: %s", jdump(texts))
+	}
+}
+
+func TestClaudeAITitleKeepsSessionVisible(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "s1.jsonl"),
+		`{"type":"ai-title","aiTitle":"Named session"}`,
+		userLine("u1", "2026-09-03T13:28:27.000Z", "<command-name>/clear</command-name>"),
+	)
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := findNode(roots, "s1"); n == nil || n.Title != "Named session" {
+		t.Fatalf("ai-titled session: %s", jdump(n))
+	}
+}
+
+func TestClaudeSubagentInheritsParentDir(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "main.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "explore"),
+	)
+	writeLines(t, filepath.Join(dir, "main", "subagents", "agent-x.jsonl"),
+		`{"type":"user","uuid":"u9","timestamp":"2026-09-03T13:28:29.000Z","cwd":"/home/x/proj/sub/dir","message":{"role":"user","content":"sub prompt"}}`,
+	)
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := findNode(roots, "agent-x")
+	if a == nil || a.Dir != "/home/x/proj" {
+		t.Fatalf("subagent dir: %s", jdump(a))
 	}
 }

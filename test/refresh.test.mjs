@@ -20,13 +20,14 @@ class El {
         this.hidden = false;
         this.value = '';
         this.lang = '';
-        this.style = {};
+        this.style = {setProperty() {}};
         this.dataset = {};
         this.classList = {add() {}, remove() {}, toggle() {}};
     }
     get innerHTML() { return this._html; }
     set innerHTML(v) { this._html = String(v); this.writes++; }
     addEventListener() {}
+    scrollIntoView() {}
     querySelector() { return null; }
     querySelectorAll() { return []; }
     getBoundingClientRect() { return {right: 0, width: 0}; }
@@ -42,7 +43,7 @@ function boot(routes = {}) {
         documentElement: new El('html'),
         title: '',
         body: new El('body'),
-        querySelector: el,
+        querySelector: sel => sel === '#tree .rninput' ? null : el(sel),
         querySelectorAll: () => [],
         addEventListener() {},
     };
@@ -64,7 +65,10 @@ function boot(routes = {}) {
         document, fetch, I18N, fetchLog, els,
         routes: rmap,
         window: {addEventListener() {}},
+        CSS: {escape: s => s},
         setInterval: () => 0,
+        setTimeout,
+        clearTimeout,
         console,
     };
     vm.runInNewContext(script[1], ctx);
@@ -79,7 +83,7 @@ const settle = async () => {
 const sess = (o = {}) => ({
     id: 's1', parent: null, title: 'fix session', agent: 'build', model: null, dir: '/p',
     maxctx: 900, in: 10, out: 20, reason: 5, cr: 7, cw: 8,
-    created: 1700000000000, updated: 1700000100000, dur: 100000,
+    created: Date.now() - 60000, updated: Date.now(), dur: 100000,
     active: false, beats: [], children: [], subtree: {in: 10, out: 20, reason: 5, cr: 7, cw: 8}, ...o,
 });
 const call = (o = {}) => ({mid: 'm', time: 1700000000000, in: 1, cr: 0, cw: 0, out: 0, reason: 0, ctx: 111, ...o});
@@ -134,39 +138,42 @@ test('tree row shows total(own) for nodes with subagents, and refresh re-renders
     await settle();
     await ctx.load();
     await settle();
-    assert.ok(ctx.document.querySelector('#tree').innerHTML.includes('<b>1.5k</b><span class="own-part">(1.0k)</span>'),
-        'spent cell must show total(own) for the parent');
+    const totalOwn = html => html.match(/<b>([^<]+)<\/b><span class="own-part">\(([^<]+)\)<\/span>/);
+    const before = totalOwn(ctx.document.querySelector('#tree').innerHTML);
+    assert.ok(before, 'spent cell must show both subtree total and own tokens');
+    assert.deepEqual([before[1], before[2]], ['1.5k', '1.0k'], 'parent shows exact subtree total and own tokens');
 
     ctx.routes.set('/api/tree', [parent(4200)]);
     await ctx.load();
     await settle();
 
-    assert.ok(ctx.document.querySelector('#tree').innerHTML.includes('<b>4.7k</b><span class="own-part">(4.2k)</span>'),
-        'total(own) must be re-rendered from the fresh tree');
+    const after = totalOwn(ctx.document.querySelector('#tree').innerHTML);
+    assert.ok(after, 'refreshed spent cell must retain total(own) format');
+    assert.deepEqual([after[1], after[2]], ['4.7k', '4.2k'], 'refresh updates exact subtree total and own tokens');
 });
 
-test('refresh updates the session prompt text', async () => {
+test('refresh updates the selected session title in the detail heading', async () => {
     const ctx = boot({
         '/api/tree': [sess()],
-        '/api/prompt/s1': {texts: ['first prompt']},
         '/api/calls/s1': {calls: [call({mid: 'm1', ctx: 111})]},
     });
     await settle();
     await ctx.pick('s1');
     await settle();
-    assert.equal(ctx.els.get('#pp').textContent, 'first prompt');
+    // The minimal DOM stub does not parse #detail.innerHTML into child elements.
+    // Seed the generated heading node so the real refresh update can target it.
+    ctx.document.querySelector('#dtitle').textContent = 'fix session';
 
-    ctx.routes.set('/api/prompt/s1', {texts: ['first prompt', 'second prompt']});
+    ctx.routes.set('/api/tree', [sess({title: 'renamed session'})]);
     await ctx.load();
     await settle();
 
-    assert.equal(ctx.els.get('#pp').textContent, 'first prompt\n\n—\n\nsecond prompt');
+    assert.equal(ctx.document.querySelector('#dtitle').textContent, 'renamed session');
 });
 
-test('refresh does not fetch calls or prompt when no session is selected', async () => {
+test('refresh does not fetch detail calls when no session is selected', async () => {
     const ctx = boot({
-        '/api/tree': [sess()],
-        '/api/prompt/s1': {texts: []},
+        '/api/tree': [],
         '/api/calls/s1': {calls: [call({mid: 'm1', ctx: 111})]},
     });
     await settle();
@@ -174,15 +181,14 @@ test('refresh does not fetch calls or prompt when no session is selected', async
     await ctx.load();
     await settle();
     assert.ok(!ctx.fetchLog.some(u => u.startsWith('/api/calls')));
-    assert.ok(!ctx.fetchLog.some(u => u.startsWith('/api/prompt')));
 });
 
-test('tree hearts: every active session gets the same background ecg, inactive none', async () => {
+test('tree hearts: active sessions get an ECG even when old; stale inactive sessions do not', async () => {
     const ctx = boot({
         '/api/tree': [
-            sess({id: 'top', active: true, updated: 9000000}),
-            sess({id: 'second', active: true, updated: 8000000}),
-            sess({id: 'idle'}),
+            sess({id: 'top', active: true, updated: Date.now() - 24 * 60 * 60 * 1000}),
+            sess({id: 'second', active: true, updated: Date.now() - 48 * 60 * 60 * 1000}),
+            sess({id: 'idle', updated: Date.now() - 48 * 60 * 60 * 1000}),
         ],
     });
     await settle();
@@ -194,8 +200,9 @@ test('tree hearts: every active session gets the same background ecg, inactive n
 test('recent-only filter keeps active sessions and their parent chain', async () => {
     const ctx = boot({
         '/api/tree': [
-            sess({id: 'p', children: [sess({id: 'k', active: true, updated: 9000000})]}),
-            sess({id: 'alone'}),
+            sess({id: 'p', updated: Date.now() - 24 * 60 * 60 * 1000,
+                children: [sess({id: 'k', active: true, updated: Date.now()})]}),
+            sess({id: 'alone', updated: Date.now() - 24 * 60 * 60 * 1000}),
         ],
     });
     await settle();
@@ -229,10 +236,22 @@ test('favourite star only on roots, filled when marked', async () => {
     assert.ok(/class="star on"[^>]*>★</.test(tree), 'marked root shows filled star');
 });
 
+test('favourites filter shows subagents spawned after the root was starred', async () => {
+    const ctx = boot({
+        '/api/tree': [sess({id: 'r1', children: [sess({id: 'k1', children: [sess({id: 'g1'})]})]}), sess({id: 'r2'})],
+    });
+    await settle();
+    vm.runInNewContext("CHK.marked.add('r1'); CHK.only = true; render();", ctx);
+    const tree = ctx.els.get('#tree').innerHTML;
+    assert.ok(tree.includes('data-id="k1"'), 'new subagent of a favourite is visible');
+    assert.ok(tree.includes('data-id="g1"'), 'nested new subagent is visible');
+    assert.ok(!tree.includes('data-id="r2"'), 'non-favourite root is dropped');
+});
+
 test('active sessions render an ECG sparkline across the heart', async () => {
     const now = Date.now();
     const ctx = boot({
-        '/api/tree': [sess({id: 'beat', active: true, updated: now, beats: [now - 600000, now - 120000]})],
+        '/api/tree': [sess({id: 'beat', active: true, updated: now, beats: [[now - 600000, now - 590000], [now - 120000, 0]]})],
     });
     await settle();
     const tree = ctx.els.get('#tree').innerHTML;

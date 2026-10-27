@@ -59,6 +59,8 @@ own, needing nothing installed:
 ```bash
 make build       # binary for the host platform
 make build-all   # all five targets, cross-compiled from any host OS
+make mac-app     # macOS: dist/TokenMonitor.app (Dock/Finder launcher)
+make mac-app-install  # macOS: also copy it to ~/Applications
 ```
 
 - Output (`build-all`): `dist/dashboard-lin-x64` (linux/amd64),
@@ -71,6 +73,12 @@ make build-all   # all five targets, cross-compiled from any host OS
   macOS Gatekeeper — right-click → Open, or
   `xattr -d com.apple.quarantine <file>`; Windows SmartScreen —
   "More info" → "Run anyway"
+- Dock launcher (macOS): run `make mac-app-install`, open `~/Applications`
+  in Finder and drag `TokenMonitor.app` onto the Dock. Clicking it starts
+  the dashboard and opens it in your browser; logs go to
+  `~/Library/Logs/TokenMonitor.log`. Clicking the icon again reopens the
+  page; right-click → Quit stops the dashboard. Re-run `make mac-app-install` after rebuilding to update the
+  copy in `~/Applications`
 - `make clean` removes build artifacts (`dist/`, `build/`)
 
 ### Reading the tree
@@ -108,9 +116,18 @@ make build-all   # all five targets, cross-compiled from any host OS
     the session's own-token counters; Σ delta = final context size
   - rows triggered by a **human message** (your typed input — not tool
     results or synthetic context) are highlighted green with a 👤 icon
+  - calls where the **AI asked you a question** (opencode `question`, Claude
+    `AskUserQuestion`, Copilot `ask_user` tool) are highlighted purple with a
+    speech-bubble ❓ icon; for Claude Code and opencode, so is the last call of a
+    turn (right before your next message) whose text asks a question — a
+    sentence-ending `?` anywhere outside code blocks, inline code and URLs
+  - a color legend under the calls table explains the row highlights (your
+    input, AI question, context warn / crit thresholds)
   - **click a call row** → popup with the message that triggered that call:
     the user prompt (if it was the first call of a turn) or the previous
-    call's tool command + result. Long parts are truncated at 60k chars.
+    call's tool command + result; for a purple (AI question) row the AI's
+    reply in that call (its text and the question asked) comes first. Long
+    parts are truncated at 60k chars.
     System prompt / tool schemas are not stored in the DB and not shown
   - popup header shows **context now** (session's current context window) vs
     **this request** (size of the viewed call), plus delta (growth vs the
@@ -129,6 +146,38 @@ make build-all   # all five targets, cross-compiled from any host OS
   is highlighted only while a filter is set and shows how many criteria are active
   (`Filter · 2`); the dialog header shows a live "N of M shown" count, and the
   model / provider lists have `all` / `none` shortcuts
+
+### Attention alerts
+
+For the Claude Code and opencode providers the dashboard tells you when an agent
+needs you. Within one refresh (5 s) of the moment a session
+
+- **asks you a question** (question tool, plan approval) — `ask` sound, amber blinking row
+- **waits for a tool permission** — `perm` sound, red blinking row
+- **finished its job** — the root session and all its subagents went idle —
+  `done` sound, green blinking row
+
+a sound plays once and the row blinks until you click it (a collapsed parent
+blinks for a session hidden inside it). The mark also goes away by itself once
+its reason is gone — you answered in the terminal, or a new turn started. The
+two header buttons (speaker, blink) turn sound and blinking off; both are on by
+default and remembered in the browser. Browsers allow sound only after you have
+interacted with the page: until then the speaker button turns amber.
+In settings (gear) → **alert sound** pick the sound from a list, softest at the
+top: the original chimes (default) or one of 16 sounds synthesized in the
+browser, from a quiet whisper to an alarm beep. Picking one plays a sample. The
+**volume** slider below it sets the loudness for any sound (default 60%).
+
+How the state is read, without any hooks or plugins:
+
+- **Claude Code** keeps a live status per running process in
+  `~/.claude/sessions/<pid>.json` (`busy` / `idle` / `waiting`); a pending
+  `AskUserQuestion` / `ExitPlanMode` in the transcript tells a question from a
+  permission prompt. This file is Claude Code internals and may change between versions
+- **opencode** does not store pending permission prompts, so they are inferred:
+  a running `bash` tool with no child process started since it began, or a fast
+  tool (`edit`, `write`, `read`, …) still running after 3 s. A pending `question`
+  tool and finished turns come straight from the database
 
 ### Interpreting numbers
 
@@ -157,6 +206,34 @@ provider-specific is a capability on the interface, e.g. `PathSwitchable()` driv
 
 Select a provider with `--provider NAME` or `PROVIDER=NAME`; without one, the first
 provider registered in `main.go` is used (no automatic fallback when its data is missing).
+The current order is OpenCode, Claude Code, Copilot CLI, folder, and Codex; OpenCode
+remains the default.
+
+### Codex provider
+
+`--provider codex` (or `PROVIDER=codex`, or the UI switcher) reads local Codex CLI,
+IDE, and desktop rollouts from `CODEX_HOME` (default `~/.codex`), read-only:
+
+```sh
+go run ./cmd/dashboard --provider codex
+CODEX_HOME=/path/to/.codex ./dist/dashboard-lin-x64 --provider codex
+```
+
+- sessions are read from `sessions/**/*.jsonl`; `archived_sessions/**/*.jsonl` is
+  included when present. Startup requires either directory to exist.
+- child agents are shown beneath their parent when the rollout identifies the link.
+- token usage comes from local rollout records. Codex's cached input is part of its
+  input total, and reasoning is part of output; the dashboard separates these into
+  additive buckets, so adding all displayed buckets does not double-count either.
+- context size is the observed input size for a call, not the model's context
+  capacity. Exact prompt composition is not available in the rollout data.
+- active status is a heuristic based on task lifecycle and recent source timestamps;
+  stale or ambiguous activity may not match the actual process state.
+- cloud-only sessions that have no local rollout are outside this provider's scope.
+
+Codex's rollout JSONL is an internal format and may change between Codex versions.
+The provider does not read credentials, write Codex files, require telemetry setup,
+or depend on Codex's internal database schema.
 
 ### Copilot CLI provider
 
@@ -266,7 +343,8 @@ To add a provider:
 ## Files
 
 - `cmd/dashboard/main.go` — entrypoint: builds the ordered provider list
-  (`opencode.New(...)`, `claude.New()`, `copilot.New()`; the first is the default) and calls `dashboard.Run`
+  (`opencode.New(...)`, `claude.New()`, `copilot.New()`, `folder.New()`, `codex.New()`;
+  the first is the default) and calls `dashboard.Run`
 - `src/dashboard/run.go` — startup: `--version`, `--provider` and `-dev` flags, provider
   selection, port fallback, Ctrl-C graceful shutdown
 - `src/dashboard/server.go` — HTTP server: routing, JSON helpers, `/` and `/i18n.js` handlers;
@@ -280,12 +358,15 @@ To add a provider:
 - `src/provider/copilot/` — Copilot CLI provider: parses `~/.copilot/session-state`
   event logs (incl. nested subagents), `session-store.db` usage rows, and the
   OpenTelemetry file export (`otel.go`)
+- `src/provider/codex/` — Codex provider: parses local CLI, IDE, and desktop rollout
+  JSONL files under `CODEX_HOME` (including archived sessions when present)
 - `scripts/copilot-otel.sh` — enables/checks/disables the Copilot OpenTelemetry export
   (`make copilot-otel-enable|status|disable`)
 - `src/dashboard/assets.go` — serves the frontend: `{{VERSION}}` substitution
   and dev-mode disk reads for `src/index.html` / `src/i18n.js`
 - `src/dashboard/browser.go` — opens the dashboard in the default browser
-- `src/embed.go` — go:embed of the frontend (`src/index.html`, `src/i18n.js`)
+- `src/embed.go` — go:embed of the frontend (`src/index.html`, `src/i18n.js`, `src/sounds/`)
+- `src/sounds/` — alert sounds from the freedesktop sound theme (see `src/sounds/CREDITS`)
 - `go.mod` / `go.sum` — Go module (modernc.org/sqlite pure-Go SQLite
   driver — no CGO)
 - `src/index.html` — the UI (HTML/CSS/JS), embedded into the binary via

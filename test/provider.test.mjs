@@ -29,6 +29,7 @@ class El {
     addEventListener(ev, fn) { (this.handlers[ev] ||= []).push(fn); }
     dispatch(ev) { for (const fn of this.handlers[ev] || []) fn(); }
     focus() {}
+    scrollIntoView() {}
     querySelector() { return null; }
     querySelectorAll() { return []; }
     getBoundingClientRect() { return {right: 0, width: 0}; }
@@ -70,7 +71,7 @@ function boot({routes = {}, stored = null} = {}) {
                     json: async () => ({...res, provider: body.name})};
         }
         if (u === '/api/provider')
-            return {ok: true, json: async () => ({provider: active, providers: ['claude', 'opencode']})};
+            return {ok: true, json: async () => ({provider: active, providers: ['claude', 'opencode', 'codex']})};
         if (u === '/api/db' && (init.method || 'GET') === 'GET') {
             // the server reports the active provider's capability; only opencode switches paths
             const base = rmap.get('/api/db') || dbinfo();
@@ -92,7 +93,10 @@ function boot({routes = {}, stored = null} = {}) {
     const ctx = {
         document, fetch, I18N, els, routes: rmap, fetchLog, localStorage: storage,
         window: {addEventListener() {}},
+        CSS: {escape: s => s},
         setInterval: () => 0,
+        setTimeout,
+        clearTimeout,
         console,
         __flipProvider: v => { active = v; },
     };
@@ -106,7 +110,7 @@ const settle = async () => {
     await new Promise(r => setTimeout(r, 0));
 };
 
-const provinfo = (o = {}) => ({provider: 'opencode', providers: ['claude', 'opencode'], ...o});
+const provinfo = (o = {}) => ({provider: 'opencode', providers: ['claude', 'opencode', 'codex'], ...o});
 
 const sess = (o = {}) => ({
     id: 's1', parent: null, title: 'fix session', agent: 'build', model: null, dir: '/p',
@@ -128,6 +132,7 @@ test('provider dropdown lists registry names and marks the active one', async ()
     const sel = ctx.els.get('#provsel');
     assert.ok(sel.innerHTML.includes('value="claude"'), 'claude option rendered');
     assert.ok(sel.innerHTML.includes('value="opencode"'), 'opencode option rendered');
+    assert.ok(sel.innerHTML.includes('value="codex"'), 'codex option rendered');
     assert.ok(sel.innerHTML.includes('selected'), 'active provider is selected');
     assert.equal(ctx.els.get('#dbwrap').hidden, false, 'db field visible under opencode');
 });
@@ -150,6 +155,24 @@ test('stored claude choice is re-applied on load and hides the db field', async 
     assert.equal(ctx.els.get('#dbwrap').hidden, true, 'db field hidden under claude');
 });
 
+test('stored codex choice is re-applied on load and keeps the db field hidden', async () => {
+    const ctx = boot({
+        routes: {
+            '/api/provider': provinfo(),
+            'POST /api/provider': {ok: true},
+            '/api/db': dbinfo(),
+            '/api/tree': [sess()],
+        },
+        stored: 'codex',
+    });
+    await settle();
+    const post = ctx.fetchLog.find(f => f.u === '/api/provider' && f.init.method === 'POST');
+    assert.ok(post, 'stored choice POSTs to /api/provider');
+    assert.equal(JSON.parse(post.init.body).name, 'codex');
+    assert.equal(ctx.localStorage.getItem('provider.name'), 'codex', 'choice remembered');
+    assert.equal(ctx.els.get('#dbwrap').hidden, true, 'db field hidden under codex');
+});
+
 test('changing the dropdown posts the new provider and reloads the tree', async () => {
     const ctx = boot({routes: {
         '/api/provider': provinfo(),
@@ -166,6 +189,25 @@ test('changing the dropdown posts the new provider and reloads the tree', async 
     assert.ok(post, 'change POSTs to /api/provider');
     assert.equal(JSON.parse(post.init.body).name, 'claude');
     assert.equal(ctx.localStorage.getItem('provider.name'), 'claude');
+    assert.ok(ctx.fetchLog.some(f => f.u === '/api/tree'), 'tree reloaded after switch');
+});
+
+test('changing to codex posts the provider and persists the selection', async () => {
+    const ctx = boot({routes: {
+        '/api/provider': provinfo(),
+        'POST /api/provider': {ok: true},
+        '/api/tree': [sess()],
+    }});
+    await settle();
+    ctx.fetchLog.length = 0;
+    const sel = ctx.els.get('#provsel');
+    sel.value = 'codex';
+    sel.dispatch('change');
+    await settle();
+    const post = ctx.fetchLog.find(f => f.u === '/api/provider' && f.init.method === 'POST');
+    assert.ok(post, 'change POSTs to /api/provider');
+    assert.equal(JSON.parse(post.init.body).name, 'codex');
+    assert.equal(ctx.localStorage.getItem('provider.name'), 'codex', 'codex choice remembered');
     assert.ok(ctx.fetchLog.some(f => f.u === '/api/tree'), 'tree reloaded after switch');
 });
 

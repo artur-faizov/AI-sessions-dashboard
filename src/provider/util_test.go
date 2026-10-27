@@ -69,3 +69,38 @@ func TestActiveDurExcludesHumanWaits(t *testing.T) {
 		t.Fatalf("must clamp at 0, got %d", got)
 	}
 }
+
+func TestAsksInText(t *testing.T) {
+	for _, c := range []struct {
+		text string
+		want bool
+	}{
+		{"Which ticket should I use?", true},
+		{"**Which ticket should I use?**\n1. A\n2. B\n\nPlan once you answer: a long plan.", true},
+		{"Pick one (A or B?) please", true},
+		{"Done. Tests pass.", false},
+		{"Use `a ?: b` here.", false},
+		{"```\nx = a ? b : c\n```\nDone.", false},
+		{"See https://x.io/p?q=1 for details.", false},
+		{"Match `foo?bar` with the regex.", false},
+	} {
+		if got := AsksInText([]string{c.text}); got != c.want {
+			t.Errorf("AsksInText(%q) = %v, want %v", c.text, got, c.want)
+		}
+	}
+}
+
+func TestToolInput(t *testing.T) {
+	if got := ToolInput(map[string]any{"command": "ls -la", "description": "list"}); got != "ls -la" {
+		t.Fatalf("command: %q", got)
+	}
+	if got := ToolInput(map[string]any{"file_path": "/a"}); got != "{\n \"file_path\": \"/a\"\n}" {
+		t.Fatalf("json: %q", got)
+	}
+	if got := ToolInput(nil); got != "" {
+		t.Fatalf("nil: %q", got)
+	}
+	if got := []rune(ToolInput(strings.Repeat("x", SegInputMax+10))); len(got) != SegInputMax+1 {
+		t.Fatalf("cut: %d", len(got))
+	}
+}

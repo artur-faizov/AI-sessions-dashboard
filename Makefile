@@ -33,7 +33,7 @@ endif
 
 LDFLAGS := -trimpath -ldflags "-s -w"
 
-.PHONY: build build-all test dev clean copilot-otel-enable copilot-otel-status copilot-otel-disable
+.PHONY: build build-all mac-app mac-app-install test dev clean copilot-otel-enable copilot-otel-status copilot-otel-disable
 
 build:
 	@mkdir -p $(DIST)
@@ -50,9 +50,19 @@ build-all:
 		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch $(GO) build $(LDFLAGS) -o $$out ./cmd/dashboard || exit 1; \
 	done
 
+# macOS .app wrapper (for Finder/Dock); install copies it to ~/Applications
+mac-app: build
+	@bash scripts/macos-app.sh $(HOST_OUT) $(DIST)
+
+mac-app-install: mac-app
+	@mkdir -p $(HOME)/Applications
+	rm -rf $(HOME)/Applications/TokenMonitor.app
+	cp -R $(DIST)/TokenMonitor.app $(HOME)/Applications/
+	@echo "Installed ~/Applications/TokenMonitor.app — drag it to the Dock"
+
 test:
 	$(GO) test ./...
-	node --test test/filter.test.mjs test/i18n.test.mjs test/refresh.test.mjs test/dbfield.test.mjs test/provider.test.mjs
+	node --test test/filter.test.mjs test/i18n.test.mjs test/refresh.test.mjs test/dbfield.test.mjs test/provider.test.mjs test/alerts.test.mjs
 
 dev:
 	$(GO) run ./cmd/dashboard -dev

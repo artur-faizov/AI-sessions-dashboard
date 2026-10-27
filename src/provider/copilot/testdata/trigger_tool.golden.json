@@ -11,5 +11,12 @@
       "output": "exit status 1",
       "cut_o": false
     }
+  ],
+  "reply": [
+    {
+      "kind": "text",
+      "text": "REDACTED",
+      "cut": false
+    }
   ]
 }
