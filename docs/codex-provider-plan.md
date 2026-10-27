@@ -1,0 +1,58 @@
+# Codex provider implementation plan
+
+## Scope and evidence
+
+Add `--provider codex` / `PROVIDER=codex` / UI selection without changing the default provider. Read local CLI, IDE, and desktop rollouts found under `CODEX_HOME` (default `~/.codex`), including `sessions/**/*.jsonl` and optional `archived_sessions/**/*.jsonl`. Do not read credentials, write Codex data, require telemetry setup, or depend on Codex's internal SQLite schema. Missing cloud-only sessions are outside this local-source scope. No applicable AGENTS.md was found.
+
+Read-only inspection on 2026-10-26 found five local rollouts, including one subagent. Inspection printed schema names and numeric usage only. The installed format contains both richer `token_usage_record` rows and compatibility `event_msg/token_count` rows for the same requests. The latter can appear AFTER tool execution, so their timestamps are not always response completion times. Older CLI versions may contain only token_count rows. This format is an internal compatibility surface; tolerate unknown records and document limitations.
+
+## Provider and parsing seams
+
+Create `src/provider/codex/` with `provider.go` (constructor/interface/cache), `events.go` or `index.go` (raw shapes, streaming reader, normalized session), `calls.go` (calls/triggers/segments), `tree.go` (hierarchy and totals), and focused tests with synthetic fixtures. Export only `New() *Provider`; implement Provider, SegmentProvider, and the existing optional SessionTriggers optimization. ContextProvider can remain unsupported because exact prompt composition is not reported.
+
+`New()` expands CODEX_HOME or joins UserHomeDir with `.codex`; DataPath is that home. PathSwitchable=false and Candidates=nil match the Claude provider. Available should require a sessions or archived_sessions directory (an empty existing directory is valid); missing source should name the expected path. Match Claude's FatalWhenMissing=true for explicit startup. Return empty non-nil arrays where API contracts expect arrays, nil,nil for unknown trigger IDs, and clear errors for missing session IDs.
+
+Raw top-level records are `{timestamp,type,payload}`. Recognize:
+
+- `session_meta`: `id` (canonical thread ID), optional `session_id`, `cwd`, `timestamp`, `parent_thread_id`, `agent_nickname`, `agent_path`, and `source` (string or object). Nested subagent source is `source.subagent.thread_spawn.{parent_thread_id,depth,agent_path,agent_nickname,agent_role}`. Use top-level parent first and nested parent as fallback. Do not group threads by session_id; it may refer to a broader session. Ignore creator identifiers and base instructions.
+- `turn_context`: model, turn_id, root_turn_id, cwd. Capture the current model when each call is normalized; do not assign the session's final model retroactively.
+- `token_usage_record`: response_id, thread_id, turn_id, root_turn_id, session_id, usage, turn_token_usage, thread_token_usage. All usage objects have input_tokens, cached_input_tokens, optional cache_write_input_tokens, output_tokens, reasoning_output_tokens, total_tokens.
+- `event_msg/token_count`: info may be null; otherwise info contains total_token_usage, last_token_usage, model_context_window. Rate-limit-only updates are not calls.
+- `response_item/message`: role, optional id, content array of input_text/output_text/input_image, optional phase. Read visible user and assistant text only; ignore reasoning/encrypted_content, system/developer instructions, additional_tools and world_state.
+- `response_item/function_call` and `custom_tool_call`: call_id, name, arguments or input, optional namespace. Match corresponding function_call_output/custom_tool_call_output by call_id.
+- `event_msg/task_started`, task_complete, turn_aborted: turn lifecycle. Current rows include started_at/completed_at milliseconds and duration_ms; support timestamp fallback. `event_msg/item_completed` contains item type/id plus started_at_ms/completed_at_ms and may improve completed tool timing, but is redundant with response_item content and must not duplicate prompts/tools.
+- Legacy user_message/agent_message events are fallbacks where corresponding response_item content is absent, not additional copies.
+
+## Token accounting (critical)
+
+Dashboard token buckets are additive, including cost calculations. Codex input includes cached input and output includes reasoning. Normalize non-negative values with bounded subsets: Cr=min(cached,input), Cw=min(cache_write,input-Cr), In=input-Cr-Cw; Reason=min(reasoning,output), Out=output-Reason; Ctx=input. Default absent cache write to zero. MaxCtx is maximum observed per-call Ctx, NOT model_context_window (capacity). Example source input=21365,cached=18560,output=86,reasoning=10 becomes In=2805,Cr=18560,Out=76,Reason=10,Ctx=21365. Normalized bucket sum remains 21451.
+
+Prefer per-response usage records; unique response_id produces one call, with a stable ID namespaced by thread (e.g. `codex:<sid>:<response_id>`). De-duplicate repeated response IDs and the matching token_count snapshot. Do not blindly sum cumulative totals, and do not count both sources. A practical reconciliation key is thread cumulative snapshot plus turn/response position: richer record's thread_token_usage should match compatibility total_token_usage. Maintain a checkpoint even for a deduplicated compatibility event. Mixed streams must retain older legacy-only calls and newer richer calls. Never suppress all older calls merely because any rich record exists later in the file.
+
+Legacy-only mode: emit one call per advancing cumulative usage checkpoint, using last_token_usage for that call when present; repeated equal cumulative snapshots and null-info rows emit nothing. Use positive cumulative deltas only when last usage is absent, and document that gaps cannot be reconstructed as multiple calls. If cumulative totals decrease (resume/reset/compaction), reset the checkpoint and use the explicitly supplied last usage; never produce negative totals or treat the new cumulative total as the entire new call. A new response ID must remain a distinct call even when two real calls have identical usage values. Stable fallback IDs should derive from source byte offset, not a mutable ordinal.
+
+Sum normalized own-call buckets for each session and ByModel. Do not add cumulative thread totals to own-call totals. Subtree aggregation adds each child exactly once.
+
+## Calls, prompts, triggers, and hierarchy
+
+Accumulate response messages/tool calls up to each usage record as one response. Retain the pending trigger (human input or completed tool result batch) until consumed by the next call. Several assistant message chunks or parallel tool calls within one response are one call. Token-count compatibility records arriving after tool outputs must not clear the next response's pending trigger. Associate triggers/replies while parsing, rather than searching the immediately preceding raw JSON row later.
+
+CallRec.Time is completion timestamp with Dur=0/End=0 unless a reliable request start exists; do not present the entire human turn or intervening tool time as model duration. Use conservative zero-width beats for unknown durations; a task_started timestamp is only the turn start, not the start of each internal request. Prompt titles use the first real user prompt, clipped to existing conventions, skipping environment_context and AGENTS/instruction wrapper messages. SessionPrompt exposes real user prompts once. Trigger replies expose visible assistant text and question tools, never reasoning. Use provider.Clip/ToolInput/ToolOutput; unknown trigger returns nil. Classify actual user text/image, and question-tool results using provider.IsAskTool; do not label every tool result a human trigger.
+
+Tool segments use matched call_id start/output times; custom tools must be supported because current local rollouts use them extensively. Unfinished tools are not unbounded running spans when session liveness is unknown. Build subagent spans from discovered child start/end where useful; no fabricated spawn-to-child link without evidence.
+
+Build all nodes before attaching children, so nesting and file order work. Parent and child tokens remain separate. Roots and children sort deterministically. Unknown-parent subagents remain visible as roots; missing parent, self-parent, and cycles must not lose data or recurse forever. Duplicate rollout files for the same thread (e.g. archived/resumed copies) must not duplicate sessions/calls; choose/merge deterministically using stable response IDs and prefer richer/longer data rather than summing copies. Child Agent uses agent_role, nickname or path basename, then `subagent`; use parent's project directory for grouping consistently with existing providers.
+
+## Incremental reading and liveness
+
+Reuse the append reader pattern in `src/provider/copilot/otel.go`: cache file identity, consumed offset, mtime/size and parsed state; os.SameFile plus shrink/change checks reset on replacement/truncation. Read complete newline-terminated rows only and preserve an incomplete final row for the next poll. Handle large lines beyond Scanner's 64 KiB default (ReadBytes or enlarged buffer); do not fail the whole session for malformed complete lines. Serialize cache mutation and publish consistent snapshots to concurrent HTTP requests. Prune removed file entries. A full walk per poll is acceptable initially; re-reading the entire transcript on every append is not.
+
+No reliable per-thread live process lock was found in the rollout schema. App/IDE process existence or cwd is not proof a particular thread is live. Use explicit task lifecycle plus a bounded freshness window as an explicitly documented heuristic, or conservatively leave Active false if not defensible. Completed/aborted turns are not busy; stale unmatched task_started must not stay active forever. Do not invent permission/ask states from silence. Preserve source timestamps; never use scan time to make archived sessions appear active.
+
+## Wiring and verification ownership
+
+Backend implementer owns only `src/provider/codex/**` and should start with parsing/accounting fixtures. Wiring/docs implementer owns `cmd/dashboard/main.go`, relevant `src/i18n.js` labels/tooltips (both languages), README provider usage/limitations/structure, and provider selector coverage. Provider selector already derives names dynamically; register codex after existing providers without changing opencode default. The standard generic interfaces should require no server changes. Avoid unrelated refactors.
+
+Synthetic tests must cover: normalized overlap and cache write; rich+legacy duplicate pair; repeated cumulative updates; distinct equal-usage calls; null info; cumulative reset; mixed historical formats; model changes; multi-message response; custom/function tools; tool-result timing after usage before compatibility event; prompt/event duplication; image trigger; unknown IDs; nested/orphan/cyclic parents; duplicate archived copy; incomplete appended row; later completion; malformed and large rows; truncation/replacement; empty/missing home; parallel reads; bounded stale live state; completed turn. Assert tree own totals/subtrees/ByModel equal call sums and exact raw inclusive totals after normalization.
+
+Run `go test ./src/provider/codex`, full `go test ./...`, relevant JS selector/i18n tests and `make test`. Parent established Go baseline passing; JS baseline has existing harness failures including CSS undefined, so distinguish regressions from those. Run race tests for the new provider cache. A final read-only local smoke check may compare only counts/numeric totals to source records, never print real prompts or commit local rollouts.

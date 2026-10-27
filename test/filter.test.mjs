@@ -10,7 +10,7 @@ const html = readFileSync(new URL('../src/index.html', import.meta.url), 'utf8')
 const block = /\/\/\s*FILTER-LOGIC-START([\s\S]*?)\/\/\s*FILTER-LOGIC-END/.exec(html);
 assert.ok(block, 'FILTER-LOGIC block not found in index.html');
 const mod = { exports: {} };
-vm.runInNewContext(block[1], { module: mod, console });
+vm.runInNewContext(block[1], { module: mod, console, SNAME: {} });
 const L = mod.exports;
 
 const node = (o = {}) => ({

@@ -29,6 +29,7 @@ class El {
     addEventListener(ev, fn) { (this.handlers[ev] ||= []).push(fn); }
     dispatch(ev) { for (const fn of this.handlers[ev] || []) fn(); }
     focus() {}
+    scrollIntoView() {}
     querySelector() { return null; }
     querySelectorAll() { return []; }
     getBoundingClientRect() { return {right: 0, width: 0}; }
@@ -83,7 +84,10 @@ function boot({routes = {}, stored = null} = {}) {
     const ctx = {
         document, fetch, I18N, els, routes: rmap, fetchLog, localStorage: storage,
         window: {addEventListener() {}},
+        CSS: {escape: s => s},
         setInterval: () => 0,
+        setTimeout,
+        clearTimeout,
         console,
     };
     vm.runInNewContext(script[1], ctx);

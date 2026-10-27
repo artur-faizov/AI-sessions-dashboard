@@ -5275,7 +5275,7 @@ ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>
         } catch (e) { return { ok: false, error: String(e) }; }
     }
 
-    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'copilot' ? tr('prov.copilot') : n === 'folder' ? tr('prov.folder') : n;
+    const provLabel = n => n === 'claude' ? tr('prov.claude') : n === 'codex' ? tr('prov.codex') : n === 'copilot' ? tr('prov.copilot') : n === 'folder' ? tr('prov.folder') : n;
 
     let lastProv = null;
 

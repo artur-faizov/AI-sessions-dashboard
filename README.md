@@ -206,6 +206,34 @@ provider-specific is a capability on the interface, e.g. `PathSwitchable()` driv
 
 Select a provider with `--provider NAME` or `PROVIDER=NAME`; without one, the first
 provider registered in `main.go` is used (no automatic fallback when its data is missing).
+The current order is OpenCode, Claude Code, Copilot CLI, folder, and Codex; OpenCode
+remains the default.
+
+### Codex provider
+
+`--provider codex` (or `PROVIDER=codex`, or the UI switcher) reads local Codex CLI,
+IDE, and desktop rollouts from `CODEX_HOME` (default `~/.codex`), read-only:
+
+```sh
+go run ./cmd/dashboard --provider codex
+CODEX_HOME=/path/to/.codex ./dist/dashboard-lin-x64 --provider codex
+```
+
+- sessions are read from `sessions/**/*.jsonl`; `archived_sessions/**/*.jsonl` is
+  included when present. Startup requires either directory to exist.
+- child agents are shown beneath their parent when the rollout identifies the link.
+- token usage comes from local rollout records. Codex's cached input is part of its
+  input total, and reasoning is part of output; the dashboard separates these into
+  additive buckets, so adding all displayed buckets does not double-count either.
+- context size is the observed input size for a call, not the model's context
+  capacity. Exact prompt composition is not available in the rollout data.
+- active status is a heuristic based on task lifecycle and recent source timestamps;
+  stale or ambiguous activity may not match the actual process state.
+- cloud-only sessions that have no local rollout are outside this provider's scope.
+
+Codex's rollout JSONL is an internal format and may change between Codex versions.
+The provider does not read credentials, write Codex files, require telemetry setup,
+or depend on Codex's internal database schema.
 
 ### Copilot CLI provider
 
@@ -315,7 +343,8 @@ To add a provider:
 ## Files
 
 - `cmd/dashboard/main.go` — entrypoint: builds the ordered provider list
-  (`opencode.New(...)`, `claude.New()`, `copilot.New()`; the first is the default) and calls `dashboard.Run`
+  (`opencode.New(...)`, `claude.New()`, `copilot.New()`, `folder.New()`, `codex.New()`;
+  the first is the default) and calls `dashboard.Run`
 - `src/dashboard/run.go` — startup: `--version`, `--provider` and `-dev` flags, provider
   selection, port fallback, Ctrl-C graceful shutdown
 - `src/dashboard/server.go` — HTTP server: routing, JSON helpers, `/` and `/i18n.js` handlers;
@@ -329,6 +358,8 @@ To add a provider:
 - `src/provider/copilot/` — Copilot CLI provider: parses `~/.copilot/session-state`
   event logs (incl. nested subagents), `session-store.db` usage rows, and the
   OpenTelemetry file export (`otel.go`)
+- `src/provider/codex/` — Codex provider: parses local CLI, IDE, and desktop rollout
+  JSONL files under `CODEX_HOME` (including archived sessions when present)
 - `scripts/copilot-otel.sh` — enables/checks/disables the Copilot OpenTelemetry export
   (`make copilot-otel-enable|status|disable`)
 - `src/dashboard/assets.go` — serves the frontend: `{{VERSION}}` substitution
