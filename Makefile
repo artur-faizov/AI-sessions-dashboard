@@ -62,7 +62,7 @@ mac-app-install: mac-app
 
 test:
 	$(GO) test ./...
-	node --test test/filter.test.mjs test/i18n.test.mjs test/refresh.test.mjs test/dbfield.test.mjs test/provider.test.mjs test/alerts.test.mjs
+	node --test test/filter.test.mjs test/i18n.test.mjs test/refresh.test.mjs test/dbfield.test.mjs test/provider.test.mjs test/alerts.test.mjs test/cmd.test.mjs
 
 dev:
 	$(GO) run ./cmd/dashboard -dev

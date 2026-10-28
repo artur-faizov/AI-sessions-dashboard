@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -70,6 +71,34 @@ func ToolInput(v any) string {
 		}
 	}
 	return segClip(v)
+}
+
+// InputText renders a tool's input as plain text: the shell command when the
+// input carries one, else one "key: value" line per field, sorted by key, with
+// non-string values as compact JSON. Other values are returned as they are.
+func InputText(v any) any {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return v
+	}
+	if c, ok := m["command"].(string); ok && c != "" {
+		return c
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	lines := make([]string, 0, len(keys))
+	for _, k := range keys {
+		s, ok := m[k].(string)
+		if !ok {
+			b, _ := json.Marshal(m[k])
+			s = string(b)
+		}
+		lines = append(lines, k+": "+s)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // ToolOutput renders a tool's reply for a Seg, cut at SegInputMax characters.

@@ -1675,6 +1675,13 @@
             vertical-align: -3px
         }
 
+        /* a tool call that only searches (see searchOnly) */
+        table.calls .srch-ic {
+            margin-right: 5px;
+            color: var(--dim);
+            vertical-align: -1px
+        }
+
         table.calls .dvbar {
             display: inline-block;
             width: 70px;
@@ -1756,8 +1763,19 @@
             font-size: 12px
         }
 
+        /* the first word of each line of a command, green when the line only searches */
+        .cmdw {
+            color: #4f9d3a;
+            font-weight: 600
+        }
+
+        /* … of a line that is not a search (see searchLine) */
+        .cmdw.bad {
+            color: #b8433f
+        }
+
         /* a here-document body (e.g. a python script fed via <<'E') inside a command */
-        .segpre .heredoc {
+        .segpre .heredoc, .tblock pre.prompt .heredoc {
             display: block;
             margin: 4px 0 4px 12px;
             padding: 6px 10px;
@@ -1767,7 +1785,7 @@
             color: #c8d3f5
         }
 
-        .segpre .heredoc[data-prog]::before {
+        .segpre .heredoc[data-prog]::before, .tblock pre.prompt .heredoc[data-prog]::before {
             content: attr(data-prog);
             float: right;
             margin-left: 8px;
@@ -2387,6 +2405,7 @@
     <symbol id="hum-image" viewBox="0 0 24 24"><circle cx="10.5" cy="7.5" r="4.2" fill="#1976d2"/><path d="M3.5 21c0-3.9 3.1-7 7-7s7 3.1 7 7z" fill="#1976d2"/><circle cx="15.3" cy="15.3" r="8.1" fill="#7cc864" stroke="#1d2026" stroke-width="1.2"/><rect x="11.25" y="12.6" width="8.1" height="5.85" rx="1.05" fill="none" stroke="#12290f" stroke-width="1.4"/><circle cx="13.2" cy="14.4" r="0.75" fill="#12290f"/><path d="M12 17.85l2.25-2.4 1.5 1.8 1.2-1.35 2.55 3z" fill="#12290f"/></symbol>
     <symbol id="ai-ask" viewBox="0 0 24 24"><path d="M4 3h16a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 20 17h-8.5L6 21.5V17H4a2.5 2.5 0 0 1-2.5-2.5v-9A2.5 2.5 0 0 1 4 3z" fill="#9d7cd8"/><path d="M9.3 8.1a2.7 2.7 0 1 1 3.9 2.4c-.8.4-1.2.9-1.2 1.7v.3" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="14.6" r="1.1" fill="#fff"/></symbol>
     <symbol id="seg-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a4.5 4.5 0 0 0-5.9 5.9L3.3 17.7a1.9 1.9 0 0 0 2.7 2.7l5.5-5.5a4.5 4.5 0 0 0 5.9-5.9l-2.8 2.8-2.4-.3-.3-2.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="seg-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l6.5 6.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></symbol>
     <symbol id="seg-wait" viewBox="0 0 24 24"><circle cx="6.5" cy="7" r="3.2" fill="currentColor"/><path d="M1 20.5c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6z" fill="currentColor"/><path d="M14 3h8M14 21h8M15 3c0 4.5 6 4.5 6 9s-6 4.5-6 9M21 3c0 4.5-6 4.5-6 9s6 4.5 6 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
     <symbol id="seg-sub" viewBox="0 0 24 24"><path d="M12 2.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="2.3" r="1.3" fill="currentColor"/><rect x="4" y="6" width="16" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="11.5" r="1.6" fill="currentColor"/><circle cx="15" cy="11.5" r="1.6" fill="currentColor"/><path d="M9.5 15h5M1.5 10.5v3M22.5 10.5v3M8 18v3.5M16 18v3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 </defs></svg>
@@ -3867,7 +3886,7 @@
             const ks = kids[r.mid] || [], open = segIsOpen(r.mid);
             rows += `<tr data-mid="${esc(r.mid)}" data-go="c:${esc(r.mid)}"${cls ? ` class="${cls}"` : ''}${tip ? ` title="${tip}"` : ''} onclick="callPick('${esc(r.mid)}')">
   <td class="num">${r.n === 1 ? `<span class="ctxic" title="${esc(tr('ctx.btn.tip'))}" onclick="event.stopPropagation(); ctxCall(0)">🥧</span>` : ''}${r.n}${r.hu ? humIcon(r.hu) : ''}${r.ask ? askIcon() : ''}</td>
-  <td class="num sep">${k === 'dur' && r.dur !== (calls[r.n - 1].dur || 0)
+  <td class="num sep">${callSearch(calls, r.n - 1) ? searchIcon('calls.search.tip') : ''}${k === 'dur' && r.dur !== (calls[r.n - 1].dur || 0)
         ? durCell(r.dur, segMax, 'ai', tr('calls.dur.step.tip', {t: dur(r.dur), c: dur(calls[r.n - 1].dur || 0)}))
         : durCell(calls[r.n - 1].dur || 0, segMax, 'ai')}</td>
   <td class="num sep">${bar(r.ctx, mCtx)}<b class="ctxsize">${fmt(r.ctx)}</b></td>
@@ -3941,6 +3960,15 @@
     // segIcon marks a sub-row in the # column: an hourglass with a person for
     // waiting on the human, a robot for a subagent, a wrench for a tool.
     const SEG_IC = {human: 'seg-wait', sub: 'seg-sub'};
+    const searchIcon = (tip = 'calls.seg.search.tip') => `<svg class="srch-ic" width="11" height="11" viewBox="0 0 24 24"><title>${tr(tip)}</title><use href="#seg-search"/></svg>`;
+
+    // callSearch reports whether calls[i] was fed only searches: the tool runs
+    // issued by the call before it (its input in the call popup) all searchOnly.
+    function callSearch(calls, i) {
+        if (i < 1 || calls[i].hu) return false;
+        const ts = SEGS.filter(x => x.mid === calls[i - 1].mid);
+        return ts.length > 0 && ts.every(x => x.kind === 'tool' && searchOnly(x.name, x.input));
+    }
     const segIcon = kind => `<svg class="seg-ic" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><use href="#${SEG_IC[kind] || 'seg-tool'}"/></svg>`;
 
     // durCell is the duration column: a bar on the scale shared by the calls,
@@ -3995,7 +4023,7 @@
     // segDlg with the details.
     function segRow(i, mx) {
         const x = SEGS[i], d = x.end - x.start, rt = ` title="${tr('calls.seg.details')}"`;
-        return `<tr class="segrow" data-go="s:${i}" onclick="segDlg(${i}, event)"><td class="num"${rt}>${segIcon(x.kind)}</td><td class="num sep">${durCell(d, mx, x.kind, segTip(x))}</td><td colspan="8" class="sep"${rt}>${esc(x.name || chartLabel(x.kind))}${x.err ? '<span class="segerr">✕</span>' : ''}${x.run ? `<span class="segrun">${tr('calls.seg.run')}</span>` : ''}</td></tr>`;
+        return `<tr class="segrow" data-go="s:${i}" onclick="segDlg(${i}, event)"><td class="num"${rt}>${segIcon(x.kind)}</td><td class="num sep">${x.kind === 'tool' && searchOnly(x.name, x.input) ? searchIcon() : ''}${durCell(d, mx, x.kind, segTip(x))}</td><td colspan="8" class="sep"${rt}>${esc(x.name || chartLabel(x.kind))}${x.err ? '<span class="segerr">✕</span>' : ''}${x.run ? `<span class="segrun">${tr('calls.seg.run')}</span>` : ''}</td></tr>`;
     }
 
     function segDlg(i, ev) {
@@ -4003,21 +4031,35 @@
     }
 
     // cmdLines puts every command chained with ;, && or || on its own line and
-    // every pipe stage on an indented line of its own; separators inside quotes
+    // every pipe stage on a line of its own, the | ending the line before; separators inside quotes
     // or escaped (find … \;) are left alone, here-document bodies are kept as is.
     function cmdLines(s) {
         return cmdParts(s).map(p => p.doc ? p.text + '\n' : p.text).join('');
     }
 
     // cmdHtml is cmdLines for a <pre>: here-document bodies become blocks of
-    // their own labelled with the program reading them.
+    // their own labelled with the program reading them, and the first word of
+    // every shell line is highlighted.
     function cmdHtml(s) {
-        const ps = cmdParts(s);
+        const ps = cmdParts(s), fns = shellFns(s);
         return ps.map((p, i) => p.doc
             ? `<span class="heredoc"${p.prog ? ` data-prog="${esc(p.prog)}"` : ''}>${esc(p.text)}</span>`
-            : esc(ps[i + 1] && ps[i + 1].doc ? p.text.replace(/\n$/, '') : p.text)).join('');
+            : cmdWords(ps[i + 1] && ps[i + 1].doc ? p.text.replace(/\n$/, '') : p.text, ps[i - 1] && ps[i - 1].doc, fns)).join('');
     }
 
+    // cmdWords escapes shell text, wrapping each line's first word in a cmdw
+    // span, red (bad) when the line is not a searchLine — a "key:" of a
+    // non-shell input stays plain cmdw; afterDoc skips the first line, a
+    // here-document's closing delimiter; fns are the command's shell functions.
+    function cmdWords(t, afterDoc, fns) {
+        return t.split('\n').map((l, i) => {
+            const m = !(afterDoc && i === 0) && /^(\s*)([^\s;]+)(.*)$/.exec(l);
+            const cls = !m || m[2].endsWith(':') || searchLine(l.trim(), fns) ? 'cmdw' : 'cmdw bad';
+            return m ? `${esc(m[1])}<span class="${cls}">${esc(m[2])}</span>${esc(m[3])}` : esc(l);
+        }).join('\n');
+    }
+
+    // CMD-LOGIC-START
     // heredocProg names the program a here-document opened at the end of the
     // shell text cmd is fed to: the first word of its last command, skipping
     // VAR=value, env and sudo.
@@ -4082,7 +4124,7 @@
                 while (s[i + 1] === ' ' || s[i + 1] === '\t') i++;
                 continue;
             } else if (c === '|') {
-                out = out.trimEnd() + '\n  | ';
+                out = out.trimEnd() + ' |\n';
                 while (s[i + 1] === ' ' || s[i + 1] === '\t') i++;
                 continue;
             }
@@ -4091,6 +4133,77 @@
         flush();
         return parts;
     }
+
+    // SEARCH_CMDS are the programs that only look around: a command made of
+    // nothing else is a search (searchCmd adds the rules for git, sed, find,
+    // curl and date). SEARCH_TOOLS are the built-in tools that do the same
+    // (Claude Code, opencode).
+    const SEARCH_CMDS = new Set(['cd', 'grep', 'egrep', 'rg', 'sed', 'cat', 'ls', 'head', 'tail', 'find', 'wc', 'sort', 'uniq', 'cut', 'awk', 'tree', 'pwd', 'file', 'stat', 'echo', 'printf', 'git', '[', '[[', 'test', 'true', 'read', 'jq', 'date', 'curl', 'join', 'comm', 'paste', 'tr', 'column', 'diff', 'nl', 'basename', 'dirname', 'realpath']);
+    const SEARCH_GIT = new Set(['log', 'show', 'diff', 'status', 'blame', 'grep', 'ls-files', 'ls-tree', 'rev-parse', 'show-ref', 'branch']);
+    const SEARCH_TOOLS = new Set(['Read', 'Grep', 'Glob', 'LS', 'read', 'grep', 'glob', 'list']);
+
+    // searchCmd reports whether the words w of one command only look around:
+    // a SEARCH_CMDS program (or a shell function fns defined) that changes
+    // nothing — git with a SEARCH_GIT subcommand (branch only listing), no
+    // sed -i, find -delete/-exec, date -s, or curl sending a non-GET method,
+    // uploading or saving to a file.
+    function searchCmd(w, fns) {
+        const p = w[0], args = w.slice(1);
+        if (fns.has(p)) return true;
+        if (!SEARCH_CMDS.has(p)) return false;
+        if (p === 'git') {
+            const k = w.findIndex((x, i) => i > 0 && !x.startsWith('-') && !/^-[Cc]$/.test(w[i - 1]));
+            if (!SEARCH_GIT.has(w[k])) return false;
+            return w[k] !== 'branch' || w.slice(k + 1).every(x => /^(-a|-r|-v|-vv|--all|--remotes|--list|--show-current|\d*>&?\S*)$/.test(x));
+        }
+        if (p === 'sed') return !args.some(x => /^-[a-zA-Z]*i/.test(x) || x.startsWith('--in-place'));
+        if (p === 'find') return !args.some(x => /^-(delete|exec|execdir|ok|fprint)/.test(x));
+        if (p === 'date') return !args.some(x => /^(-[a-zA-Z]*s|--set)/.test(x));
+        if (p === 'curl') return !args.some((x, i) => {
+            const next = args[i + 1] || '';
+            if (/^(-T|--upload-file|-F|--form|-O|--remote-name|--remote-name-all)$/.test(x)) return true;
+            if (/^(-o|--output)$/.test(x)) return next !== '/dev/null';
+            if (/^(-X|--request)$/.test(x)) return next !== 'GET';
+            return /^-X(?!GET$)\S/.test(x);
+        });
+        return true;
+    }
+
+    // searchOnly reports whether a tool call only searches: a built-in search
+    // tool, or a command without here-documents whose every line is a
+    // searchLine.
+    function searchOnly(name, input) {
+        if (SEARCH_TOOLS.has(name)) return true;
+        if (!input) return false;
+        const ps = cmdParts(input);
+        if (ps.some(p => p.doc)) return false;
+        const fns = shellFns(input);
+        const lines = ps.map(p => p.text).join('').split('\n').map(l => l.trim()).filter(Boolean);
+        return lines.length > 0 && lines.every(l => searchLine(l, fns));
+    }
+
+    // shellFns lists the shell functions a command defines (name(){ …).
+    const shellFns = input => new Set([...input.matchAll(/(?:^|[\s;&|])(?:function\s+)?([A-Za-z_]\w*)\s*\(\)\s*\{/g)].map(m => m[1]));
+
+    // searchLine reports whether one line laid out by cmdParts only looks
+    // around: a searchCmd that writes nothing (no redirect to a file other than
+    // /dev/null or under /tmp/). Shell keywords (for, do, done, if, …), VAR=
+    // assignments and function headers name(){ before the command are
+    // skipped, and the functions fns count as commands; every $(…) and <(…)
+    // must be a searchCmd too.
+    function searchLine(l, fns) {
+        const subs = [...l.replace(/'[^']*'/g, "''").matchAll(/[$<]\((?!\()\s*([^);|&]*)/g)];
+        if (subs.some(m => !searchCmd(m[1].replace(/"[^"]*"/g, '""').trim().split(/\s+/), fns))) return false;
+        const bare = l.replace(/'[^']*'|"(?:\\.|[^"\\])*"/g, '""').replace(/\s*(;|&&|\|\||\|)$/, '');
+        if (/(^|[^\d&])>>?(?!\s*(\/dev\/null|\/tmp\/|&))/.test(bare)) return false;
+        if (/^for\s/.test(bare)) return true;
+        let rest = bare, m;
+        while ((m = /^(?:(?:do|then|else|elif|while|until|if|!|\{|\})(?:\s+|$)|(?:function\s+)?[A-Za-z_]\w*\s*\(\)\s*\{\s*|\w+=\$\((?!\()|\w+=\S*(?:\s+|$))/.exec(rest)) && m[0]) rest = rest.slice(m[0].length);
+        if (!rest || /^(done|fi)(\s+\d*[<>]{1,2}&?\s*\S+)*$/.test(rest)) return true;
+        return searchCmd(rest.split(/\s+/), fns);
+    }
+
+    // CMD-LOGIC-END
 
     // segDlgShow opens the details popup of a span; i is its SEGS index, or -1
     // for a wait before a call (whose call row then names the call it led to).
@@ -4450,7 +4563,7 @@
         }
         if (p.kind === 'tool') {
             return `<div class="tblock${c}"><div class="lbl">${tr('trig.tool', {tool: esc(p.tool), status: esc(p.status || '—')})}</div><pre class="prompt">${tr('trig.input')}
-${esc(p.input)}${p.cut_i ? '\n' + tr('trig.trunc_in') : ''}${p.output ? `
+${cmdHtml(p.input || '')}${p.cut_i ? '\n' + tr('trig.trunc_in') : ''}${p.output ? `
 
 ${tr('trig.output')}
 ${esc(p.output)}${p.cut_o ? '\n' + tr('trig.trunc_out') : ''}` : ''}</pre></div>`;

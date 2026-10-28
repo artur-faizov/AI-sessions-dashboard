@@ -104,3 +104,15 @@ func TestToolInput(t *testing.T) {
 		t.Fatalf("cut: %d", len(got))
 	}
 }
+
+func TestInputText(t *testing.T) {
+	if got := InputText(map[string]any{"command": "ls -la", "description": "list"}); got != "ls -la" {
+		t.Fatalf("command: %q", got)
+	}
+	if got := InputText(map[string]any{"pattern": "auth", "head_limit": 5.0, "path": "/a"}); got != "head_limit: 5\npath: /a\npattern: auth" {
+		t.Fatalf("fields: %q", got)
+	}
+	if got := InputText(nil); got != nil {
+		t.Fatalf("nil: %v", got)
+	}
+}

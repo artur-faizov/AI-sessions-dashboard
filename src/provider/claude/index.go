@@ -57,13 +57,14 @@ const claudeTitleMaxRunes = 80
 
 // claudeFile is a parsed transcript (main session or subagent).
 type claudeFile struct {
-	path      string
-	messages  []*claudeMsg
-	toolNames map[string]string // tool_use id -> tool name
-	title     string
-	cwd       string
-	firstMS   int64
-	lastMS    int64
+	path       string
+	messages   []*claudeMsg
+	toolNames  map[string]string // tool_use id -> tool name
+	toolInputs map[string]any    // tool_use id -> tool input
+	title      string
+	cwd        string
+	firstMS    int64
+	lastMS     int64
 }
 
 // --- raw JSON shapes ---
@@ -191,7 +192,7 @@ func claudeBlockContentString(raw json.RawMessage) string {
 
 // parseClaudeFile parses one JSONL transcript; malformed lines are skipped.
 func parseClaudeFile(path string) *claudeFile {
-	f := &claudeFile{path: path, toolNames: map[string]string{}}
+	f := &claudeFile{path: path, toolNames: map[string]string{}, toolInputs: map[string]any{}}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return f
@@ -312,6 +313,9 @@ func parseClaudeFile(path string) *claudeFile {
 						m.toolUses = append(m.toolUses, claudeToolUse{id: b.ID, name: b.Name, input: b.Input})
 						if b.ID != "" && b.Name != "" {
 							f.toolNames[b.ID] = b.Name
+						}
+						if b.ID != "" {
+							f.toolInputs[b.ID] = b.Input
 						}
 					case "tool_result":
 						m.toolResults = append(m.toolResults, claudeToolResult{
@@ -789,10 +793,11 @@ func (f *claudeFile) userParts(m *claudeMsg) []any {
 		if tool == "" {
 			tool = "tool"
 		}
+		in, cutI := provider.Clip(provider.InputText(f.toolInputs[tr.id]))
 		out, cutO := provider.Clip(tr.content)
 		parts = append(parts, provider.TriggerPartTool{
 			Kind: "tool", Tool: tool, Status: nil,
-			Input: "", Output: out, CutO: cutO,
+			Input: in, CutI: cutI, Output: out, CutO: cutO,
 		})
 	}
 	for _, tu := range m.toolUses {

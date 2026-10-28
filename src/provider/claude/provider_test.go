@@ -441,7 +441,7 @@ func TestClaudeTriggerUserToolResultPart(t *testing.T) {
 		t.Fatalf("tool_result trigger wrong: %s", jdump(res))
 	}
 	tp, ok := res.Parts[0].(provider.TriggerPartTool)
-	if !ok || tp.Tool != "Read" || tp.Output != "file contents here" || tp.Input != "" {
+	if !ok || tp.Tool != "Read" || tp.Output != "file contents here" || tp.Input != "path: x" {
 		t.Fatalf("tool part wrong: %s", jdump(res.Parts))
 	}
 }
