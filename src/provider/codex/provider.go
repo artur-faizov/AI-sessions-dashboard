@@ -28,6 +28,7 @@ type cachedFile struct {
 
 var _ provider.Provider = (*Provider)(nil)
 var _ provider.SegmentProvider = (*Provider)(nil)
+var _ provider.ContextProvider = (*Provider)(nil)
 
 func New() *Provider {
 	root := os.Getenv("CODEX_HOME")

@@ -62,3 +62,15 @@ func FitContext(ctx int64, items []ContextItem) []ContextItem {
 	}
 	return append(items, ContextItem{Kind: "hidden", Tokens: ctx - sum, Est: EstInferred})
 }
+
+// FitRecorded fits items that cover the whole context of an AI call (the tool
+// stored its full request): estimates at least half of ctx are scaled to it,
+// so no hidden item is left. Smaller estimates mean something is missing
+// after all and fall back to FitContext.
+func FitRecorded(ctx int64, items []ContextItem) []ContextItem {
+	if SumTokens(items)*2 < ctx {
+		return FitContext(ctx, items)
+	}
+	ScaleTokens(items, ctx)
+	return items
+}

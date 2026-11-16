@@ -29,3 +29,14 @@ func TestFitContext(t *testing.T) {
 		t.Fatalf("over-estimate must scale down: %+v", items)
 	}
 }
+
+func TestFitRecorded(t *testing.T) {
+	items := FitRecorded(100, []ContextItem{{Kind: "system", Tokens: 20}, {Kind: "tools", Tokens: 40}})
+	if len(items) != 2 || SumTokens(items) != 100 {
+		t.Fatalf("plausible estimate must scale up without a hidden item: %+v", items)
+	}
+	items = FitRecorded(100, []ContextItem{{Kind: "system", Tokens: 30}})
+	if len(items) != 2 || items[1].Kind != "hidden" || items[1].Tokens != 70 {
+		t.Fatalf("a too small estimate must keep the hidden rest: %+v", items)
+	}
+}

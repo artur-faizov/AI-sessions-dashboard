@@ -127,12 +127,63 @@ func userItems(raw *claudeRawLine) []provider.ContextItem {
 	return out
 }
 
+// claudeRequestLine holds the fields that tie an AI call to the request Claude
+// Code stored for it (2.1.304+). An "api-request-shape" line carries the
+// system prompt and tool schemas exactly as sent, once per shapeHash; an
+// "api-request" line (one per call) names its shape; assistant lines name
+// their request in requestRef.
+type claudeRequestLine struct {
+	ID         string       `json:"id"`
+	ShapeHash  string       `json:"shapeHash"`
+	RequestRef string       `json:"requestRef"`
+	Shape      *claudeShape `json:"shape"`
+}
+
+type claudeShape struct {
+	System []struct {
+		Text string `json:"text"`
+	} `json:"system"`
+	Tools []json.RawMessage `json:"tools"`
+}
+
+// shapeItems turns a stored request shape into context items: the system
+// prompt and one item per tool schema, MCP tools (mcp__<server>__<tool>)
+// apart from the built-in ones.
+func shapeItems(s *claudeShape) []provider.ContextItem {
+	var out []provider.ContextItem
+	var parts []string
+	for _, b := range s.System {
+		parts = append(parts, b.Text)
+	}
+	if text := strings.Join(parts, "\n\n"); text != "" {
+		out = append(out, provider.TextItem("system", "", text))
+	}
+	for _, raw := range s.Tools {
+		var t struct {
+			Name string `json:"name"`
+		}
+		if json.Unmarshal(raw, &t) != nil {
+			continue
+		}
+		kind, label := "tools", t.Name
+		if rest, ok := strings.CutPrefix(t.Name, "mcp__"); ok {
+			if server, tool, ok := strings.Cut(rest, "__"); ok {
+				kind, label = "mcp", server+": "+tool
+			}
+		}
+		out = append(out, provider.TextItem(kind, label, string(raw)))
+	}
+	return out
+}
+
 // firstCallContext tells what the input context of a transcript's first AI
 // call was made of, or nil when mid is not that call. Everything the
 // transcript recorded before the call (attachments, user lines) went into its
-// uncached tail, which input_tokens measures exactly; the system prompt and
-// tool schemas form the cached prefix. Tool schemas are never recorded, so
-// they are the inferred rest.
+// messages; the system prompt and tool schemas form the cached prefix. When
+// the transcript stores the call's request shape, the prefix is itemized from
+// it and nothing is left hidden. Older transcripts record no tool schemas:
+// there the uncached tail is measured by input_tokens and the schemas are the
+// inferred rest.
 func firstCallContext(path, mid string) *provider.ContextResp {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -140,6 +191,8 @@ func firstCallContext(path, mid string) *provider.ContextResp {
 	}
 	var tail []provider.ContextItem
 	var system *provider.ContextItem
+	shapes := map[string]*claudeShape{} // by shapeHash
+	reqShape := map[string]string{}     // api-request id -> shapeHash
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -166,6 +219,16 @@ func firstCallContext(path, mid string) *provider.ContextResp {
 			if raw.Message != nil {
 				tail = append(tail, userItems(&raw)...)
 			}
+		case "api-request-shape", "api-request":
+			var r claudeRequestLine
+			if json.Unmarshal([]byte(line), &r) != nil {
+				continue
+			}
+			if r.Shape != nil {
+				shapes[r.ShapeHash] = r.Shape
+			} else {
+				reqShape[r.ID] = r.ShapeHash
+			}
 		case "assistant":
 			if raw.Message == nil || raw.Message.Usage == nil || raw.Message.Model == "<synthetic>" {
 				continue
@@ -177,6 +240,14 @@ func firstCallContext(path, mid string) *provider.ContextResp {
 			}
 			if raw.UUID != mid {
 				return nil
+			}
+			// a failed request may be retried with another shape, so the
+			// one that produced this answer is looked up by requestRef
+			var r claudeRequestLine
+			_ = json.Unmarshal([]byte(line), &r)
+			if shape := shapes[reqShape[r.RequestRef]]; shape != nil {
+				items := append(tail, shapeItems(shape)...)
+				return &provider.ContextResp{Mid: mid, Ctx: ctx, Items: provider.FitRecorded(ctx, items)}
 			}
 			return &provider.ContextResp{Mid: mid, Ctx: ctx, Items: fitClaude(ctx, u.InputTokens, tail, system)}
 		}
