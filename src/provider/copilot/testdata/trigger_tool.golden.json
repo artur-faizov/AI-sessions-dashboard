@@ -1,0 +1,22 @@
+{
+  "case": "assistant",
+  "time": 1767261610000,
+  "parts": [
+    {
+      "kind": "tool",
+      "tool": "bash",
+      "status": "error",
+      "input": "{\n \"command\": \"go test ./...\"\n}",
+      "cut_i": false,
+      "output": "exit status 1",
+      "cut_o": false
+    }
+  ],
+  "reply": [
+    {
+      "kind": "text",
+      "text": "REDACTED",
+      "cut": false
+    }
+  ]
+}

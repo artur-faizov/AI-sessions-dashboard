@@ -1,0 +1,16 @@
+.idea/
+.claude/
+.opencode/
+dist/
+build/
+*.exe
+/dashboard
+token-monitor
+# Herdr writes these into a mod folder it loads
+herdr/mods/*/jsconfig.json
+herdr/mods/*/*.d.ts
+# IntelliJ plugin build (idea-plugin/)
+idea-plugin/build/
+idea-plugin/.gradle/
+idea-plugin/.intellijPlatform/
+idea-plugin/.kotlin/

@@ -1,0 +1,1 @@
+{"case":"assistant","time":1100,"parts":[{"kind":"tool","tool":"bash","status":"completed","input":"{\n \"cmd\": \"ls \u003cx\u003e\"\n}","cut_i":false,"output":"ok","cut_o":false}]}

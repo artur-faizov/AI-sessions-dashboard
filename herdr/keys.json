@@ -1,0 +1,6 @@
+{
+  "global": {
+    "cmd-shift-s": "layout.toggle:ai-sessions",
+    "ctrl-shift-s": "layout.toggle:ai-sessions"
+  }
+}

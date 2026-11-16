@@ -1,0 +1,37 @@
+<idea-plugin>
+  <id>arturfaizov.aisessions</id>
+  <name>AI Sessions Dashboard</name>
+  <vendor>Artur Faizov</vendor>
+  <description><![CDATA[<p>See token usage and context size of <b>Claude Code</b>, <b>Codex</b>, <b>OpenCode</b> and
+    <b>GitHub Copilot CLI</b> sessions and their subagents, live, inside your IDE.</p>
+    <p>A token usage dashboard for AI coding agents (Anthropic Claude Code, OpenAI Codex, OpenCode,
+    GitHub Copilot CLI) in the <b>AI Sessions</b> tool window:</p>
+    <ul>
+      <li>All providers in one tree, each session marked with its provider icon</li>
+      <li>Every session and subagent, nested to any depth, with its context window size, tokens spent,
+        LLM model, duration and an estimated cost from per-model prices you set</li>
+      <li>Every AI call of a session, with the prompt or trigger that started it</li>
+      <li>Live activity, with sound and blink alerts when an agent asks a question, needs a permission
+        or has finished</li>
+      <li>Local and read-only: a bundled server on <code>localhost</code> reads the agents' session files;
+        no data leaves your machine</li>
+    </ul>
+    <p>Free to use, including at work, under the
+    <a href="https://github.com/artur-faizov/AI-sessions-dashboard/blob/master/LICENSE.md">MIT License with the Commons Clause</a>:
+    selling the software or its modifications is not allowed.
+    Source: <a href="https://github.com/artur-faizov/AI-sessions-dashboard">github.com/artur-faizov/AI-sessions-dashboard</a>.</p>]]></description>
+  <change-notes><![CDATA[<p><b>3.2.1</b></p>
+    <ul>
+      <li>All providers (OpenCode, Claude Code, Copilot CLI, Codex) in one tree</li>
+      <li>Provider icons before session names</li>
+      <li>Data sources in Settings: per-provider on/off, data path, found or not, edit/Browse/reset</li>
+      <li>License changed to MIT with the Commons Clause: free to use, including at work</li>
+    </ul>]]></change-notes>
+  <depends>com.intellij.modules.platform</depends>
+  <!-- JCEF is a separate bundled plugin since 2026.2 (part of the platform before);
+         optional, so the plugin still loads without it and falls back to the system browser -->
+  <depends optional="true" config-file="jcef-optional.xml">com.intellij.modules.jcef</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="AI Sessions" anchor="right" icon="/icons/toolWindow.svg" factoryClass="arturfaizov.aisessions.DashboardToolWindowFactory" />
+  </extensions>
+</idea-plugin>

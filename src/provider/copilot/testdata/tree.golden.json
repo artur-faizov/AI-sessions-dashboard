@@ -1,0 +1,447 @@
+[
+  {
+    "id": "otel-0006",
+    "parent": null,
+    "title": "Trace the exporter",
+    "agent": null,
+    "model": "model-a",
+    "dir": "/work/proj",
+    "maxctx": 24616,
+    "in": 23,
+    "out": 236,
+    "reason": 12,
+    "cr": 47545,
+    "cw": 1048,
+    "created": 1767265200000,
+    "updated": 1767265210000,
+    "active": false,
+    "dur": 9000,
+    "beats": [
+      [
+        1767265201000,
+        1767265202000
+      ],
+      [
+        1767265208000,
+        1767265209000
+      ],
+      [
+        1767265209500,
+        1767265210000
+      ]
+    ],
+    "children": [
+      {
+        "id": "otel-0006/call-O",
+        "parent": "otel-0006",
+        "title": "Find exporter",
+        "agent": "explore",
+        "model": "model-b",
+        "dir": "/work/proj",
+        "maxctx": 0,
+        "in": 308,
+        "out": 574,
+        "reason": 0,
+        "cr": 40000,
+        "cw": 15000,
+        "created": 1767265204000,
+        "updated": 1767265207000,
+        "active": false,
+        "dur": 3000,
+        "beats": [
+          [
+            1767265205000,
+            1767265205000
+          ],
+          [
+            1767265205000,
+            1767265206000
+          ]
+        ],
+        "children": [],
+        "subtree": {
+          "in": 308,
+          "out": 574,
+          "reason": 0,
+          "cr": 40000,
+          "cw": 15000
+        },
+        "source": "copilot"
+      }
+    ],
+    "subtree": {
+      "in": 331,
+      "out": 810,
+      "reason": 12,
+      "cr": 87545,
+      "cw": 16048
+    },
+    "source": "copilot"
+  },
+  {
+    "id": "garbled-0004",
+    "parent": null,
+    "title": "(untitled)",
+    "agent": null,
+    "model": "model-a",
+    "dir": "/work/other",
+    "maxctx": 0,
+    "in": 0,
+    "out": 11,
+    "reason": 0,
+    "cr": 0,
+    "cw": 0,
+    "created": 1767261605000,
+    "updated": 1767261607000,
+    "active": false,
+    "dur": 2000,
+    "beats": [
+      [
+        1767261606000,
+        1767261607000
+      ]
+    ],
+    "children": [],
+    "subtree": {
+      "in": 0,
+      "out": 11,
+      "reason": 0,
+      "cr": 0,
+      "cw": 0
+    },
+    "source": "copilot"
+  },
+  {
+    "id": "plain-0001",
+    "parent": null,
+    "title": "Explain the parser",
+    "agent": null,
+    "model": "model-a",
+    "dir": "/work/proj",
+    "maxctx": 0,
+    "in": 0,
+    "out": 163,
+    "reason": 0,
+    "cr": 0,
+    "cw": 0,
+    "created": 1767261600000,
+    "updated": 1767261611000,
+    "active": false,
+    "dur": 9000,
+    "beats": [
+      [
+        1767261602000,
+        1767261603000
+      ],
+      [
+        1767261605000,
+        1767261607000
+      ],
+      [
+        1767261608000,
+        1767261609000
+      ],
+      [
+        1767261610000,
+        1767261611000
+      ]
+    ],
+    "children": [],
+    "subtree": {
+      "in": 0,
+      "out": 163,
+      "reason": 0,
+      "cr": 0,
+      "cw": 0
+    },
+    "source": "copilot"
+  },
+  {
+    "id": "rows-0005",
+    "parent": null,
+    "title": "Add the feature",
+    "agent": null,
+    "model": "model-a",
+    "dir": "/work/proj",
+    "maxctx": 212,
+    "in": 22,
+    "out": 50,
+    "reason": 2,
+    "cr": 300,
+    "cw": 5,
+    "created": 1767261600000,
+    "updated": 1767261609000,
+    "active": false,
+    "dur": 9000,
+    "beats": [
+      [
+        1767261601000,
+        1767261602000
+      ],
+      [
+        1767261602000,
+        1767261603000
+      ]
+    ],
+    "children": [
+      {
+        "id": "rows-0005/call-R",
+        "parent": "rows-0005",
+        "title": "Scan",
+        "agent": "explore",
+        "model": "model-b",
+        "dir": "/work/proj",
+        "maxctx": 58,
+        "in": 7,
+        "out": 9,
+        "reason": 3,
+        "cr": 50,
+        "cw": 1,
+        "created": 1767261605000,
+        "updated": 1767261607000,
+        "active": false,
+        "dur": 1000,
+        "beats": [
+          [
+            1767261606000,
+            1767261606000
+          ]
+        ],
+        "children": [],
+        "subtree": {
+          "in": 7,
+          "out": 9,
+          "reason": 3,
+          "cr": 50,
+          "cw": 1
+        },
+        "source": "copilot"
+      }
+    ],
+    "subtree": {
+      "in": 29,
+      "out": 59,
+      "reason": 5,
+      "cr": 350,
+      "cw": 6
+    },
+    "source": "copilot"
+  },
+  {
+    "id": "shutdown-0003",
+    "parent": null,
+    "title": "Fix the bug",
+    "agent": null,
+    "model": "model-a",
+    "dir": "/work/proj",
+    "maxctx": 0,
+    "in": 50,
+    "out": 175,
+    "reason": 10,
+    "cr": 1000,
+    "cw": 300,
+    "created": 1767261600000,
+    "updated": 1767261609000,
+    "active": false,
+    "dur": 9000,
+    "beats": [
+      [
+        1767261601000,
+        1767261602000
+      ],
+      [
+        1767261607000,
+        1767261608000
+      ]
+    ],
+    "children": [
+      {
+        "id": "shutdown-0003/call-D",
+        "parent": "shutdown-0003",
+        "title": "Find bug",
+        "agent": "explore",
+        "model": "model-b",
+        "dir": "/work/proj",
+        "maxctx": 0,
+        "in": 0,
+        "out": 25,
+        "reason": 0,
+        "cr": 0,
+        "cw": 0,
+        "created": 1767261604000,
+        "updated": 1767261606000,
+        "active": false,
+        "dur": 2000,
+        "beats": [
+          [
+            1767261605000,
+            1767261605000
+          ]
+        ],
+        "children": [],
+        "subtree": {
+          "in": 0,
+          "out": 25,
+          "reason": 0,
+          "cr": 0,
+          "cw": 0
+        },
+        "source": "copilot"
+      }
+    ],
+    "subtree": {
+      "in": 50,
+      "out": 200,
+      "reason": 10,
+      "cr": 1000,
+      "cw": 300
+    },
+    "source": "copilot"
+  },
+  {
+    "id": "sub-0002",
+    "parent": null,
+    "title": "Refactor the module",
+    "agent": null,
+    "model": "model-a",
+    "dir": "/work/proj",
+    "maxctx": 0,
+    "in": 0,
+    "out": 100,
+    "reason": 0,
+    "cr": 0,
+    "cw": 0,
+    "created": 1767261600000,
+    "updated": 1767261620000,
+    "active": false,
+    "dur": 20000,
+    "beats": [
+      [
+        1767261601000,
+        1767261602000
+      ],
+      [
+        1767261616000,
+        1767261617000
+      ]
+    ],
+    "children": [
+      {
+        "id": "sub-0002/call-C",
+        "parent": "sub-0002",
+        "title": "Write docs",
+        "agent": "general-purpose",
+        "model": "model-a",
+        "dir": "/work/proj",
+        "maxctx": 0,
+        "in": 0,
+        "out": 5,
+        "reason": 0,
+        "cr": 0,
+        "cw": 0,
+        "created": 1767261619000,
+        "updated": 1767261620000,
+        "active": false,
+        "dur": 1000,
+        "beats": [
+          [
+            1767261620000,
+            1767261620000
+          ]
+        ],
+        "children": [],
+        "subtree": {
+          "in": 0,
+          "out": 5,
+          "reason": 0,
+          "cr": 0,
+          "cw": 0
+        },
+        "source": "copilot"
+      },
+      {
+        "id": "sub-0002/call-A",
+        "parent": "sub-0002",
+        "title": "Explore code",
+        "agent": "explore",
+        "model": "model-b",
+        "dir": "/work/proj",
+        "maxctx": 0,
+        "in": 0,
+        "out": 50,
+        "reason": 0,
+        "cr": 0,
+        "cw": 0,
+        "created": 1767261604000,
+        "updated": 1767261615000,
+        "active": false,
+        "dur": 11000,
+        "beats": [
+          [
+            1767261605000,
+            1767261605000
+          ],
+          [
+            1767261613000,
+            1767261614000
+          ]
+        ],
+        "children": [
+          {
+            "id": "sub-0002/call-B",
+            "parent": "sub-0002/call-A",
+            "title": "Run tests",
+            "agent": "task",
+            "model": "model-c",
+            "dir": "/work/proj",
+            "maxctx": 0,
+            "in": 0,
+            "out": 10,
+            "reason": 0,
+            "cr": 0,
+            "cw": 0,
+            "created": 1767261607000,
+            "updated": 1767261612000,
+            "active": false,
+            "dur": 5000,
+            "beats": [
+              [
+                1767261608000,
+                1767261608000
+              ],
+              [
+                1767261610000,
+                1767261611000
+              ]
+            ],
+            "children": [],
+            "subtree": {
+              "in": 0,
+              "out": 10,
+              "reason": 0,
+              "cr": 0,
+              "cw": 0
+            },
+            "source": "copilot"
+          }
+        ],
+        "subtree": {
+          "in": 0,
+          "out": 60,
+          "reason": 0,
+          "cr": 0,
+          "cw": 0
+        },
+        "source": "copilot"
+      }
+    ],
+    "subtree": {
+      "in": 0,
+      "out": 165,
+      "reason": 0,
+      "cr": 0,
+      "cw": 0
+    },
+    "source": "copilot"
+  }
+]
