@@ -3581,20 +3581,18 @@
     }
 
     // Aggregates per-model token totals across the whole tree from bymodel maps.
+    // A node's bymodel already sums its whole subtree, so only roots are added.
     function modelTotals() {
         const totals = new Map();
-        (function walk(ns) {
-            for (const n of ns) {
-                if (n.bymodel) for (const m of Object.keys(n.bymodel)) {
-                    const t = n.bymodel[m];
-                    let a = totals.get(m);
-                    if (!a) { a = {in: 0, out: 0, reason: 0, cw: 0, cr: 0}; totals.set(m, a); }
-                    a.in += t.in || 0; a.out += t.out || 0; a.reason += t.reason || 0;
-                    a.cw += t.cw || 0; a.cr += t.cr || 0;
-                }
-                walk(n.children);
+        for (const n of TREE) {
+            if (n.bymodel) for (const m of Object.keys(n.bymodel)) {
+                const t = n.bymodel[m];
+                let a = totals.get(m);
+                if (!a) { a = {in: 0, out: 0, reason: 0, cw: 0, cr: 0}; totals.set(m, a); }
+                a.in += t.in || 0; a.out += t.out || 0; a.reason += t.reason || 0;
+                a.cw += t.cw || 0; a.cr += t.cr || 0;
             }
-        })(TREE);
+        }
         return totals;
     }
 

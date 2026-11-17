@@ -152,6 +152,18 @@ test('tree row shows total(own) for nodes with subagents, and refresh re-renders
     assert.deepEqual([after[1], after[2]], ['4.7k', '4.2k'], 'refresh updates exact subtree total and own tokens');
 });
 
+test('per-model totals count nested subagents once', async () => {
+    // a node's bymodel sums its whole subtree, as every provider serves it
+    const bm = n => ({m1: {in: n, out: 0, reason: 0, cr: 0, cw: 0}});
+    const grand = sess({id: 'g1', parent: 'c1', in: 5, bymodel: bm(5)});
+    const child = sess({id: 'c1', parent: 's1', in: 50, children: [grand], bymodel: bm(55)});
+    const ctx = boot({'/api/tree': [sess({in: 500, children: [child], bymodel: bm(555)})]});
+    await settle();
+    await ctx.load();
+    await settle();
+    assert.equal(ctx.modelTotals().get('m1').in, 555);
+});
+
 test('refresh updates the selected session title in the detail heading', async () => {
     const ctx = boot({
         '/api/tree': [sess()],

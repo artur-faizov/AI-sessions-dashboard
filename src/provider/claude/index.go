@@ -106,10 +106,14 @@ type claudeRawBlock struct {
 	IsError   bool            `json:"is_error"`
 }
 
+// claudeAgentMeta is a subagent's <stem>.meta.json. A nested agent (launched
+// by another subagent) names its launcher in ParentAgentID, without the
+// "agent-" prefix of the file stem; older Claude Code versions omit it.
 type claudeAgentMeta struct {
-	AgentType   string `json:"agentType"`
-	Description string `json:"description"`
-	ToolUseID   string `json:"toolUseId"`
+	AgentType     string `json:"agentType"`
+	Description   string `json:"description"`
+	ToolUseID     string `json:"toolUseId"`
+	ParentAgentID string `json:"parentAgentId"`
 }
 
 // --- parsing ---
@@ -341,7 +345,7 @@ type claudeSession struct {
 	isAgent  bool
 	meta     claudeAgentMeta
 	fsParent string // session-id dir the subagents/ dir nests under
-	parent   string // resolved parent session id (subagents only)
+	parent   string // resolved launcher: a session id, or an agent id when nested (subagents only)
 }
 
 type claudeIndex struct {
@@ -407,6 +411,19 @@ func (c *Provider) scanIndex() *claudeIndex {
 	for _, a := range idx.agents {
 		a.parent = idx.resolveAgentParent(a)
 	}
+	// Break any cycle (corrupt meta: agents naming each other as launcher) by
+	// hanging the agents caught in it off their session, so every parent
+	// chain ends at a session.
+	for _, a := range idx.agents {
+		seen := map[string]bool{a.id: true}
+		for p := idx.agents[a.parent]; p != nil; p = idx.agents[p.parent] {
+			if seen[p.id] {
+				a.parent = a.fsParent
+				break
+			}
+			seen[p.id] = true
+		}
+	}
 	return idx
 }
 
@@ -436,20 +453,35 @@ func (c *Provider) scanAgentDir(idx *claudeIndex, sub, slug, parentSID string) {
 	}
 }
 
-// resolveAgentParent prefers a tool_use id match in a main transcript, then
-// falls back to the filesystem nesting (the session-id dir).
+// resolveAgentParent finds the transcript that launched a subagent: the agent
+// its meta names as launcher, else the main transcript holding the launching
+// tool_use, else an agent transcript holding it (a nested agent from before
+// parentAgentId), else the filesystem nesting (the session-id dir). Agents of
+// every depth sit in their session's one subagents/ dir.
 func (idx *claudeIndex) resolveAgentParent(a *claudeSession) string {
-	if a.meta.ToolUseID != "" {
+	if pid := a.meta.ParentAgentID; pid != "" {
+		if p, ok := idx.agents["agent-"+pid]; ok && p != a {
+			return p.id
+		}
+	}
+	if id := a.meta.ToolUseID; id != "" {
 		for _, s := range idx.sessions {
-			if _, ok := s.file.toolNames[a.meta.ToolUseID]; ok {
+			if _, ok := s.file.toolNames[id]; ok {
+				return s.id
+			}
+		}
+		// A fork's transcript repeats its own launch, so the agent itself
+		// never counts as its launcher.
+		for _, s := range idx.agents {
+			if s == a || s.fsParent != a.fsParent {
+				continue
+			}
+			if _, ok := s.file.toolNames[id]; ok {
 				return s.id
 			}
 		}
 	}
-	if a.fsParent != "" {
-		return a.fsParent
-	}
-	return ""
+	return a.fsParent
 }
 
 // loadFile parses a transcript, caching by mtime.
@@ -834,22 +866,31 @@ func (f *claudeFile) assistantParts(m *claudeMsg) []any {
 func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 	idx := c.scanIndex()
 	nodes := map[string]*provider.SessionNode{}
+	launched := map[string][]*claudeSession{} // parent id -> its subagents
+	for _, a := range idx.agents {
+		launched[a.parent] = append(launched[a.parent], a)
+	}
+	// Subagents nest under their launcher at any depth, walked down from the
+	// session; one whose chain does not reach a shown session is an orphan
+	// and is skipped.
+	var attach func(parent *provider.SessionNode)
+	attach = func(parent *provider.SessionNode) {
+		for _, a := range launched[parent.ID] {
+			n := claudeNode(a, parent.ID, nowMS)
+			// group with the parent's project even if the agent ran in a subdir
+			n.Dir = parent.Dir
+			nodes[a.id] = n
+			parent.Children = append(parent.Children, n)
+			attach(n)
+		}
+	}
 	for sid, s := range idx.sessions {
 		if s.file.title == "" && s.file.promptTitle() == "" {
 			continue // no user request (opened and closed): hide
 		}
-		nodes[sid] = claudeNode(s, nil, nowMS)
-	}
-	for _, a := range idx.agents {
-		parent, ok := nodes[a.parent]
-		if !ok {
-			continue // orphan subagent: skip
-		}
-		n := claudeNode(a, a.parent, nowMS)
-		// group with the parent's project even if the agent ran in a subdir
-		n.Dir = parent.Dir
-		nodes[a.id] = n
-		parent.Children = append(parent.Children, n)
+		n := claudeNode(s, nil, nowMS)
+		nodes[sid] = n
+		attach(n)
 	}
 
 	var roots []*provider.SessionNode

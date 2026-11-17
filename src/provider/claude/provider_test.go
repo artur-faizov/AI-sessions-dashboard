@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -232,6 +233,170 @@ func TestClaudeSubagentParenting(t *testing.T) {
 	// subtree sums include children
 	if main.Subtree.In != 10+20+50+7 {
 		t.Fatalf("subtree in %d", main.Subtree.In)
+	}
+}
+
+// nestedAgentsFixture is a session whose subagents launch subagents: main ->
+// agent-a -> agent-b -> agent-d, plus agent-c and the fork agent-f under
+// agent-a. All sit in main's one subagents/ dir. agent-a is found by its
+// tool_use in main, agent-b by parentAgentId; agent-c, agent-d and agent-f
+// (older meta without parentAgentId) by their tool_use in an agent transcript.
+func nestedAgentsFixture(t *testing.T) *Provider {
+	t.Helper()
+	p, dir := claudeFixture(t, "-home-x-proj")
+	launch := func(id string) string {
+		return fmt.Sprintf(`{"type":"tool_use","id":%q,"name":"Agent","input":{}}`, id)
+	}
+	writeLines(t, filepath.Join(dir, "main.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "plan the work"),
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, launch("call_a")),
+	)
+	sub := filepath.Join(dir, "main", "subagents")
+	writeLines(t, filepath.Join(sub, "agent-a.jsonl"),
+		userLine("u2", "2026-09-03T13:28:29.000Z", "step one"),
+		assistantLine("a2", "2026-09-03T13:28:30.000Z", "m1", 20, 1, 0, 0, launch("call_b")),
+		assistantLine("a3", "2026-09-03T13:28:31.000Z", "m1", 30, 1, 0, 0, launch("call_c")),
+		assistantLine("a4", "2026-09-03T13:28:32.000Z", "m1", 40, 1, 0, 0, launch("call_f")),
+	)
+	writeLines(t, filepath.Join(sub, "agent-a.meta.json"),
+		`{"agentType":"general-purpose","description":"step one","toolUseId":"call_a","spawnDepth":1}`)
+	// parentAgentId names the launcher without the "agent-" file prefix
+	writeLines(t, filepath.Join(sub, "agent-b.jsonl"),
+		userLine("u3", "2026-09-03T13:28:33.000Z", "part b"),
+		assistantLine("a5", "2026-09-03T13:28:34.000Z", "m1", 50, 1, 0, 0, launch("call_d")),
+	)
+	writeLines(t, filepath.Join(sub, "agent-b.meta.json"),
+		`{"agentType":"general-purpose","description":"part b","toolUseId":"call_b","parentAgentId":"a","spawnDepth":2}`)
+	writeLines(t, filepath.Join(sub, "agent-c.jsonl"),
+		userLine("u4", "2026-09-03T13:28:35.000Z", "part c"),
+		assistantLine("a6", "2026-09-03T13:28:36.000Z", "m1", 60, 1, 0, 0, textBlock),
+	)
+	writeLines(t, filepath.Join(sub, "agent-c.meta.json"),
+		`{"agentType":"Explore","description":"part c","toolUseId":"call_c"}`)
+	// third level, run in a subdir of the project
+	writeLines(t, filepath.Join(sub, "agent-d.jsonl"),
+		`{"type":"user","uuid":"u5","timestamp":"2026-09-03T13:28:37.000Z","cwd":"/home/x/proj/sub","message":{"role":"user","content":"part d"}}`,
+		assistantLine("a7", "2026-09-03T13:28:38.000Z", "m1", 70, 1, 0, 0, textBlock),
+	)
+	writeLines(t, filepath.Join(sub, "agent-d.meta.json"),
+		`{"agentType":"Explore","description":"part d","toolUseId":"call_d"}`)
+	// a fork's transcript opens with a copy of the line that launched it
+	writeLines(t, filepath.Join(sub, "agent-f.jsonl"),
+		`{"type":"fork-context-ref"}`,
+		assistantLine("a8", "2026-09-03T13:28:32.000Z", "m1", 0, 0, 0, 0, launch("call_f")),
+		assistantLine("a9", "2026-09-03T13:28:39.000Z", "m1", 80, 1, 0, 0, textBlock),
+	)
+	writeLines(t, filepath.Join(sub, "agent-f.meta.json"),
+		`{"agentType":"fork","isFork":true,"description":"forked","toolUseId":"call_f"}`)
+	return p
+}
+
+func TestClaudeNestedSubagentParenting(t *testing.T) {
+	p := nestedAgentsFixture(t)
+	want := map[string]string{ // node -> its children
+		"main":    "agent-a",
+		"agent-a": "agent-b,agent-c,agent-f",
+		"agent-b": "agent-d",
+		"agent-c": "", "agent-d": "", "agent-f": "",
+	}
+	// map order varies between scans: an agent must nest whichever of it and
+	// its launcher comes first
+	for range 10 {
+		roots, err := p.BuildTree(0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(roots) != 1 || roots[0].ID != "main" {
+			t.Fatalf("want main as the only root, got %s", jdump(roots))
+		}
+		for id, w := range want {
+			n := findNode(roots, id)
+			if n == nil {
+				t.Fatalf("%s missing: %s", id, jdump(roots))
+			}
+			var kids []string
+			for _, k := range n.Children {
+				if k.Parent != id {
+					t.Fatalf("%s under %s has parent %v", k.ID, id, k.Parent)
+				}
+				kids = append(kids, k.ID)
+			}
+			slices.Sort(kids)
+			if got := strings.Join(kids, ","); got != w {
+				t.Fatalf("%s children %q, want %q", id, got, w)
+			}
+		}
+		if d := findNode(roots, "agent-d"); d.Dir != "/home/x/proj" {
+			t.Fatalf("third level must group with the session's project, dir %q", d.Dir)
+		}
+		// each level sums its own subtree once
+		main, a, b := findNode(roots, "main"), findNode(roots, "agent-a"), findNode(roots, "agent-b")
+		if main.Subtree.In != 10+90+50+60+70+80 || a.Subtree.In != 90+50+60+70+80 || b.Subtree.In != 50+70 {
+			t.Fatalf("subtree in main=%d a=%d b=%d", main.Subtree.In, a.Subtree.In, b.Subtree.In)
+		}
+		if m := main.ByModel["m1"]; m == nil || m.In != main.Subtree.In {
+			t.Fatalf("main bymodel %s, want in=%d", jdump(main.ByModel), main.Subtree.In)
+		}
+	}
+}
+
+func TestClaudeNestedSubagentSegments(t *testing.T) {
+	p := nestedAgentsFixture(t)
+	// each subagent span sits on its launcher's timeline, tied to the call
+	// that launched it
+	want := map[string]map[string]string{ // session -> subagent -> call mid
+		"main":    {"agent-a": "a1"},
+		"agent-a": {"agent-b": "a2", "agent-c": "a3", "agent-f": "a4"},
+		"agent-b": {"agent-d": "a5"},
+		"agent-d": {},
+	}
+	for sid, w := range want {
+		segs, err := p.SessionSegments(sid)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := map[string]string{}
+		for _, g := range segs {
+			if g.Kind == provider.SegSub {
+				got[g.Sub] = g.Mid
+			}
+		}
+		if jdump(got) != jdump(w) {
+			t.Fatalf("%s subagent spans %s, want %s", sid, jdump(got), jdump(w))
+		}
+	}
+}
+
+func TestClaudeSubagentParentLoop(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	writeLines(t, filepath.Join(dir, "main.jsonl"),
+		userLine("u1", "2026-09-03T13:28:27.000Z", "go"),
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, textBlock),
+	)
+	// corrupt meta: agent-x and agent-y name each other, agent-z itself
+	for _, ag := range [][2]string{{"x", "y"}, {"y", "x"}, {"z", "z"}} {
+		writeLines(t, filepath.Join(dir, "main", "subagents", "agent-"+ag[0]+".jsonl"),
+			userLine("u"+ag[0], "2026-09-03T13:28:29.000Z", "sub"),
+			assistantLine("a"+ag[0], "2026-09-03T13:28:30.000Z", "m1", 50, 8, 0, 0, textBlock),
+		)
+		writeLines(t, filepath.Join(dir, "main", "subagents", "agent-"+ag[0]+".meta.json"),
+			fmt.Sprintf(`{"agentType":"Explore","parentAgentId":%q}`, ag[1]))
+	}
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	main := findNode(roots, "main")
+	if len(roots) != 1 || main == nil || main.Subtree.In != 10+3*50 {
+		t.Fatalf("looping agents must stay under the session: %s", jdump(roots))
+	}
+	if z := findNode(roots, "agent-z"); z == nil || z.Parent != "main" {
+		t.Fatalf("self-launched agent: %s", jdump(z))
+	}
+	for _, id := range []string{"agent-x", "agent-y", "agent-z"} {
+		if _, err := p.SessionSegments(id); err != nil { // must return, not walk the loop forever
+			t.Fatal(err)
+		}
 	}
 }
 
