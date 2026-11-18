@@ -367,6 +367,97 @@ func TestClaudeNestedSubagentSegments(t *testing.T) {
 	}
 }
 
+// A resumed session copies the history of the one it continues, so a launch
+// line sits in both main transcripts: each agent stays under the session
+// whose dir holds it, on every scan.
+func TestClaudeSubagentParentResumedSession(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	launch := func(id string) string {
+		return fmt.Sprintf(`{"type":"tool_use","id":%q,"name":"Agent","input":{}}`, id)
+	}
+	old := []any{
+		userLine("u1", "2026-09-03T13:28:27.000Z", "plan the work"),
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, launch("call_old")),
+	}
+	writeLines(t, filepath.Join(dir, "first.jsonl"), old...)
+	writeLines(t, filepath.Join(dir, "resumed.jsonl"), append(old,
+		assistantLine("a2", "2026-09-03T14:00:00.000Z", "m1", 20, 5, 0, 0, launch("call_new")))...)
+	for _, ag := range [][3]string{{"first", "old", "call_old"}, {"resumed", "new", "call_new"}} {
+		sub := filepath.Join(dir, ag[0], "subagents")
+		writeLines(t, filepath.Join(sub, "agent-"+ag[1]+".jsonl"),
+			userLine("u"+ag[1], "2026-09-03T13:28:29.000Z", "sub"),
+			assistantLine("a"+ag[1], "2026-09-03T13:28:30.000Z", "m1", 50, 8, 0, 0, textBlock),
+		)
+		writeLines(t, filepath.Join(sub, "agent-"+ag[1]+".meta.json"),
+			fmt.Sprintf(`{"agentType":"Explore","toolUseId":%q}`, ag[2]))
+	}
+	for range 20 {
+		roots, err := p.BuildTree(0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n := findNode(roots, "agent-old"); n == nil || n.Parent != "first" {
+			t.Fatalf("agent-old must stay under first: %s", jdump(n))
+		}
+		if n := findNode(roots, "agent-new"); n == nil || n.Parent != "resumed" {
+			t.Fatalf("agent-new must stay under resumed: %s", jdump(n))
+		}
+		// both sessions start at the same copied line: their order must hold
+		if len(roots) != 2 || roots[0].ID != "first" || roots[1].ID != "resumed" {
+			t.Fatalf("root order must be stable: %s, %s", roots[0].ID, roots[1].ID)
+		}
+	}
+}
+
+// A session Claude Code continued under a new id ends on a continued-in line;
+// the chain shows as one session under the latest id, with the subagents of
+// both parts and the copied history counted once.
+func TestClaudeContinuedSessionJoined(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	launch := func(id string) string {
+		return fmt.Sprintf(`{"type":"tool_use","id":%q,"name":"Agent","input":{}}`, id)
+	}
+	old := []any{
+		userLine("u1", "2026-09-03T13:28:27.000Z", "plan the work"),
+		assistantLine("a1", "2026-09-03T13:28:28.000Z", "m1", 10, 5, 0, 0, launch("call_old")),
+	}
+	writeLines(t, filepath.Join(dir, "first.jsonl"), append(old,
+		`{"type":"continued-in","timestamp":"2026-09-03T14:00:00.000Z","sessionId":"first","continuedInSessionId":"next"}`)...)
+	writeLines(t, filepath.Join(dir, "next.jsonl"), append(old,
+		assistantLine("a2", "2026-09-03T14:00:05.000Z", "m1", 20, 5, 0, 0, launch("call_new")))...)
+	for _, ag := range [][3]string{{"first", "old", "call_old"}, {"next", "new", "call_new"}} {
+		sub := filepath.Join(dir, ag[0], "subagents")
+		writeLines(t, filepath.Join(sub, "agent-"+ag[1]+".jsonl"),
+			userLine("u"+ag[1], "2026-09-03T13:28:29.000Z", "sub"),
+			assistantLine("a"+ag[1], "2026-09-03T13:28:30.000Z", "m1", 50, 8, 0, 0, textBlock),
+		)
+		writeLines(t, filepath.Join(sub, "agent-"+ag[1]+".meta.json"),
+			fmt.Sprintf(`{"agentType":"Explore","toolUseId":%q}`, ag[2]))
+	}
+	roots, err := p.BuildTree(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(roots) != 1 || roots[0].ID != "next" {
+		t.Fatalf("want next as the only root, got %s", jdump(roots))
+	}
+	r := roots[0]
+	for _, id := range []string{"agent-old", "agent-new"} {
+		if n := findNode(roots, id); n == nil || n.Parent != "next" {
+			t.Fatalf("%s must sit under next: %s", id, jdump(n))
+		}
+	}
+	if r.In != 10+20 || r.Subtree.In != 10+20+2*50 {
+		t.Fatalf("copied history counted twice: in=%d subtree=%d", r.In, r.Subtree.In)
+	}
+	for _, sid := range []string{"next", "first"} { // the old id still resolves
+		calls, err := p.SessionCalls(sid)
+		if err != nil || len(calls) != 2 {
+			t.Fatalf("%s calls %s, %v", sid, jdump(calls), err)
+		}
+	}
+}
+
 func TestClaudeSubagentParentLoop(t *testing.T) {
 	p, dir := claudeFixture(t, "-home-x-proj")
 	writeLines(t, filepath.Join(dir, "main.jsonl"),

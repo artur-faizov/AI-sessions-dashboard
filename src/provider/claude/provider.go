@@ -88,6 +88,7 @@ func (c *Provider) SessionSegments(sid string) ([]provider.Seg, error) {
 	if s == nil {
 		return nil, fmt.Errorf("session not found: %s", sid)
 	}
+	sid = s.id
 	root := sid // a subagent runs in its root session's process
 	for a, ok := idx.agents[root]; ok && a.parent != ""; a, ok = idx.agents[root] {
 		root = a.parent

@@ -2,6 +2,7 @@ package claude
 
 import (
 	"encoding/json"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -65,20 +66,25 @@ type claudeFile struct {
 	cwd        string
 	firstMS    int64
 	lastMS     int64
+	// continuedIn names the session Claude Code continued this one under;
+	// that transcript opens with a copy of this one's history.
+	continuedIn string
 }
 
 // --- raw JSON shapes ---
 
 type claudeRawLine struct {
-	Type      string        `json:"type"`
-	UUID      string        `json:"uuid"`
-	RequestID string        `json:"requestId"`
-	Timestamp string        `json:"timestamp"`
-	Cwd       string        `json:"cwd"`
-	SessionID string        `json:"sessionId"`
-	IsMeta    bool          `json:"isMeta"`
-	AITitle   string        `json:"aiTitle"`
-	Message   *claudeRawMsg `json:"message"`
+	Type      string `json:"type"`
+	UUID      string `json:"uuid"`
+	RequestID string `json:"requestId"`
+	Timestamp string `json:"timestamp"`
+	Cwd       string `json:"cwd"`
+	SessionID string `json:"sessionId"`
+	IsMeta    bool   `json:"isMeta"`
+	AITitle   string `json:"aiTitle"`
+	// ContinuedIn is set on a "continued-in" line.
+	ContinuedIn string        `json:"continuedInSessionId"`
+	Message     *claudeRawMsg `json:"message"`
 }
 
 type claudeRawMsg struct {
@@ -218,6 +224,9 @@ func parseClaudeFile(path string) *claudeFile {
 				f.title = raw.AITitle
 			}
 			continue
+		case "continued-in":
+			f.continuedIn = raw.ContinuedIn
+			continue
 		case "user", "assistant":
 		default:
 			continue // noise / unknown types
@@ -351,10 +360,19 @@ type claudeSession struct {
 type claudeIndex struct {
 	sessions map[string]*claudeSession
 	agents   map[string]*claudeSession
+	merged   map[string]string // continued session id -> the id it is shown under
+}
+
+// canon maps a continued session's id to the session it is shown under.
+func (idx *claudeIndex) canon(id string) string {
+	if t, ok := idx.merged[id]; ok {
+		return t
+	}
+	return id
 }
 
 func (idx *claudeIndex) lookup(id string) *claudeSession {
-	if s, ok := idx.sessions[id]; ok {
+	if s, ok := idx.sessions[idx.canon(id)]; ok {
 		return s
 	}
 	return idx.agents[id]
@@ -377,6 +395,7 @@ func (c *Provider) scanIndex() *claudeIndex {
 	idx := &claudeIndex{
 		sessions: map[string]*claudeSession{},
 		agents:   map[string]*claudeSession{},
+		merged:   map[string]string{},
 	}
 	slugDirs, err := os.ReadDir(c.root.Get())
 	if err != nil {
@@ -408,7 +427,9 @@ func (c *Provider) scanIndex() *claudeIndex {
 			}
 		}
 	}
+	idx.mergeContinued()
 	for _, a := range idx.agents {
+		a.fsParent = idx.canon(a.fsParent)
 		a.parent = idx.resolveAgentParent(a)
 	}
 	// Break any cycle (corrupt meta: agents naming each other as launcher) by
@@ -425,6 +446,69 @@ func (c *Provider) scanIndex() *claudeIndex {
 		}
 	}
 	return idx
+}
+
+// mergeContinued shows a session Claude Code continued under a new id as one
+// session under the latest id: the transcripts of the chain are joined, and
+// the history each one copies from the one before is counted once.
+func (idx *claudeIndex) mergeContinued() {
+	prev := map[string]*claudeSession{} // session -> the one continued in it
+	for id, s := range idx.sessions {
+		if t := s.file.continuedIn; t != "" && t != id && idx.sessions[t] != nil {
+			prev[t] = s
+		}
+	}
+	// Walk back from each chain's latest session (one not continued itself);
+	// a loop of corrupt markers has no latest one and stays apart.
+	for id, last := range idx.sessions {
+		if prev[id] == nil || last.file.continuedIn != "" && idx.sessions[last.file.continuedIn] != nil {
+			continue
+		}
+		files := []*claudeFile{last.file}
+		for p := prev[id]; p != nil && p != last; p = prev[p.id] {
+			if _, done := idx.merged[p.id]; done {
+				break
+			}
+			idx.merged[p.id] = id
+			files = append([]*claudeFile{p.file}, files...)
+		}
+		last.file = joinClaudeFiles(files)
+	}
+	for old := range idx.merged {
+		delete(idx.sessions, old)
+	}
+}
+
+// joinClaudeFiles joins the transcripts of one continued conversation, oldest
+// first, skipping lines a later transcript copied from an earlier one. The
+// cached parses are left untouched.
+func joinClaudeFiles(fs []*claudeFile) *claudeFile {
+	j := &claudeFile{path: fs[0].path, toolNames: map[string]string{}, toolInputs: map[string]any{}}
+	seen := map[string]bool{}
+	for _, f := range fs {
+		for _, m := range f.messages {
+			if m.mid != "" {
+				if seen[m.mid] {
+					continue
+				}
+				seen[m.mid] = true
+			}
+			j.messages = append(j.messages, m)
+		}
+		maps.Copy(j.toolNames, f.toolNames)
+		maps.Copy(j.toolInputs, f.toolInputs)
+		if f.title != "" {
+			j.title = f.title
+		}
+		if j.cwd == "" {
+			j.cwd = f.cwd
+		}
+		if f.firstMS > 0 && (j.firstMS == 0 || f.firstMS < j.firstMS) {
+			j.firstMS = f.firstMS
+		}
+		j.lastMS = max(j.lastMS, f.lastMS)
+	}
+	return j
 }
 
 func (c *Provider) scanAgentDir(idx *claudeIndex, sub, slug, parentSID string) {
@@ -465,23 +549,42 @@ func (idx *claudeIndex) resolveAgentParent(a *claudeSession) string {
 		}
 	}
 	if id := a.meta.ToolUseID; id != "" {
-		for _, s := range idx.sessions {
+		// A resumed session copies its history, launch lines included, so the
+		// session whose dir holds the agent comes first.
+		if s, ok := idx.sessions[a.fsParent]; ok {
 			if _, ok := s.file.toolNames[id]; ok {
 				return s.id
 			}
+		}
+		if s := claudeLauncher(idx.sessions, id, func(*claudeSession) bool { return true }); s != nil {
+			return s.id
 		}
 		// A fork's transcript repeats its own launch, so the agent itself
 		// never counts as its launcher.
-		for _, s := range idx.agents {
-			if s == a || s.fsParent != a.fsParent {
-				continue
-			}
-			if _, ok := s.file.toolNames[id]; ok {
-				return s.id
-			}
+		if s := claudeLauncher(idx.agents, id, func(s *claudeSession) bool {
+			return s != a && s.fsParent == a.fsParent
+		}); s != nil {
+			return s.id
 		}
 	}
 	return a.fsParent
+}
+
+// claudeLauncher picks, among the transcripts that pass ok, the one holding
+// tool_use id. Several may hold it (copied history): the earliest started
+// wins, then the lowest id, so the choice does not depend on map order.
+func claudeLauncher(ss map[string]*claudeSession, id string, ok func(*claudeSession) bool) *claudeSession {
+	var best *claudeSession
+	for _, s := range ss {
+		if _, has := s.file.toolNames[id]; !has || !ok(s) {
+			continue
+		}
+		if best == nil || s.file.firstMS < best.file.firstMS ||
+			(s.file.firstMS == best.file.firstMS && s.id < best.id) {
+			best = s
+		}
+	}
+	return best
 }
 
 // loadFile parses a transcript, caching by mtime.
@@ -508,11 +611,7 @@ func (c *Provider) loadFile(path string) *claudeFile {
 }
 
 func (c *Provider) findSessionFile(sid string) *claudeFile {
-	idx := c.scanIndex()
-	if s, ok := idx.sessions[sid]; ok {
-		return s.file
-	}
-	if s, ok := idx.agents[sid]; ok {
+	if s := c.scanIndex().lookup(sid); s != nil {
 		return s.file
 	}
 	return nil
@@ -937,19 +1036,29 @@ func (c *Provider) claudeTree(nowMS int64) ([]*provider.SessionNode, error) {
 			provider.ByModelMerge(n.ByModel, ch.ByModel)
 		}
 		n.Subtree = &t
-		sort.Slice(n.Children, func(i, j int) bool {
-			return n.Children[i].Created > n.Children[j].Created
-		})
+		claudeSortNodes(n.Children)
 		return t
 	}
 	for _, r := range roots {
 		fill(r)
 	}
-	sort.Slice(roots, func(i, j int) bool { return roots[i].Created > roots[j].Created })
+	claudeSortNodes(roots)
 	if roots == nil {
 		roots = []*provider.SessionNode{}
 	}
 	return roots, nil
+}
+
+// claudeSortNodes orders nodes newest first. A resumed session copies its
+// history and so shares its start time with the one it continues: the id
+// settles such ties, else the two would swap places from scan to scan.
+func claudeSortNodes(ns []*provider.SessionNode) {
+	sort.Slice(ns, func(i, j int) bool {
+		if ns[i].Created != ns[j].Created {
+			return ns[i].Created > ns[j].Created
+		}
+		return ns[i].ID < ns[j].ID
+	})
 }
 
 func claudeNode(s *claudeSession, parent any, nowMS int64) *provider.SessionNode {
