@@ -970,3 +970,51 @@ func TestClaudeSubagentInheritsParentDir(t *testing.T) {
 		t.Fatalf("subagent dir: %s", jdump(a))
 	}
 }
+
+// Claude Code may hold a thread's user and assistant lines back and write
+// them minutes later, while its "api-request" lines arrive as they happen:
+// the requests after the last written line fill the chart as AI time until
+// the held-back lines land.
+func TestClaudePendingAPIRequestSegments(t *testing.T) {
+	p, dir := claudeFixture(t, "-home-x-proj")
+	req := func(ts string) string {
+		return fmt.Sprintf(`{"type":"api-request","sessionId":"s1","timestamp":%q,"querySource":"repl_main_thread"}`, ts)
+	}
+	path := filepath.Join(dir, "s1.jsonl")
+	head := []any{
+		userLine("u1", "2026-09-03T13:00:00.000Z", "go"),
+		req("2026-09-03T13:00:00.500Z"),
+		assistantLine("a1", "2026-09-03T13:00:05.000Z", "m1", 10, 5, 0, 0, textBlock),
+	}
+	pending := []any{req("2026-09-03T13:01:00.000Z"), req("2026-09-03T13:02:00.000Z"), req("2026-09-03T13:05:00.000Z")}
+	writeLines(t, path, append(head, pending...)...)
+	ms := func(ts string) int64 { return claudeParseMS(ts) }
+	ai := func() [][2]int64 {
+		segs, err := p.SessionSegments("s1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out [][2]int64
+		for _, g := range segs {
+			if g.Kind == provider.SegAI {
+				out = append(out, [2]int64{g.Start, g.End})
+			}
+		}
+		return out
+	}
+	want := [][2]int64{
+		{ms("2026-09-03T13:01:00.000Z"), ms("2026-09-03T13:02:00.000Z")},
+		{ms("2026-09-03T13:02:00.000Z"), ms("2026-09-03T13:05:00.000Z")},
+	}
+	if got := ai(); jdump(got) != jdump(want) {
+		t.Fatalf("pending spans %s, want %s", jdump(got), jdump(want))
+	}
+	time.Sleep(20 * time.Millisecond) // new mtime for the cache
+	writeLines(t, path, append(append(head, pending...),
+		assistantLine("a2", "2026-09-03T13:01:30.000Z", "m2", 10, 5, 0, 0, textBlock),
+		assistantLine("a3", "2026-09-03T13:05:10.000Z", "m3", 10, 5, 0, 0, textBlock),
+	)...)
+	if got := ai(); len(got) != 0 {
+		t.Fatalf("spans left after the lines were written: %s", jdump(got))
+	}
+}

@@ -89,6 +89,7 @@ const (
 	SegTool  = "tool"  // a tool ran
 	SegHuman = "human" // waiting for the human (question tool, plan approval)
 	SegSub   = "sub"   // waiting for a subagent
+	SegAI    = "ai"    // an AI request whose call is not recorded yet
 )
 
 // Seg is one span of the /api/calls "segs" payload. Spans of different kinds

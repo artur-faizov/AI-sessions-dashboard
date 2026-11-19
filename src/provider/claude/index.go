@@ -69,6 +69,11 @@ type claudeFile struct {
 	// continuedIn names the session Claude Code continued this one under;
 	// that transcript opens with a copy of this one's history.
 	continuedIn string
+	// apiReqs are the times of the file's "api-request" lines, one per API
+	// request the thread sent. Claude Code writes them as it goes but may
+	// hold the thread's user and assistant lines back for minutes and write
+	// them later in one go; until then they are the only trace of the calls.
+	apiReqs []int64
 }
 
 // --- raw JSON shapes ---
@@ -226,6 +231,11 @@ func parseClaudeFile(path string) *claudeFile {
 			continue
 		case "continued-in":
 			f.continuedIn = raw.ContinuedIn
+			continue
+		case "api-request":
+			if ts := claudeParseMS(raw.Timestamp); ts > 0 {
+				f.apiReqs = append(f.apiReqs, ts)
+			}
 			continue
 		case "user", "assistant":
 		default:
@@ -780,6 +790,35 @@ func (f *claudeFile) segments(nowMS int64) []provider.Seg {
 			if _, ok := starts[id]; ok {
 				add(id, nowMS, false, nil)
 			}
+		}
+	}
+	return append(segs, f.pendingSegs(nowMS)...)
+}
+
+// pendingSegs covers the time of API requests whose user and assistant lines
+// Claude Code has not written yet (see apiReqs): each request after the last
+// written line runs until the next one, the last until nowMS when the session
+// is live. They are AI spans with no call, so they show on the chart only and
+// go away once the held-back lines are written.
+func (f *claudeFile) pendingSegs(nowMS int64) []provider.Seg {
+	var reqs []int64
+	for _, t := range f.apiReqs {
+		if t > f.lastMS {
+			reqs = append(reqs, t)
+		}
+	}
+	sort.Slice(reqs, func(i, j int) bool { return reqs[i] < reqs[j] })
+	var segs []provider.Seg
+	for i, st := range reqs {
+		end := nowMS
+		if i+1 < len(reqs) {
+			end = reqs[i+1]
+		}
+		if end > st {
+			segs = append(segs, provider.Seg{
+				Kind: provider.SegAI, Start: st, End: end,
+				Name: "API request (transcript not written yet)", Run: i+1 == len(reqs),
+			})
 		}
 	}
 	return segs
