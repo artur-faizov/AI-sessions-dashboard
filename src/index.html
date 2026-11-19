@@ -1683,6 +1683,7 @@
         .segbar {
             display: flex;
             justify-content: flex-end;
+            align-items: center;
             gap: 16px;
             margin: 0 10px 4px;
             font-size: 11px;
@@ -2136,7 +2137,19 @@
 
         .ctxic {
             cursor: pointer;
-            margin-right: 4px
+            margin-right: 4px;
+            font-size: 15px
+        }
+
+        .ctxbtn {
+            border-color: var(--acc);
+            margin-right: auto;
+            padding: 2px 10px;
+            font-size: 12px
+        }
+
+        .ctxbtn b {
+            color: var(--acc)
         }
 
         .ctxic:hover {
@@ -3939,7 +3952,10 @@
             return `<div class="empty">${tr('calls.empty')}</div>`;
         }
         const kids = segsByCall(), found = visibleCallRows(calls, callFilter, c => when(c.time));
-        const vis = found.filter(r => callShown(calls[r.n - 1], kids));
+        // the first call always stays: it carries the context pie, and a
+        // subagent's first call is short and not human-triggered, so SEG_MIN
+        // would hide it
+        const vis = found.filter(r => r.n === 1 || callShown(calls[r.n - 1], kids));
         vis.forEach(r => {
             r.dur = stepDur(calls[r.n - 1]);
             r.tokeq = tokEqOf(r);
@@ -4346,10 +4362,18 @@
         refreshCalls();
     }
 
+    // ctxBtn is a prominent entry to the first call's context composition (the
+    // cached prefix: system prompt, tool schemas, instructions, skills…),
+    // at the left of the segbar.
+    function ctxBtn() {
+        if (!CALLS.length) return '';
+        return `<button class="fbtn ctxbtn" title="${esc(tr('ctx.btn.tip'))}" onclick="ctxCall(0)">🥧 ${tr('ctx.bar', {ctx: fmt(CALLS[0].ctx)})}</button>`;
+    }
+
     function segSwitch() {
         const segs = SEGS.some(x => x.mid);
-        if (!segs && !CALLS.some(c => c.dur > 0)) return '';
-        return `<div class="segbar">${segs ? `<label class="segsw" title="${tr('calls.seg.collapse.tip')}"><input type="checkbox"${SEG_COLLAPSED ? ' checked' : ''} onchange="segAll(this.checked)">${tr('calls.seg.collapse')}</label>` : ''}<label class="segsw" title="${tr('calls.seg.short.tip')}"><input type="checkbox"${SEG_MIN.on ? ' checked' : ''} onchange="segMinSet(this.checked, SEG_MIN.sec)">${tr('calls.seg.short')}<input type="number" class="segsec" min="0" step="1" value="${SEG_MIN.sec}" onclick="event.stopPropagation()" onchange="segMinSet(SEG_MIN.on, parseFloat(this.value))">${tr('calls.seg.short.unit')}</label></div>`;
+        if (!segs && !CALLS.some(c => c.dur > 0)) return CALLS.length ? `<div class="segbar">${ctxBtn()}</div>` : '';
+        return `<div class="segbar">${ctxBtn()}${segs ?`<label class="segsw" title="${tr('calls.seg.collapse.tip')}"><input type="checkbox"${SEG_COLLAPSED ? ' checked' : ''} onchange="segAll(this.checked)">${tr('calls.seg.collapse')}</label>` : ''}<label class="segsw" title="${tr('calls.seg.short.tip')}"><input type="checkbox"${SEG_MIN.on ? ' checked' : ''} onchange="segMinSet(this.checked, SEG_MIN.sec)">${tr('calls.seg.short')}<input type="number" class="segsec" min="0" step="1" value="${SEG_MIN.sec}" onclick="event.stopPropagation()" onchange="segMinSet(SEG_MIN.on, parseFloat(this.value))">${tr('calls.seg.short.unit')}</label></div>`;
     }
 
     function segOpen(i, ev) {
