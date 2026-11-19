@@ -20,7 +20,12 @@
     <a href="https://github.com/artur-faizov/AI-sessions-dashboard/blob/master/LICENSE.md">MIT License with the Commons Clause</a>:
     selling the software or its modifications is not allowed.
     Source: <a href="https://github.com/artur-faizov/AI-sessions-dashboard">github.com/artur-faizov/AI-sessions-dashboard</a>.</p>]]></description>
-  <change-notes><![CDATA[<p><b>3.2.3</b></p>
+  <change-notes><![CDATA[<p><b>3.2.4</b></p>
+    <ul>
+      <li>Claude Code: time when Claude Code has not written a call to the transcript yet shows as AI time on the chart instead of unknown</li>
+      <li>Version moved from the settings menu to the top-left corner</li>
+    </ul>
+    <p><b>3.2.3</b></p>
     <ul>
       <li>"Context prefix" button next to the "hide shorter than" switch: opens what the first call's context was made of (system prompt, tool and MCP schemas, skills, instructions)</li>
       <li>The first call stays in the calls list even when it is shorter than the "hide shorter than" limit, so subagents show their context too</li>

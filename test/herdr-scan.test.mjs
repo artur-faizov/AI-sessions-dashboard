@@ -49,7 +49,10 @@ async function fixture() {
     L({ type: "response_item", timestamp: iso(t + 200), payload: { type: "message", role: "user", content: [{ type: "input_text", text: "codex prompt\nmore" }] } }) +
     L({ type: "response_item", timestamp: iso(t + 300), payload: { type: "function_call", name: "shell" } }) +
     L({ type: "token_usage_record", timestamp: iso(t + 900), payload: { thread_id: "th1", response_id: "a", usage: { input_tokens: 777 } } }));
-  return { home, main, agent, roll, t };
+  // the scanner keys files by forward-slash paths (it normalizes the home
+  // dir), so on Windows the fixture paths must be in that form too
+  const fwd = (p) => p.replace(/\\/g, "/");
+  return { home, main: fwd(main), agent: fwd(agent), roll: fwd(roll), t };
 }
 
 test("scan: sessions, subagents, codex, ctx, titles, beats", async () => {

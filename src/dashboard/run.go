@@ -15,7 +15,7 @@ import (
 	"github.com/artur-faizov/token-monitor/src/provider"
 )
 
-const Version = "3.2.3"
+const Version = "3.2.4"
 
 const defaultPort = 8787
 
